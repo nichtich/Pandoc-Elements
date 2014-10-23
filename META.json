@@ -1,0 +1,66 @@
+{
+   "abstract" : "utility functions to create Pandoc documents",
+   "author" : [
+      "Jakob Voß <jakob.voss@gbv.de>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "Dist::Milla version v1.0.8, Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "Pandoc-Elements",
+   "no_index" : {
+      "directory" : [
+         "t",
+         "xt",
+         "inc",
+         "share",
+         "eg",
+         "examples"
+      ]
+   },
+   "prereqs" : {
+      "configure" : {
+         "requires" : {
+            "Module::Build::Tiny" : "0.038"
+         }
+      },
+      "develop" : {
+         "requires" : {
+            "Dist::Milla" : "v1.0.8",
+            "Test::Pod" : "1.41"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "perl" : "5.008005"
+         }
+      },
+      "test" : {
+         "requires" : {
+            "Test::More" : "0.96"
+         }
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/nichtich/Pandoc-Elements/issues"
+      },
+      "homepage" : "https://github.com/nichtich/Pandoc-Elements",
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/nichtich/Pandoc-Elements.git",
+         "web" : "https://github.com/nichtich/Pandoc-Elements"
+      }
+   },
+   "version" : "0.01",
+   "x_contributors" : [
+      "Jakob Voss <voss@gbv.de>"
+   ]
+}
+
