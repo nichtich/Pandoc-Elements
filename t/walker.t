@@ -1,9 +1,14 @@
 use strict;
 use Test::More;
 use Pandoc::Walker;
-use Pandoc::Elements qw(Str Space);
+use Pandoc::Elements qw(Str Space from_json);
 
-my $ast = load();
+sub load {
+    local (@ARGV, $/) = ('t/documents/example.json'); 
+    from_json(<>);
+}
+
+my $doc = load();
 
 my $LINKS = [qw(
     http://example.org/
@@ -12,46 +17,40 @@ my $LINKS = [qw(
 )];
 
 sub urls {
-    my ($key, $value) = @_;
-    return unless ($key eq 'Link' or $key eq 'Image');
+    my ($name, $value) = ($_[0]->name, $_[0]->value);
+    return unless ($name eq 'Link' or $name eq 'Image');
     return $value->[1][0];
 };
 
-my $links = query $ast, \&urls;
+my $links = query $doc, \&urls;
 is_deeply $links, $LINKS, 'query';
 
 $links = [ ];
-walk $ast, sub {
-    my ($key, $value) = @_;
-    return unless ($key eq 'Link' or $key eq 'Image');
+walk $doc, sub {
+    my ($name, $value) = ($_[0]->name, $_[0]->value);
+    return unless ($name eq 'Link' or $name eq 'Image');
     push @$links, $value->[1][0];
 };
 
 is_deeply $links, $LINKS, 'walk';
 
-transform $ast, sub {
-    my ($key, $value) = @_;
-    return ($key eq 'Link' ? [] : ());
+transform $doc, sub {
+    return ($_[0]->name eq 'Link' ? [] : ());
 };
 
-is_deeply query($ast,\&urls), ['image.png'], 'transform, remove elements';
+is_deeply query($doc,\&urls), ['image.png'], 'transform, remove elements';
 
-$ast = load();
-transform $ast, sub {
-    my ($key, $value) = @_;
-    return unless $key eq 'Link';
-    return [ Str "<", @{$value->[0]}, Str ">" ];
+$doc = load();
+transform $doc, sub {
+    my ($e) = @_;
+    return unless $e->name eq 'Link';
+    my $a = [ Str "<", @{$e->value->[0]}, Str ">" ];
+    return $a;
 };
 
-my $header = $ast->[1][0]->{c}->[2];
+my $header = $doc->value->[0]->value->[2];
 is_deeply $header, [ 
     Str 'Example', Space, Str '<', Str 'http://example.org/', Str '>'
 ], 'transform, multiple elements';
 
 done_testing;
-
-sub load {
-    use JSON;
-    local (@ARGV, $/) = ('t/documents/example.json'); 
-    decode_json(<>);
-}

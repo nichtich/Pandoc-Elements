@@ -1,5 +1,5 @@
 {
-   "abstract" : "utility functions to create and process Pandoc documents",
+   "abstract" : "create and process Pandoc documents",
    "author" : [
       "Jakob Voß"
    ],
@@ -37,13 +37,14 @@
       },
       "runtime" : {
          "requires" : {
+            "JSON" : "0",
             "perl" : "5.008005"
          }
       },
       "test" : {
          "requires" : {
-            "JSON" : "0",
-            "Test::More" : "0.96"
+            "Test::More" : "0.96",
+            "Test::Output" : "0"
          }
       }
    },
@@ -59,7 +60,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.02",
+   "version" : "0.03",
    "x_contributors" : [
       "Jakob Voss <voss@gbv.de>"
    ]

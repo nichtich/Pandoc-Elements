@@ -1,6 +1,6 @@
 # NAME
 
-Pandoc::Elements - utility functions to create and process Pandoc documents
+Pandoc::Elements - create and process Pandoc documents
 
 # STATUS
 
@@ -15,12 +15,12 @@ The output of this script `hello.pl`
     use Pandoc::Elements;
     use JSON;
 
-    print encode_json Document { 
-        title => MetaInlines [ Str "Greeting" ] 
-      }, [
-        Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
-        Para [ Str 'Hello, world!' ],
-      ];
+    print Document({ 
+            title => MetaInlines [ Str "Greeting" ] 
+        }, [
+            Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
+            Para [ Str 'Hello, world!' ],
+        ])->to_json;
 
 can be converted for instance to HTML with via
 
@@ -29,7 +29,7 @@ can be converted for instance to HTML with via
 an equivalent Pandoc Markdown document would be
 
     % Greeting
-    # Hello {.top}
+    # Gruß {.de}
     Hello, world!
 
 # DESCRIPTION
@@ -37,29 +37,124 @@ an equivalent Pandoc Markdown document would be
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of [Pandoc](http://johnmacfarlane.net/pandoc/) documents. The resulting
 data structure can be processed by pandoc to be converted an many other
-document formats, such as HTML, LaTeX, ODT, and ePUB. The module
-[Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) contains functions for processing the AST in Perl.
+document formats, such as HTML, LaTeX, ODT, and ePUB. 
 
-A future versions of this module may upgrade the data structures to blessed
-objects, so better encode JSON as following:
+See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the AST
+in Perl.
 
-    JSON->new->utf8->allow_blessed->convert_blessed->encode($document);
+# ELEMENT METHODS 
+
+AST elements are encoded as Perl data structures equivalent to the JSON
+structure, emitted with pandoc output format `json`. All elements are blessed
+objects in the `Pandoc::AST::` namespace, for instance `Pandoc::AST::Para`
+for paragraph elements. 
+
+## json
+
+Return the element as JSON encoded string. The following are equivalent:
+
+    $element->to_json;
+    JSON->new->utf8->convert_blessed->encode($element);
+
+## is\_block
+
+True if the element is a [Block element](#block-elements)
+
+## is\_inline
+
+True if the element is an inline [Inline element](#inline-elements)
+
+## is\_meta
+
+True if the element is a [Metadata element](#metadata-elements)
+
+## is\_document
+
+True if the element is a [Document element](#document-element)
 
 # FUNCTIONS
 
 ## BLOCK ELEMENTS
 
-BlockQuote, BulletList, CodeBlock, DefinitionList, Div, Header, HorizontalRule,
-Null, OrderedList, Para, Plain, RawBlock, Table
+### BlockQuote
+
+### BulletList
+
+### CodeBlock
+
+### DefinitionList
+
+### Div
+
+### Header
+
+### HorizontalRule
+
+### Null
+
+### OrderedList
+
+### Para
+
+### Plain
+
+### RawBlock
+
+### Table
 
 ## INLINE ELEMENTS
 
-Cite, Code, Emph, Image, LineBreak, Link, Math, Note, Quoted, RawInline,
-SmallCaps, Space, Span, Str, Strikeout, Strong, Subscript, Superscript
+### Cite
+
+### Code
+
+### Emph
+
+### Image
+
+### LineBreak
+
+### Link
+
+### Math
+
+### Note
+
+### Quoted
+
+### RawInline
+
+### SmallCaps
+
+### Space
+
+### Span
+
+### Str
+
+### Strikeout
+
+### Strong
+
+### Subscript
+
+### Superscript
 
 ## METADATA ELEMENTS
 
-MetaBlocks, MetaBool, MetaInlines, MetaList, MetaMap, MetaString
+### MetaBlocks
+
+### MetaBool
+
+### MetaInlines
+
+### MetaList
+
+### MetaMap
+
+### MetaString
+
+## DOCUMENT ELEMENT
 
 ### Document
 
@@ -67,15 +162,14 @@ Root element, consisting of metadata hash and document element array.
 
 ## ADDITIONAL FUNCTIONS
 
-### attributes( { key => $value, ... } )
+### attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
 key-value pairs.
 
 ### element( $name => $content )
 
-Create a Pandoc document element. A future version of this module may return a
-blessed object This function is only exported on request.
+Create a Pandoc document element. This function is only exported on request.
 
 # AUTHOR
 
@@ -92,6 +186,3 @@ it under the same terms as Perl itself.
 
 See [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 for the original definition of Pandoc document data structure in Haskell.
-
-See [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for a module to implement [pandoc
-filters](http://johnmacfarlane.net/pandoc/scripting.html).

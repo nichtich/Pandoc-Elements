@@ -1,9 +1,10 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
-    - new method from_json for parsing
-    - added inheritance and is_... methods
-    - use blessed objects with method to_json
+    - use blessed objects
+    - new methods to_json and from_json
+    - added Pandoc::Filter
+    - changed calling syntax of Pandoc::Walker
 
 0.02  2014-10-26 10:34:37 CET
     - added Pandoc::Walker

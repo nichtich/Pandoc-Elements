@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.008_005;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our %ELEMENTS = (
     Plain => [ Block => 1 ],
@@ -52,7 +52,7 @@ use JSON qw(decode_json);
 use Scalar::Util qw(reftype);
 use parent 'Exporter';
 our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
-our @EXPORT_OK = (@EXPORT, 'element');
+our @EXPORT_OK = (@EXPORT, 'element', 'from_json');
 
 foreach my $name (qw(Inline Block Meta Document)) {
     no strict 'refs';
@@ -78,6 +78,7 @@ foreach my $name (keys %ELEMENTS) {
 sub element {
     my $name = shift;
     no strict 'refs';
+    croak "undefined element" unless defined $name;
     croak "unknown element $name" unless $ELEMENTS{$name};
     &$name(@_);
 }
@@ -96,11 +97,17 @@ sub element {
         }
         return;
     }    
+    sub name { $_[0]->{t} }
+    sub value { $_[0]->{c} }
     sub is_document { $_[0]->isa('Pandoc::AST::Document') }
     sub is_block    { $_[0]->isa('Pandoc::AST::Block') }
     sub is_inline   { $_[0]->isa('Pandoc::AST::Inline') }
     sub is_meta     { $_[0]->isa('Pandoc::AST::Meta') }
 }
+
+sub Pandoc::AST::Document::name { 'Document' }
+sub Pandoc::AST::Document::meta { $_[0]->[0]->{unMeta} }
+sub Pandoc::AST::Document::value { $_[0]->[1] }
 
 sub Document($$) {
    @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
@@ -120,15 +127,30 @@ sub attributes($) {
     ];
 }
 
+use Pandoc::Walker qw(walk);
+
 sub from_json {
     shift if $_[0] =~ /^Pandoc::/;
-    my $ast = decode_json($_[0]);
-    return unless reftype $ast;
-    if (reftype $ast eq 'ARRAY') {
-        Document( $ast->[0]->{unMeta}, $ast->[1] );
-    } elsif (reftype $ast eq 'HASH') {
-        element( $ast->{t}, $ast->{c} );
+
+    my $ast = eval { decode_json($_[0]) };
+    if ($@) {
+        $@ =~ s/ at [^ ]+Elements\.pm line \d+//;
+        chomp $@;
+        croak $@;
     }
+    return unless reftype $ast;
+
+    if (reftype $ast eq 'ARRAY') {
+        $ast = Document( $ast->[0]->{unMeta}, $ast->[1] );
+    } elsif (reftype $ast eq 'HASH') {
+        $ast = element( $ast->{t}, $ast->{c} );
+    }
+
+    walk $ast, sub {
+        bless $_[0], 'Pandoc::AST::'.$_[0]->{t};
+    };
+
+    return $ast;
 }
 
 1;
@@ -138,7 +160,7 @@ __END__
 
 =head1 NAME
 
-Pandoc::Elements - utility functions to create and process Pandoc documents
+Pandoc::Elements - create and process Pandoc documents
 
 =begin markdown
 
@@ -158,11 +180,11 @@ The output of this script C<hello.pl>
     use JSON;
 
     print Document({ 
-        title => MetaInlines [ Str "Greeting" ] 
-      }, [
-        Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
-        Para [ Str 'Hello, world!' ],
-      ])->to_json;
+            title => MetaInlines [ Str "Greeting" ] 
+        }, [
+            Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
+            Para [ Str 'Hello, world!' ],
+        ])->to_json;
 
 can be converted for instance to HTML with via
 
@@ -179,8 +201,10 @@ an equivalent Pandoc Markdown document would be
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of L<Pandoc|http://johnmacfarlane.net/pandoc/> documents. The resulting
 data structure can be processed by pandoc to be converted an many other
-document formats, such as HTML, LaTeX, ODT, and ePUB. The module
-L<Pandoc::Walker> contains functions for processing the AST in Perl.
+document formats, such as HTML, LaTeX, ODT, and ePUB. 
+
+See also module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the AST
+in Perl.
 
 =head1 ELEMENT METHODS 
 
@@ -326,8 +350,5 @@ it under the same terms as Perl itself.
 
 See L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
 for the original definition of Pandoc document data structure in Haskell.
-
-See L<Pandoc::Walker> for a module to implement L<pandoc
-filters|http://johnmacfarlane.net/pandoc/scripting.html>.
 
 =cut

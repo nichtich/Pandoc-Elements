@@ -2,9 +2,9 @@ package Pandoc::Walker;
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
-use Scalar::Util qw(reftype);
+use Scalar::Util qw(reftype blessed);
 use parent 'Exporter';
 our @EXPORT = qw(walk query transform);
 
@@ -18,9 +18,10 @@ sub transform {
         my $i = 0;
         foreach my $item (@$ast) {
             if ((reftype $item || '') eq 'HASH' and $item->{t}) {
-                my $res = $action->($item->{t}, $item->{c}, @_);
+                my $res = $action->($item, @_);
                 if (defined $res) {
-                    my @elements = map { transform($_, $action, @_) } @$res;
+                    my @elements = map { transform($_, $action, @_) } 
+                        (reftype $res || '') eq 'ARRAY' ? @$res : $res;
                     splice @$ast, $i, $i+1, @elements;
                     $i += scalar @elements;
                     next;
@@ -30,21 +31,25 @@ sub transform {
             $i++;
         }
     } elsif ($reftype eq 'HASH') {
-        foreach (keys %$ast) {
-            transform($ast->{$_}, $action, @_);
-        }
+        # TODO: directly transform an element. 
+        # if (blessed $ast and $ast->isa('Pandoc::AST::Element')) {
+        # } else {
+            foreach (keys %$ast) {
+                transform($ast->{$_}, $action, @_);
+            }
+        # }
     }
 
     $ast;
 }
 
-sub walk(@) {
+sub walk(@) { ## no critic
     my ($ast, $query, @arguments) = @_;
 
     transform( $ast, sub { $query->(@_); return }, @arguments );
 }
 
-sub query(@) {
+sub query(@) { ## no critic
     my ($ast, $query, @arguments) = @_;
 
     my $list = [];
@@ -70,30 +75,29 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
 
     # extract all links
     my $links = query $ast, sub {
-        my ($key, $value) = @_;
-        return unless ($key eq 'Link' or $key eq 'Image');
+        my ($name, $value) = ($_[0]->name, $_[0]->value);
+        return unless ($name eq 'Link' or $name eq 'Image');
         return $value->[1][0];
     };
 
     # print all links
     walk $ast, sub {
-        my ($key, $value) = @_;
+        my ($name, $value) = ($_[0]->name, $_[0]->value);
         return unless ($key eq 'Link' or $key eq 'Image');
         print $value->[1][0];
     };
 
     # remove of all links
     transform $ast, sub {
-        my ($key, $value) = @_;
-        return ($key eq 'Link' ? [] : ());
+        return ($_[0]->name eq 'Link' ? [] : ());
     };
 
     # replace all links by their link text angle brackets
     use Pandoc::Elements 'Str';
     transform $ast, sub {
-        my ($key, $value) = @_;
-        return unless $key eq 'Link';
-        return (Str "<", $value->[0], Str ">");
+        my $elem = $_[0];
+        return unless $elem->name eq 'Link';
+        return (Str "<", $elem->value->[0], Str ">");
     };
 
 =head1 DESCRIPTION
