@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - refactoring
 
 0.03  2014-10-26 20:52:58 CET
     - use blessed objects

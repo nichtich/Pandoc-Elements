@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.008_005;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 our %ELEMENTS = (
     Plain => [ Block => 1 ],
@@ -50,23 +50,21 @@ our %ELEMENTS = (
 use Carp;
 use JSON qw(decode_json);
 use Scalar::Util qw(reftype);
+use Pandoc::Walker qw(walk);
+
 use parent 'Exporter';
 our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
 our @EXPORT_OK = (@EXPORT, 'element', 'from_json');
 
-foreach my $name (qw(Inline Block Meta Document)) {
-    no strict 'refs';
-    eval "package Pandoc::AST::$name; our \@ISA=qw(Pandoc::AST::Element)";
-}
-
+# create constructor functions
 foreach my $name (keys %ELEMENTS) {
-    no strict 'refs';
+    no strict 'refs'; ## no critic
 
     my $parent  = $ELEMENTS{$name}->[0];
     my $numargs = $ELEMENTS{$name}->[1];
-    my $class = "Pandoc::AST::$name";
+    my $class = "Pandoc::Document::$name";
 
-    eval "package $class; our \@ISA = qw(Pandoc::AST::$parent);";
+    eval "package $class; our \@ISA = qw(Pandoc::Document::$parent);";
 
     *{__PACKAGE__."::$name"} = Scalar::Util::set_prototype( sub {
         croak "$name expects $numargs arguments, but given " . scalar @_
@@ -83,36 +81,12 @@ sub element {
     &$name(@_);
 }
 
-{
-    package Pandoc::AST::Element;
-    use JSON ();
-    use Scalar::Util qw(reftype);
-    sub to_json { JSON->new->utf8->convert_blessed->encode($_[0]) }
-    sub TO_JSON {
-        return unless reftype $_[0];
-        if (reftype $_[0] eq 'ARRAY') {
-            return  [ @{$_[0]} ] ;
-        } elsif (reftype $_[0] eq 'HASH') {
-            return  { %{$_[0]} } ;
-        }
-        return;
-    }    
-    sub name { $_[0]->{t} }
-    sub value { $_[0]->{c} }
-    sub is_document { $_[0]->isa('Pandoc::AST::Document') }
-    sub is_block    { $_[0]->isa('Pandoc::AST::Block') }
-    sub is_inline   { $_[0]->isa('Pandoc::AST::Inline') }
-    sub is_meta     { $_[0]->isa('Pandoc::AST::Meta') }
-}
-
-sub Pandoc::AST::Document::name { 'Document' }
-sub Pandoc::AST::Document::meta { $_[0]->[0]->{unMeta} }
-sub Pandoc::AST::Document::value { $_[0]->[1] }
-
 sub Document($$) {
    @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
-   return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::AST::Document';
+   return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::Document';
 }
+
+# additional functions
 
 sub attributes($) {
     my ($attrs) = @_;
@@ -126,8 +100,6 @@ sub attributes($) {
         ]
     ];
 }
-
-use Pandoc::Walker qw(walk);
 
 sub from_json {
     shift if $_[0] =~ /^Pandoc::/;
@@ -147,11 +119,66 @@ sub from_json {
     }
 
     walk $ast, sub {
-        bless $_[0], 'Pandoc::AST::'.$_[0]->{t};
+        bless $_[0], 'Pandoc::Document::'.$_[0]->{t};
     };
 
     return $ast;
 }
+
+# document element packages
+
+{
+    package Pandoc::Document;
+    use strict;
+    our $VERSION = '0.04';
+    our @ISA = ('Pandoc::Document::Element');
+    sub TO_JSON { [ @{$_[0]} ] }
+    sub name { 'Document' }
+    sub meta { $_[0]->[0]->{unMeta} }
+    sub value { $_[0]->[1] }
+    sub is_document { 1 }
+}
+
+{
+    package Pandoc::Document::Element;
+    use strict;
+    use warnings;
+    our $VERSION = $Pandoc::Document::VERSION;
+    use JSON ();
+    use Scalar::Util qw(reftype);
+    sub to_json { 
+        JSON->new->utf8->convert_blessed->encode($_[0])
+    }
+    sub TO_JSON { return { %{$_[0]} } }    
+    sub name        { $_[0]->{t} }
+    sub value       { $_[0]->{c} }
+    sub is_document { 0 }
+    sub is_block    { 0 }
+    sub is_inline   { 0 }
+    sub is_meta     { 0 }
+}
+
+{
+    package Pandoc::Document::Block;
+    our $VERSION = $PANDOC::Document::VERSION;
+    our @ISA = ('Pandoc::Document::Element');
+    sub is_block { 1 }
+}
+
+{
+    package Pandoc::Document::Inline;
+    our $VERSION = $PANDOC::Document::VERSION;
+    our @ISA = ('Pandoc::Document::Element');
+    sub is_inline { 1 }
+}
+
+{
+    package Pandoc::Document::Meta;
+    our $VERSION = $PANDOC::Document::VERSION;
+    our @ISA = ('Pandoc::Document::Element');
+    sub is_meta { 1 }
+}
+
 
 1;
 __END__
@@ -206,12 +233,27 @@ document formats, such as HTML, LaTeX, ODT, and ePUB.
 See also module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the AST
 in Perl.
 
-=head1 ELEMENT METHODS 
+=head2 FUNCTIONS
+
+In addition to constructor functions for each document element, the following
+functions are exported.
+
+=head3 attributes { key => $value, ... }
+
+Maps a hash reference into an attributes list with id, classes, and ordered
+key-value pairs.
+
+=head3 element( $name => $content )
+
+Create a Pandoc document element. This function is only exported on request.
+
+=head1 ELEMENTS 
 
 AST elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format C<json>. All elements are blessed
-objects in the C<Pandoc::AST::> namespace, for instance C<Pandoc::AST::Para>
-for paragraph elements. 
+objects that provide the following methods:
+
+=head2 ELEMENT METHODS
 
 =head2 json
 
@@ -219,6 +261,14 @@ Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
+
+=head2 name
+
+Return the name of the element, e.g. "Para"
+
+=head2 value
+
+Return the fFull value of the element as array reference.
 
 =head2 is_block
 
@@ -235,8 +285,6 @@ True if the element is a L<Metadata element|/METADATA ELEMENTS>
 =head2 is_document
 
 True if the element is a L<Document element|/DOCUMENT ELEMENT>
-
-=head1 FUNCTIONS
 
 =head2 BLOCK ELEMENTS
 
@@ -324,31 +372,19 @@ True if the element is a L<Document element|/DOCUMENT ELEMENT>
 
 Root element, consisting of metadata hash and document element array.
 
-=head2 ADDITIONAL FUNCTIONS
+=head1 SEE ALSO
 
-=head3 attributes { key => $value, ... }
-
-Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs.
-
-=head3 element( $name => $content )
-
-Create a Pandoc document element. This function is only exported on request.
-
-=head1 AUTHOR
-
-Jakob Voß E<lt>jakob.voss@gbv.deE<gt>
+See L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
+for the original definition of Pandoc document data structure in Haskell.
 
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This library is free software; you can redistribute it and/or modify it under
+the GNU General Public License as published by the Free Software Foundation;
+either version 2, or (at your option) any later version,
 
-=head1 SEE ALSO
-
-See L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
-for the original definition of Pandoc document data structure in Haskell.
+This module is heavily based on Pandoc by John MacFarlane.
 
 =cut

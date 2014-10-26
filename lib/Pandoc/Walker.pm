@@ -32,7 +32,7 @@ sub transform {
         }
     } elsif ($reftype eq 'HASH') {
         # TODO: directly transform an element. 
-        # if (blessed $ast and $ast->isa('Pandoc::AST::Element')) {
+        # if (blessed $ast and $ast->isa('Pandoc::Elements::Element')) {
         # } else {
             foreach (keys %$ast) {
                 transform($ast->{$_}, $action, @_);

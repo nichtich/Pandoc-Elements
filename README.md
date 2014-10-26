@@ -42,12 +42,27 @@ document formats, such as HTML, LaTeX, ODT, and ePUB.
 See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the AST
 in Perl.
 
-# ELEMENT METHODS 
+## FUNCTIONS
+
+In addition to constructor functions for each document element, the following
+functions are exported.
+
+### attributes { key => $value, ... }
+
+Maps a hash reference into an attributes list with id, classes, and ordered
+key-value pairs.
+
+### element( $name => $content )
+
+Create a Pandoc document element. This function is only exported on request.
+
+# ELEMENTS 
 
 AST elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
-objects in the `Pandoc::AST::` namespace, for instance `Pandoc::AST::Para`
-for paragraph elements. 
+objects that provide the following methods:
+
+## ELEMENT METHODS
 
 ## json
 
@@ -55,6 +70,14 @@ Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
+
+## name
+
+Return the name of the element, e.g. "Para"
+
+## value
+
+Return the fFull value of the element as array reference.
 
 ## is\_block
 
@@ -71,8 +94,6 @@ True if the element is a [Metadata element](#metadata-elements)
 ## is\_document
 
 True if the element is a [Document element](#document-element)
-
-# FUNCTIONS
 
 ## BLOCK ELEMENTS
 
@@ -160,29 +181,17 @@ True if the element is a [Document element](#document-element)
 
 Root element, consisting of metadata hash and document element array.
 
-## ADDITIONAL FUNCTIONS
+# SEE ALSO
 
-### attributes { key => $value, ... }
-
-Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs.
-
-### element( $name => $content )
-
-Create a Pandoc document element. This function is only exported on request.
-
-# AUTHOR
-
-Jakob Voß <jakob.voss@gbv.de>
+See [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
+for the original definition of Pandoc document data structure in Haskell.
 
 # COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This library is free software; you can redistribute it and/or modify it under
+the GNU General Public License as published by the Free Software Foundation;
+either version 2, or (at your option) any later version,
 
-# SEE ALSO
-
-See [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
-for the original definition of Pandoc document data structure in Haskell.
+This module is heavily based on Pandoc by John MacFarlane.

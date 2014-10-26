@@ -4,9 +4,9 @@
       "Jakob Voß"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Milla version v1.0.8, Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Dist::Milla version v1.0.8, Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.141520",
    "license" : [
-      "perl_5"
+      "gpl_2"
    ],
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -26,7 +26,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "Module::Build::Tiny" : "0.038"
+            "Module::Build::Tiny" : "0.039"
          }
       },
       "develop" : {
@@ -60,7 +60,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.03",
+   "version" : "0.04",
    "x_contributors" : [
       "Jakob Voss <voss@gbv.de>"
    ]
