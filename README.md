@@ -2,6 +2,12 @@
 
 Pandoc::Elements - utility functions to create and process Pandoc documents
 
+# STATUS
+
+[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.png)](https://travis-ci.org/nichtich/Pandoc-Elements)
+[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.png)](https://coveralls.io/r/nichtich/Pandoc-Elements)
+[![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
+
 # SYNOPSIS
 
 The output of this script `hello.pl`

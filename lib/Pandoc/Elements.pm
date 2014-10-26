@@ -88,6 +88,17 @@ __END__
 
 Pandoc::Elements - utility functions to create and process Pandoc documents
 
+=begin markdown
+
+# STATUS
+
+[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.png)](https://travis-ci.org/nichtich/Pandoc-Elements)
+[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.png)](https://coveralls.io/r/nichtich/Pandoc-Elements)
+[![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
+
+=end markdown
+
+
 =head1 SYNOPSIS
 
 The output of this script C<hello.pl>
