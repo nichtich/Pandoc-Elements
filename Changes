@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.03  2014-10-26 20:52:58 CET
     - use blessed objects
     - new methods to_json and from_json
     - added Pandoc::Filter
