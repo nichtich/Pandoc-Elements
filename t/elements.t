@@ -16,7 +16,7 @@ is_deeply element( Code => attributes {}, 'x' ),
 eval { element ( Foo => 'bar' ) }; ok $@, 'unknown element';
 eval { element ( Code => 'x' ) }; ok $@, 'wrong number of arguments';
 
-is_deeply decode_json(Str('今日は')->json), 
-    { t => 'Str', c => '今日は' }, 'method json';
+is_deeply decode_json(Str('今日は')->to_json), 
+    { t => 'Str', c => '今日は' }, 'method to_json';
 
 done_testing;

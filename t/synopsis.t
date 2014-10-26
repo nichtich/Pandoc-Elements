@@ -38,8 +38,9 @@ ok $ast->[1]->[0]->is_block, 'is_block';
 
 my $json = JSON->new->utf8->convert_blessed->encode($ast);
 is_deeply decode_json($json), $ast, 'encode/decode JSON';
-$json = $ast->json;
-is_deeply decode_json($json), $ast, 'encode/decode JSON (method json)';
+is_deeply Pandoc::Elements::from_json($json), $ast, 'from_json';
+$json = $ast->to_json;
+is_deeply decode_json($json), $ast, 'to_json';
 
 done_testing;
 

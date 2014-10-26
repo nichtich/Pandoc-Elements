@@ -48,7 +48,8 @@ our %ELEMENTS = (
 );
 
 use Carp;
-use Scalar::Util;
+use JSON qw(decode_json);
+use Scalar::Util qw(reftype);
 use parent 'Exporter';
 our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
 our @EXPORT_OK = (@EXPORT, 'element');
@@ -83,9 +84,9 @@ sub element {
 
 {
     package Pandoc::AST::Element;
-    use JSON;
+    use JSON ();
     use Scalar::Util qw(reftype);
-    sub json { JSON->new->utf8->convert_blessed->encode($_[0]) }
+    sub to_json { JSON->new->utf8->convert_blessed->encode($_[0]) }
     sub TO_JSON {
         return unless reftype $_[0];
         if (reftype $_[0] eq 'ARRAY') {
@@ -119,6 +120,17 @@ sub attributes($) {
     ];
 }
 
+sub from_json {
+    shift if $_[0] =~ /^Pandoc::/;
+    my $ast = decode_json($_[0]);
+    return unless reftype $ast;
+    if (reftype $ast eq 'ARRAY') {
+        Document( $ast->[0]->{unMeta}, $ast->[1] );
+    } elsif (reftype $ast eq 'HASH') {
+        element( $ast->{t}, $ast->{c} );
+    }
+}
+
 1;
 __END__
 
@@ -150,7 +162,7 @@ The output of this script C<hello.pl>
       }, [
         Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
         Para [ Str 'Hello, world!' ],
-      ])->json;
+      ])->to_json;
 
 can be converted for instance to HTML with via
 
@@ -181,7 +193,7 @@ for paragraph elements.
 
 Return the element as JSON encoded string. The following are equivalent:
 
-    $element->json;
+    $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
 
 =head2 is_block
