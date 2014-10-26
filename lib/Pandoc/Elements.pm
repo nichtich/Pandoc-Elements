@@ -6,46 +6,45 @@ use 5.008_005;
 our $VERSION = '0.02';
 
 our %ELEMENTS = (
-    # Constructors for block elements
-    Plain => 1,
-    Para => 1,
-    CodeBlock => 2,
-    RawBlock => 2,
-    BlockQuote => 1,
-    OrderedList => 2,
-    BulletList => 1,
-    DefinitionList => 1,
-    Header => 3,
-    HorizontalRule => 0,
-    Table => 5,
-    Div => 2,
-    Null => 0,
-    # Constructors for inline elements
-    Str => 1,
-    Emph => 1,
-    Strong => 1,
-    Strikeout => 1,
-    Superscript => 1,
-    Subscript => 1,
-    SmallCaps => 1,
-    Quoted => 2,
-    Cite => 2,
-    Code => 2,
-    Space => 0,
-    LineBreak => 0,
-    Math => 2,
-    RawInline => 2,
-    Link => 2,
-    Image => 2,
-    Note => 1,
-    Span => 2,
-    # constructors for meta elements
-    MetaBool => 1,
-    MetaString => 1,
-    MetaMap => 1,
-    MetaInlines => 1,
-    MetaList => 1,
-    MetaBlocks => 1,
+    Plain => [ Block => 1 ],
+    Para => [ Block => 1 ],
+    CodeBlock => [ Block => 2 ],
+    RawBlock => [ Block => 2 ],
+    BlockQuote => [ Block => 1 ],
+    OrderedList => [ Block => 2 ],
+    BulletList => [ Block => 1 ],
+    DefinitionList => [ Block => 1 ],
+    Header => [ Block => 3 ],
+    HorizontalRule => [ Block => 0 ],
+    Table => [ Block => 5 ],
+    Div => [ Block => 2 ],
+    Null => [ Block => 0 ],
+
+    Str => [ Inline => 1 ],
+    Emph => [ Inline => 1 ],
+    Strong => [ Inline => 1 ],
+    Strikeout => [ Inline => 1 ],
+    Superscript => [ Inline => 1 ],
+    Subscript => [ Inline => 1 ],
+    SmallCaps => [ Inline => 1 ],
+    Quoted => [ Inline => 2 ],
+    Cite => [ Inline => 2 ],
+    Code => [ Inline => 2 ],
+    Space => [ Inline => 0 ],
+    LineBreak => [ Inline => 0 ],
+    Math => [ Inline => 2 ],
+    RawInline => [ Inline => 2 ],
+    Link => [ Inline => 2 ],
+    Image => [ Inline => 2 ],
+    Note => [ Inline => 1 ],
+    Span => [ Inline => 2 ],
+    
+    MetaBool => [ Meta => 1 ],
+    MetaString => [ Meta => 1 ],
+    MetaMap => [ Meta => 1 ],
+    MetaInlines => [ Meta => 1 ],
+    MetaList => [ Meta => 1 ],
+    MetaBlocks => [ Meta => 1 ],
 );
 
 use Carp;
@@ -54,12 +53,24 @@ use parent 'Exporter';
 our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
 our @EXPORT_OK = (@EXPORT, 'element');
 
-while (my ($name, $numargs) = each %ELEMENTS) {
+foreach my $name (qw(Inline Block Meta Document)) {
     no strict 'refs';
+    eval "package Pandoc::AST::$name; our \@ISA=qw(Pandoc::AST::Element)";
+}
+
+foreach my $name (keys %ELEMENTS) {
+    no strict 'refs';
+
+    my $parent  = $ELEMENTS{$name}->[0];
+    my $numargs = $ELEMENTS{$name}->[1];
+    my $class = "Pandoc::AST::$name";
+
+    eval "package $class; our \@ISA = qw(Pandoc::AST::$parent);";
+
     *{__PACKAGE__."::$name"} = Scalar::Util::set_prototype( sub {
         croak "$name expects $numargs arguments, but given " . scalar @_
             if @_ != $numargs;
-        return { t => $name, c => (@_ == 1 ? $_[0] : \@_) };
+        bless { t => $name, c => (@_ == 1 ? $_[0] : \@_) }, $class;
     }, '$' x $numargs );
 }
 
@@ -70,9 +81,29 @@ sub element {
     &$name(@_);
 }
 
+{
+    package Pandoc::AST::Element;
+    use JSON;
+    use Scalar::Util qw(reftype);
+    sub json { JSON->new->utf8->convert_blessed->encode($_[0]) }
+    sub TO_JSON {
+        return unless reftype $_[0];
+        if (reftype $_[0] eq 'ARRAY') {
+            return  [ @{$_[0]} ] ;
+        } elsif (reftype $_[0] eq 'HASH') {
+            return  { %{$_[0]} } ;
+        }
+        return;
+    }    
+    sub is_document { $_[0]->isa('Pandoc::AST::Document') }
+    sub is_block    { $_[0]->isa('Pandoc::AST::Block') }
+    sub is_inline   { $_[0]->isa('Pandoc::AST::Inline') }
+    sub is_meta     { $_[0]->isa('Pandoc::AST::Meta') }
+}
+
 sub Document($$) {
    @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
-   return [ { unMeta => $_[0] }, $_[1] ];
+   return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::AST::Document';
 }
 
 sub attributes($) {
@@ -107,7 +138,6 @@ Pandoc::Elements - utility functions to create and process Pandoc documents
 
 =end markdown
 
-
 =head1 SYNOPSIS
 
 The output of this script C<hello.pl>
@@ -115,12 +145,12 @@ The output of this script C<hello.pl>
     use Pandoc::Elements;
     use JSON;
 
-    print encode_json Document { 
+    print Document({ 
         title => MetaInlines [ Str "Greeting" ] 
       }, [
         Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
         Para [ Str 'Hello, world!' ],
-      ];
+      ])->json;
 
 can be converted for instance to HTML with via
 
@@ -129,7 +159,7 @@ can be converted for instance to HTML with via
 an equivalent Pandoc Markdown document would be
 
     % Greeting
-    # Hello {.top}
+    # Gruß {.de}
     Hello, world!
 
 =head1 DESCRIPTION
@@ -140,26 +170,119 @@ data structure can be processed by pandoc to be converted an many other
 document formats, such as HTML, LaTeX, ODT, and ePUB. The module
 L<Pandoc::Walker> contains functions for processing the AST in Perl.
 
-A future versions of this module may upgrade the data structures to blessed
-objects, so better encode JSON as following:
+=head1 ELEMENT METHODS 
 
-    JSON->new->utf8->allow_blessed->convert_blessed->encode($document);
+AST elements are encoded as Perl data structures equivalent to the JSON
+structure, emitted with pandoc output format C<json>. All elements are blessed
+objects in the C<Pandoc::AST::> namespace, for instance C<Pandoc::AST::Para>
+for paragraph elements. 
+
+=head2 json
+
+Return the element as JSON encoded string. The following are equivalent:
+
+    $element->json;
+    JSON->new->utf8->convert_blessed->encode($element);
+
+=head2 is_block
+
+True if the element is a L<Block element|/BLOCK ELEMENTS>
+
+=head2 is_inline
+
+True if the element is an inline L<Inline element|/INLINE ELEMENTS>
+
+=head2 is_meta
+
+True if the element is a L<Metadata element|/METADATA ELEMENTS>
+
+=head2 is_document
+
+True if the element is a L<Document element|/DOCUMENT ELEMENT>
 
 =head1 FUNCTIONS
 
 =head2 BLOCK ELEMENTS
 
-BlockQuote, BulletList, CodeBlock, DefinitionList, Div, Header, HorizontalRule,
-Null, OrderedList, Para, Plain, RawBlock, Table
+=head3 BlockQuote
+
+=head3 BulletList
+
+=head3 CodeBlock
+
+=head3 DefinitionList
+
+=head3 Div
+
+=head3 Header
+
+=head3 HorizontalRule
+
+=head3 Null
+
+=head3 OrderedList
+
+=head3 Para
+
+=head3 Plain
+
+=head3 RawBlock
+
+=head3 Table
 
 =head2 INLINE ELEMENTS
 
-Cite, Code, Emph, Image, LineBreak, Link, Math, Note, Quoted, RawInline,
-SmallCaps, Space, Span, Str, Strikeout, Strong, Subscript, Superscript
+=head3 Cite
+
+=head3 Code
+
+=head3 Emph
+
+=head3 Image
+
+=head3 LineBreak
+
+=head3 Link
+
+=head3 Math
+
+=head3 Note
+
+=head3 Quoted
+
+=head3 RawInline
+
+=head3 SmallCaps
+
+=head3 Space
+
+=head3 Span
+
+=head3 Str
+
+=head3 Strikeout
+
+=head3 Strong
+
+=head3 Subscript
+
+=head3 Superscript
 
 =head2 METADATA ELEMENTS
 
-MetaBlocks, MetaBool, MetaInlines, MetaList, MetaMap, MetaString
+=head3 MetaBlocks
+
+=head3 MetaBool
+
+=head3 MetaInlines
+
+=head3 MetaList
+
+=head3 MetaMap
+
+=head3 MetaString
+
+=head2 DOCUMENT ELEMENT
 
 =head3 Document
 
@@ -167,15 +290,14 @@ Root element, consisting of metadata hash and document element array.
 
 =head2 ADDITIONAL FUNCTIONS
 
-=head3 attributes( { key => $value, ... } )
+=head3 attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
 key-value pairs.
 
 =head3 element( $name => $content )
 
-Create a Pandoc document element. A future version of this module may return a
-blessed object This function is only exported on request.
+Create a Pandoc document element. This function is only exported on request.
 
 =head1 AUTHOR
 

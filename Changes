@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - added inheritance and is_... methods
+    - use blessed objects with method json
 
 0.02  2014-10-26 10:34:37 CET
     - added Pandoc::Walker
