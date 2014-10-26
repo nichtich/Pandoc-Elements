@@ -1,6 +1,6 @@
 # NAME
 
-Pandoc::Elements - utility functions to create Pandoc documents
+Pandoc::Elements - utility functions to create and process Pandoc documents
 
 # SYNOPSIS
 
@@ -28,10 +28,11 @@ an equivalent Pandoc Markdown document would be
 
 # DESCRIPTION
 
-Pandoc::Elements provides utility functions to create an abstract syntax trees
+Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of [Pandoc](http://johnmacfarlane.net/pandoc/) documents. The resulting
 data structure can be processed by pandoc to be converted an many other
-document formats, such as HTML, LaTeX, ODT, and ePUB. 
+document formats, such as HTML, LaTeX, ODT, and ePUB. The module
+[Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) contains functions for processing the AST in Perl.
 
 A future versions of this module may upgrade the data structures to blessed
 objects, so better encode JSON as following:
@@ -40,7 +41,7 @@ objects, so better encode JSON as following:
 
 # FUNCTIONS
 
-# BLOCK ELEMENTS
+## BLOCK ELEMENTS
 
 BlockQuote, BulletList, CodeBlock, DefinitionList, Div, Header, HorizontalRule,
 Null, OrderedList, Para, Plain, RawBlock, Table
@@ -54,11 +55,13 @@ SmallCaps, Space, Span, Str, Strikeout, Strong, Subscript, Superscript
 
 MetaBlocks, MetaBool, MetaInlines, MetaList, MetaMap, MetaString
 
-## Document
+### Document
 
 Root element, consisting of metadata hash and document element array.
 
-## attributes
+## ADDITIONAL FUNCTIONS
+
+### attributes
 
 Maps a hash reference into an attributes list with id, classes, and ordered
 key-value pairs.
@@ -79,5 +82,5 @@ it under the same terms as Perl itself.
 See [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 for the original definition of Pandoc document data structure in Haskell.
 
-See [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) for a module to implement [pandoc
+See [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for a module to implement [pandoc
 filters](http://johnmacfarlane.net/pandoc/scripting.html).

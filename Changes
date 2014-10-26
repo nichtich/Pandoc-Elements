@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - added Pandoc::Walker
 
 0.01  2014-10-23 21:34:25 CEST
-    - Initial release
+    - initial release
