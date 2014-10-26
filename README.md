@@ -67,10 +67,15 @@ Root element, consisting of metadata hash and document element array.
 
 ## ADDITIONAL FUNCTIONS
 
-### attributes
+### attributes( { key => $value, ... } )
 
 Maps a hash reference into an attributes list with id, classes, and ordered
 key-value pairs.
+
+### element( $name => $content )
+
+Create a Pandoc document element. A future version of this module may return a
+blessed object This function is only exported on request.
 
 # AUTHOR
 

@@ -1,7 +1,7 @@
 {
    "abstract" : "utility functions to create and process Pandoc documents",
    "author" : [
-      "Jakob Voß <jakob.voss@gbv.de>"
+      "Jakob Voß"
    ],
    "dynamic_config" : 0,
    "generated_by" : "Dist::Milla version v1.0.8, Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060",

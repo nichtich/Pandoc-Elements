@@ -1,5 +1,8 @@
 package Pandoc::Walker;
 use strict;
+use warnings;
+
+our $VERSION = '0.02';
 
 use Scalar::Util qw(reftype);
 use parent 'Exporter';
@@ -9,10 +12,12 @@ sub transform {
     my $ast    = shift;
     my $action = shift;
 
-    if (reftype $ast eq 'ARRAY') {
+    my $reftype = reftype($ast) || ''; 
+
+    if ($reftype eq 'ARRAY') {
         my $i = 0;
         foreach my $item (@$ast) {
-            if (reftype $item eq 'HASH' and $item->{t}) {
+            if ((reftype $item || '') eq 'HASH' and $item->{t}) {
                 my $res = $action->($item->{t}, $item->{c}, @_);
                 if (defined $res) {
                     my @elements = map { transform($_, $action, @_) } @$res;
@@ -24,7 +29,7 @@ sub transform {
             transform($item, $action, @_);
             $i++;
         }
-    } elsif (reftype $ast eq 'HASH') {
+    } elsif ($reftype eq 'HASH') {
         foreach (keys %$ast) {
             transform($ast->{$_}, $action, @_);
         }

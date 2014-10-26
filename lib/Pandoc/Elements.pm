@@ -1,7 +1,8 @@
 package Pandoc::Elements;
-
 use strict;
+use warnings;
 use 5.008_005;
+
 our $VERSION = '0.02';
 
 our %ELEMENTS = (
@@ -51,6 +52,7 @@ use Carp;
 use Scalar::Util;
 use parent 'Exporter';
 our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
+our @EXPORT_OK = (@EXPORT, 'element');
 
 while (my ($name, $numargs) = each %ELEMENTS) {
     no strict 'refs';
@@ -59,6 +61,13 @@ while (my ($name, $numargs) = each %ELEMENTS) {
             if @_ != $numargs;
         return { t => $name, c => (@_ == 1 ? $_[0] : \@_) };
     }, '$' x $numargs );
+}
+
+sub element {
+    my $name = shift;
+    no strict 'refs';
+    croak "unknown element $name" unless $ELEMENTS{$name};
+    &$name(@_);
 }
 
 sub Document($$) {
@@ -158,10 +167,15 @@ Root element, consisting of metadata hash and document element array.
 
 =head2 ADDITIONAL FUNCTIONS
 
-=head3 attributes
+=head3 attributes( { key => $value, ... } )
 
 Maps a hash reference into an attributes list with id, classes, and ordered
 key-value pairs.
+
+=head3 element( $name => $content )
+
+Create a Pandoc document element. A future version of this module may return a
+blessed object This function is only exported on request.
 
 =head1 AUTHOR
 
