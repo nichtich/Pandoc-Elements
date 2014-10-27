@@ -103,7 +103,25 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
 =head1 DESCRIPTION
 
 This module provides to helper functions to traverse the abstract syntax tree
-of a pandoc document.
+(AST) of a pandoc document (see L<Pandoc::Elements> for documentation of AST
+elements).
+
+Document elements are passed to action functions by reference, so I<don't shoot
+yourself in the foot> by trying to directly modify the element. Traversing a single
+element is not reliable neither, so put the element in an array reference if needed.
+For instance to replace links in headers only by their link text content:
+
+    transform $ast, sub {
+        my $header = shift;
+        return unless $header->name eq 'Header';
+        transform [$header], sub { # make an array
+            my $link = shift;
+            return unless $link->name eq 'Link';
+            return $e->content;    # is an array
+        };
+    };
+
+See also L<Pandoc::Filter> for an object oriented interface to transformations.
 
 =head1 FUNCTIONS
 
@@ -125,23 +143,15 @@ keep it (if the action returns C<undef>), remove it (if it returns an empty
 array reference), or replace it with one or more elements (returned by array
 reference or as single value).
 
-=head1 AUTHOR
-
-Jakob Voß E<lt>jakob.voss@gbv.deE<gt>
-
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+GNU General Public License, Version 2
+
+This module is heavily based on Pandoc by John MacFarlane.
 
 =head1 SEE ALSO
-
-L<Pandoc::Elements> for utility functions to build abstract syntax trees of
-pandoc documents.
-
-L<Pandoc::Filter> for a higher level application.
 
 Haskell module L<Text.Pandoc.Walk|http://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Walk.html> for the original.
 

@@ -32,15 +32,15 @@ an equivalent Pandoc Markdown document would be
     # Gruß {.de}
     Hello, world!
 
+See module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the abstract
+syntax tree of pandoc documents in Perl.
+
 # DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of [Pandoc](http://johnmacfarlane.net/pandoc/) documents. The resulting
-data structure can be processed by pandoc to be converted an many other
-document formats, such as HTML, LaTeX, ODT, and ePUB. 
-
-See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the AST
-in Perl.
+data structure can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats,
+such as HTML, LaTeX, ODT, and ePUB. 
 
 ## FUNCTIONS
 
@@ -60,47 +60,49 @@ Create a Pandoc document element. This function is only exported on request.
 
 AST elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
-objects that provide the following methods. Additional accessor methods for
-particular elements are listed below at each element.
+objects that provide the following element methods and additional accessor
+methods specific to each element.
 
 ## ELEMENT METHODS
 
-## json
+### json
 
 Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
 
-## name
+### name
 
-Return the name of the element, e.g. "Para"
+Return the name of the element, e.g. "Para" for a [paragraph element](#para).
 
-## value
+### value
 
-Return the full element content as array reference. You may better use one of
-the specific accessor methods or the content method.
+Return the full element content as array reference. The structure of the value
+depends on the element. For known elements better use one of the specific
+accessor methods or the `content` method.
 
-## content
+### content
 
-Return the element content. For many elements (Para, Emph, Str...) this is
-equal to the value, but if elements consist of multiple parts, the content is a
-subset of the value. For instance the Link element consists a link text
-(content) and a link target (target).
+Return the element content. For many elements ([Para](#para), [Emph](#emph),
+[Str](#str)...) this is equal to the value, but if elements consist of multiple
+parts, the content is a subset of the `value`. For instance the [Link](#link)
+element consists a link text (`content`) and a link target (`target`), the
+latter consisting of `url` and `title`.
 
-## is\_block
+### is\_block
 
 True if the element is a [Block element](#block-elements)
 
-## is\_inline
+### is\_inline
 
 True if the element is an inline [Inline element](#inline-elements)
 
-## is\_meta
+### is\_meta
 
 True if the element is a [Metadata element](#metadata-elements)
 
-## is\_document
+### is\_document
 
 True if the element is a [Document element](#document-element)
 
@@ -128,6 +130,8 @@ Generic container of [blocks](#block-elements) (`content`) with attributes
 (`attrs`)
 
 ### Header
+
+...
 
 ### HorizontalRule
 
@@ -221,10 +225,13 @@ Root element, consisting of metadata hash (`meta`) and document element array
 
 ## TYPES
 
-The following elements are used as types only: DefaultDelim Period OneParen
-TwoParens SingleQuote DoubleQuote DisplayMath InlineMath AuthorInText
-SuppressAuthor NormalCitation AlignLeft AlignRight AlignCenter AlignDefault
-DefaultStyle Example Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha
+The following elements are used as types only: 
+
+`DefaultDelim`, `Period`, `OneParen`, `TwoParens`, `SingleQuote`,
+`DoubleQuote`, `DisplayMath`, `InlineMath`, `AuthorInText`,
+`SuppressAuthor`, `NormalCitation`, `AlignLeft`, `AlignRight`,
+`AlignCenter`, `AlignDefault`, `DefaultStyle`, `Example`, `Decimal`,
+`LowerRoman`, `UpperRoman`, `LowerAlpha`, `UpperAlpha`
 
 # SEE ALSO
 
@@ -232,6 +239,7 @@ DefaultStyle Example Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha
 
 [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 contains the original definition of Pandoc document data structure in Haskell.
+This module version was last aligned with pandoc-types-1.12.4.1.
 
 # AUTHOR
 
