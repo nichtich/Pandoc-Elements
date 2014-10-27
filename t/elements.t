@@ -10,8 +10,10 @@ is_deeply [ Str 'hello', 'world' ],
 is_deeply [ Emph Str 'hello' ], 
           [ { t => 'Emph', c => { t => 'Str', c => 'hello' } } ], 'Emph';
 
-is_deeply element( Code => attributes {}, 'x' ),
-    { t => 'Code', c => [["",[],[]],"x"] }, 'element';
+my $code = element( Code => attributes {}, 'x' );
+is_deeply $code, { t => 'Code', c => [["",[],[]],"x"] }, 'element';
+ok $code->is_inline, 'is_inline';
+is_deeply $code->content, 'x', 'content';
 
 eval { element ( Foo => 'bar' ) }; ok $@, 'unknown element';
 eval { element ( Code => 'x' ) }; ok $@, 'wrong number of arguments';

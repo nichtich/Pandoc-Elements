@@ -60,7 +60,8 @@ Create a Pandoc document element. This function is only exported on request.
 
 AST elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
-objects that provide the following methods:
+objects that provide the following methods. Additional accessor methods for
+particular elements are listed below at each element.
 
 ## ELEMENT METHODS
 
@@ -77,7 +78,15 @@ Return the name of the element, e.g. "Para"
 
 ## value
 
-Return the fFull value of the element as array reference.
+Return the full element content as array reference. You may better use one of
+the specific accessor methods or the content method.
+
+## content
+
+Return the element content. For many elements (Para, Emph, Str...) this is
+equal to the value, but if elements consist of multiple parts, the content is a
+subset of the value. For instance the Link element consists a link text
+(content) and a link target (target).
 
 ## is\_block
 
@@ -99,29 +108,57 @@ True if the element is a [Document element](#document-element)
 
 ### BlockQuote
 
+Block quote, consisting of a list of [blocks](#block-elements) (`content`)
+
 ### BulletList
+
+...
 
 ### CodeBlock
 
+...
+
 ### DefinitionList
 
+...
+
 ### Div
+
+Generic container of [blocks](#block-elements) (`content`) with attributes
+(`attrs`)
 
 ### Header
 
 ### HorizontalRule
 
+Horizontal rule
+
 ### Null
+
+Nothing
 
 ### OrderedList
 
+...
+
 ### Para
+
+Paragraph, consisting of a list of [Inline elements](#inline-elements)
+(`content`).
 
 ### Plain
 
+Plain text, not a paragraph, consisting of a list of [Inline elements](#inline-elements) (`content`).
+
 ### RawBlock
 
+Raw block with `format` and `content` string.
+
 ### Table
+
+Table, with `caption`, column `alignments`, relative column `widths` (0 =
+default), column `headers` (each a list of [blocks](#block-elements)), and
+`rows` (each a list of lists of [blocks](#block-elements)).
 
 ## INLINE ELEMENTS
 
@@ -179,19 +216,31 @@ True if the element is a [Document element](#document-element)
 
 ### Document
 
-Root element, consisting of metadata hash and document element array.
+Root element, consisting of metadata hash (`meta`) and document element array
+(`content`).
+
+## TYPES
+
+The following elements are used as types only: DefaultDelim Period OneParen
+TwoParens SingleQuote DoubleQuote DisplayMath InlineMath AuthorInText
+SuppressAuthor NormalCitation AlignLeft AlignRight AlignCenter AlignDefault
+DefaultStyle Example Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha
 
 # SEE ALSO
 
-See [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
-for the original definition of Pandoc document data structure in Haskell.
+[Pandoc](https://metacpan.org/pod/Pandoc) implements a wrapper around the pandoc executable.
+
+[Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
+contains the original definition of Pandoc document data structure in Haskell.
+
+# AUTHOR
+
+Jakob Voß <jakob.voss@gbv.de>
 
 # COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
 
-This library is free software; you can redistribute it and/or modify it under
-the GNU General Public License as published by the Free Software Foundation;
-either version 2, or (at your option) any later version,
+GNU General Public License, Version 2
 
 This module is heavily based on Pandoc by John MacFarlane.

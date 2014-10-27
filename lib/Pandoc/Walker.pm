@@ -75,14 +75,14 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
 
     # extract all links
     my $links = query $ast, sub {
-        my ($name, $value) = ($_[0]->name, $_[0]->value);
+        my ($name, $value) = ($_[0]->name, $_[0]->content);
         return unless ($name eq 'Link' or $name eq 'Image');
         return $value->[1][0];
     };
 
     # print all links
     walk $ast, sub {
-        my ($name, $value) = ($_[0]->name, $_[0]->value);
+        my ($name, $value) = ($_[0]->name, $_[0]->content);
         return unless ($key eq 'Link' or $key eq 'Image');
         print $value->[1][0];
     };
@@ -97,7 +97,7 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
     transform $ast, sub {
         my $elem = $_[0];
         return unless $elem->name eq 'Link';
-        return (Str "<", $elem->value->[0], Str ">");
+        return (Str "<", $elem->content->[0], Str ">");
     };
 
 =head1 DESCRIPTION

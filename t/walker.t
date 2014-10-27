@@ -17,9 +17,8 @@ my $LINKS = [qw(
 )];
 
 sub urls {
-    my ($name, $value) = ($_[0]->name, $_[0]->value);
-    return unless ($name eq 'Link' or $name eq 'Image');
-    return $value->[1][0];
+    return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
+    return $_[0]->target->[0];
 };
 
 my $links = query $doc, \&urls;
@@ -27,9 +26,8 @@ is_deeply $links, $LINKS, 'query';
 
 $links = [ ];
 walk $doc, sub {
-    my ($name, $value) = ($_[0]->name, $_[0]->value);
-    return unless ($name eq 'Link' or $name eq 'Image');
-    push @$links, $value->[1][0];
+    return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
+    push @$links, $_[0]->target->[0];
 };
 
 is_deeply $links, $LINKS, 'walk';
@@ -44,11 +42,11 @@ $doc = load();
 transform $doc, sub {
     my ($e) = @_;
     return unless $e->name eq 'Link';
-    my $a = [ Str "<", @{$e->value->[0]}, Str ">" ];
+    my $a = [ Str "<", @{$e->content}, Str ">" ];
     return $a;
 };
 
-my $header = $doc->value->[0]->value->[2];
+my $header = $doc->content->[0]->content;
 is_deeply $header, [ 
     Str 'Example', Space, Str '<', Str 'http://example.org/', Str '>'
 ], 'transform, multiple elements';

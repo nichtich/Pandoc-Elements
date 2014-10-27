@@ -11,7 +11,7 @@ is_deeply $ast, { t => 'Str', c => decode_utf8("☃") }, 'identity filter';
 
 sub shout {
     return unless $_[0]->name eq 'Str';
-    return Str($_[0]->value.'!');
+    return Str($_[0]->content.'!');
 }
 
 # FIXME: cannot directly filter root element

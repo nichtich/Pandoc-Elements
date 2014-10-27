@@ -2,7 +2,7 @@ package Pandoc::Filter;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use JSON;
 use Carp;
@@ -79,19 +79,8 @@ documentation](http://johnmacfarlane.net/pandoc/scripting.html) converts level
     use Pandoc::Elements;
 
     pandoc_filter sub {
-        return unless ($_[0]->name eq 'Header' and $_[0]->value->[0] >= 2);
-        return Para [ Emph $_[0]->value->[2] ];
-    };
-
-[Signatures](http://perldoc.perl.org/perlsub.html#Signatures), as introduced in
-Perl 5.20, can be used for better readability:
-
-    use Pandoc::Filter;
-    use experimental 'signatures';
-
-    pandoc_filter sub ($elem, $format, $meta) {
-        return unless ($elem->name eq 'Header' and $elem->value->[0] >= 2);
-        return Para [ Emph $elem->value->[2] ];
+        return unless ($_[0]->name eq 'Header' and $_[0]->level >= 2);
+        return Para [ Emph $_[0]->content ];
     };
 
 =head1 DESCRIPTION
