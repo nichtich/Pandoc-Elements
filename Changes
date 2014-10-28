@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - added examples
+    - added more accessor methods
 
 0.04  2014-10-27 14:09:21 CET
     - added accessor methods (issue #1)

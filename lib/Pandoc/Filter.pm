@@ -44,7 +44,7 @@ sub pandoc_filter(@) { ## no critic
 
 sub new {
     my $class = shift;
-    if ( grep { reftype $_ ne 'CODE' } @_ ) {
+    if ( grep { !reftype $_ or reftype $_ ne 'CODE' } @_ ) {
         croak $class.'->new expects a list of CODE references';
     }
     bless \@_, $class;

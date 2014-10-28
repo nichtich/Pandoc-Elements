@@ -11,9 +11,9 @@ our %ELEMENTS = (
     CodeBlock => [ Block => qw(attr content) ],
     RawBlock => [ Block => qw(format content) ],
     BlockQuote => [ Block => 'content' ],
-    OrderedList => [ Block => qw(attr content) ],
-    BulletList => [ Block => 'content' ],
-    DefinitionList => [ Block => 'content' ],
+    OrderedList => [ Block => qw(attr content/items) ],
+    BulletList => [ Block => 'content/items' ],
+    DefinitionList => [ Block => 'content/items:[DefinitionPair]' ],
     Header => [ Block => qw(level attr content) ],
     HorizontalRule => [ 'Block' ],
     Table => [ Block => qw(caption alignment widths headers rows) ],
@@ -38,7 +38,7 @@ our %ELEMENTS = (
     Image => [ Inline => qw(content target) ],
     Note => [ Inline => 'content' ],
     Span => [ Inline => qw(attr content) ],
-    
+
     MetaBool => [ Meta => 'content' ],
     MetaString => [ Meta => 'content' ],
     MetaMap => [ Meta => 'content' ],
@@ -82,11 +82,15 @@ foreach my $name (keys %ELEMENTS) {
     }, '$' x $numargs );
 
     for (my $i=0; $i<@accessors; $i++) {
-        *{$class."::".$accessors[$i]} = eval(
-            @accessors == 1 
-                ? "sub { \$_[0]->{c} }"
-                : "sub { \$_[0]->{c}->[$i] }"
-        );
+        my $code = @accessors == 1
+                 ? "\$_[0]->{c}" : "\$_[0]->{c}->[$i]";
+        # auto-bless on access via accessor (TODO: move to constructor?)
+        if ($accessors[$i] =~ s/:\[(.+)\]$//) {
+            $code = "[ map { bless \$_, 'Pandoc::Document::$1' } \@{$code} ]";
+        }
+        for (split '/', $accessors[$i]) {
+            *{$class."::$_"} = eval "sub { $code }";
+        }
     }
 }
 
@@ -109,6 +113,8 @@ sub Pandoc::Document::Link::url { $_[0]->{c}->[1][0] }
 sub Pandoc::Document::Link::title { $_[0]->{c}->[1][1] }
 sub Pandoc::Document::Image::url { $_[0]->{c}->[1][0] }
 sub Pandoc::Document::Image::title { $_[0]->{c}->[1][1] }
+sub Pandoc::Document::DefinitionPair::term { $_[0]->[0] }
+sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
 # additional functions
 
@@ -359,7 +365,9 @@ Nothing
 
 =head3 OrderedList
 
-...
+Definition list of C<items>/C<content>, each a pair consisting of a term (a
+list of L<inlines|/INLINE ELEMENTS>) and one or more definitions (each a list
+of L<blocks|/BLOCK ELEMENTS>) 
 
 =head3 Para
 

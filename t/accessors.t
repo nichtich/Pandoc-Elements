@@ -2,13 +2,25 @@ use strict;
 use Test::More;
 use Pandoc::Elements;
 
-my $elem = CodeBlock attributes { class => 'perl' }, 'say "Hi";';
-is_deeply $elem->attr, $elem->value->[0], 'CodeBlock->attr';
-is $elem->content, 'say "Hi";', 'CodeBlock->content';
+my $e = CodeBlock attributes { class => 'perl' }, 'say "Hi";';
+is_deeply $e->attr, $e->value->[0], 'CodeBlock->attr';
+is $e->content, 'say "Hi";', 'CodeBlock->content';
 
-$elem = Quoted SingleQuote, 'x';
-is $elem->type->name, 'SingleQuote', 'Quoted';
+$e = Quoted SingleQuote, 'x';
+is $e->type->name, 'SingleQuote', 'Quoted';
 
-# TODO: test OrderedList ListAttributes DefinitionList
+# TODO: OrderedList with ListAttributes, Table etc.
+
+$e = DefinitionList [
+    [ [ Str 'term 1' ], 
+        [ [ Para Str 'definition 1' ] ] ],
+    [ [ Str 'term 2' ], 
+        [ [ Para Str 'definition 2' ],
+          [ Para Str 'definition 3' ] ] ],
+];
+is scalar @{$e->items}, 2, 'DefinitionList->items';
+is_deeply $e->items->[0]->term, [ Str 'term 1' ], '...->term';
+is_deeply $e->items->[1]->definitions->[1], 
+    [ Para Str 'definition 3' ], '...->definitions';
 
 done_testing;
