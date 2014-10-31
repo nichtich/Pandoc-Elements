@@ -75,16 +75,16 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
 
     # extract all links
     my $links = query $ast, sub {
-        my ($name, $value) = ($_[0]->name, $_[0]->content);
-        return unless ($name eq 'Link' or $name eq 'Image');
-        return $value->[1][0];
+        my $e = shift;
+        return unless ($e->name eq 'Link' or $e->name eq 'Image');
+        return $e->url;
     };
 
     # print all links
     walk $ast, sub {
-        my ($name, $value) = ($_[0]->name, $_[0]->content);
-        return unless ($key eq 'Link' or $key eq 'Image');
-        print $value->[1][0];
+        my $e = shift;
+        return unless ($e->name eq 'Link' or $e->name eq 'Image');
+        print $e->url;
     };
 
     # remove of all links

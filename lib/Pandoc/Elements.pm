@@ -181,7 +181,6 @@ sub from_json {
     }
     sub TO_JSON { return { %{$_[0]} } }    
     sub name        { $_[0]->{t} }
-    sub value       { $_[0]->{c} }
     sub content     { $_[0]->{c} }
     sub is_document { 0 }
     sub is_block    { 0 }
@@ -298,19 +297,13 @@ Return the element as JSON encoded string. The following are equivalent:
 
 Return the name of the element, e.g. "Para" for a L<paragraph element|/Para>.
 
-=head3 value
-
-Return the full element content as array reference. The structure of the value
-depends on the element. For known elements better use one of the specific
-accessor methods or the C<content> method.
-
 =head3 content
 
-Return the element content. For many elements (L<Para|/Para>, L<Emph|/Emph>,
-L<Str|/Str>...) this is equal to the value, but if elements consist of multiple
-parts, the content is a subset of the C<value>. For instance the L<Link|/Link>
-element consists a link text (C<content>) and a link target (C<target>), the
-latter consisting of C<url> and C<title>.
+Return the element content. For most elements (L<Para|/Para>, L<Emph|/Emph>,
+L<Str|/Str>...) the content is an array reference with child elements. Other
+elements consist of multiple parts; for instance the L<Link|/Link> element has
+a link text (C<content>) and a link target (C<target>) with C<url> and
+C<title>.
 
 =head3 is_block
 

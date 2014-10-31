@@ -17,11 +17,9 @@ sub stringify {
     my ($ast) = @_;
     my @result;
     walk( $ast, sub {
-        my ($name, $value) = ($_[0]->name, $_[0]->value);
-        if ($name eq 'Str') {
-            push @result, $value;
-        } elsif ($name eq 'Code' or $name eq 'Math') {
-            push @result, $value->[1];
+        my ($name, $content) = ($_[0]->name, $_[0]->content);
+        if ($name eq 'Str' or $name eq 'Code' or $name eq 'Math') {
+            push @result, $content;
         } elsif ($name eq 'LineBreak' or $name eq 'Space') {
             push @result, " ";
         }

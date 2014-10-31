@@ -3,7 +3,7 @@ use Test::More;
 use Pandoc::Elements;
 
 my $e = CodeBlock attributes { class => 'perl' }, 'say "Hi";';
-is_deeply $e->attr, $e->value->[0], 'CodeBlock->attr';
+is_deeply $e->attr, $e->{c}->[0], 'CodeBlock->attr';
 is $e->content, 'say "Hi";', 'CodeBlock->content';
 
 $e = Quoted SingleQuote, 'x';
