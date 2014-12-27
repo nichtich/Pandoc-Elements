@@ -26,7 +26,7 @@ sub to_bullet {
 
 This is a port of
 L<deflists.py|https://github.com/jgm/pandocfilters/blob/master/examples/deflists.py>
-from Python to Perl with L<Pandoc::Elements>.
+from Python to Perl.
 
 =cut
 

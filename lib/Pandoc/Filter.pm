@@ -90,8 +90,8 @@ process a L<Pandoc|http://johnmacfarlane.net/pandoc/> abstract syntax tree
 (AST) serialized as JSON. See L<Pandoc::Elements> for documentation of AST
 elements.
 
-In most cases you better use the function interface in L<Pandoc::Walker> which
-this module is based on.
+In most cases you should use either use the functions C<pandoc_filter> and
+C<stringify> or the module L<Pandoc::Walker> which this module is based on.
 
 =head1 METHODS
 
@@ -108,6 +108,8 @@ metadata are also passed to the action function. Metadata is taken from the
 Document by default (if the AST is a Document root).
 
 =head1 FUNCTIONS
+
+The following functions are exported by default.
 
 =head2 pandoc_filter( @action )
 
