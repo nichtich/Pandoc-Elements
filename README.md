@@ -76,19 +76,13 @@ Return the element as JSON encoded string. The following are equivalent:
 
 Return the name of the element, e.g. "Para" for a [paragraph element](#para).
 
-### value
-
-Return the full element content as array reference. The structure of the value
-depends on the element. For known elements better use one of the specific
-accessor methods or the `content` method.
-
 ### content
 
-Return the element content. For many elements ([Para](#para), [Emph](#emph),
-[Str](#str)...) this is equal to the value, but if elements consist of multiple
-parts, the content is a subset of the `value`. For instance the [Link](#link)
-element consists a link text (`content`) and a link target (`target`), the
-latter consisting of `url` and `title`.
+Return the element content. For most elements ([Para](#para), [Emph](#emph),
+[Str](#str)...) the content is an array reference with child elements. Other
+elements consist of multiple parts; for instance the [Link](#link) element has
+a link text (`content`) and a link target (`target`) with `url` and
+`title`.
 
 ### is\_block
 
@@ -143,7 +137,9 @@ Nothing
 
 ### OrderedList
 
-...
+Definition list of `items`/`content`, each a pair consisting of a term (a
+list of [inlines](#inline-elements)) and one or more definitions (each a list
+of [blocks](#block-elements)) 
 
 ### Para
 
