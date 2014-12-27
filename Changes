@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.05  2014-12-27 15:45:38 CET
     - fixed filter bug (issue #5)
     - added examples
     - added more accessor methods
