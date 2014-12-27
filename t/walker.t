@@ -51,7 +51,7 @@ is scalar @{ query($doc, \&urls) }, 1, 'escaped links';
 
 my $header = $doc->content->[0]->content;
 is_deeply $header, [ 
-    Str 'Example', Space, Str '<', Str 'http://example.org/', Str '>'
+    Str 'Example', Space, Str '<', Str 'http://example.org/', Str '>', Str '!'
 ], 'transform, multiple elements';
 
 $doc = load();

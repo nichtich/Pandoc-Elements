@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - fixed filter bug (issue #5)
     - added examples
     - added more accessor methods
     - remove method value

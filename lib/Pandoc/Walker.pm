@@ -2,7 +2,7 @@ package Pandoc::Walker;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.05';
 
 use Scalar::Util qw(reftype blessed);
 use parent 'Exporter';
@@ -19,10 +19,11 @@ sub transform {
         foreach my $item (@$ast) {
             if ((reftype $item || '') eq 'HASH' and $item->{t}) {
                 my $res = $action->($item, @_);
+                # replace current item with result element(s)
                 if (defined $res) {
                     my @elements = map { transform($_, $action, @_) } 
                         (reftype $res || '') eq 'ARRAY' ? @$res : $res;
-                    splice @$ast, $i, $i+1, @elements;
+                    splice @$ast, $i, 1, @elements;
                     $i += scalar @elements;
                     next;
                 }
