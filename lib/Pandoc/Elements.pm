@@ -187,8 +187,9 @@ sub pandoc_json {
     sub is_block    { 0 }
     sub is_inline   { 0 }
     sub is_meta     { 0 }
-    sub walk        { Pandoc::Walker::walk(@_) }
-    sub query       { Pandoc::Walker::query(@_) }
+    *walk      = *Pandoc::Walker::walk;
+    *query     = *Pandoc::Walker::query;
+    *transform = *Pandoc::Walker::transform;
 }
 
 {
@@ -293,7 +294,7 @@ methods specific to each element.
 
 =head2 ELEMENT METHODS
 
-=head3 json
+=head3 to_json
 
 Return the element as JSON encoded string. The following are equivalent:
 
@@ -327,6 +328,18 @@ True if the element is a L<Metadata element|/METADATA ELEMENTS>
 =head3 is_document
 
 True if the element is a L<Document element|/DOCUMENT ELEMENT>
+
+=head3 walk
+
+Walk the element tree with L<Pandoc::Walker>
+
+=head3 query
+
+Query the element to extract results with L<Pandoc::Walker>
+
+=head3 transform
+
+Transform the element tree with L<Pandoc::Walker>
 
 =head2 BLOCK ELEMENTS
 
@@ -398,7 +411,7 @@ C<rows> (each a list of lists of L<blocks|/BLOCK ELEMENTS>).
 =head3 Cite
 
 Citation, a list of L<inlines|/INLINE ELEMENTS> (C<content>) and a list of
-C<citations>.
+C<citations>
 
 =head3 Code
 

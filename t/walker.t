@@ -23,14 +23,20 @@ sub urls {
 
 my $links = query $doc, \&urls;
 is_deeply $links, $LINKS, 'query';
+is_deeply $doc->query(\&urls), $LINKS, '->query';
 
-$links = [ ];
-walk $doc, sub {
+sub links {
     return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
     push @$links, $_[0]->url;
-};
+}
 
+$links = [ ];
+walk $doc, \&links;
 is_deeply $links, $LINKS, 'walk';
+
+$links = [ ];
+$doc->walk(\&links);
+is_deeply $links, $LINKS, '->walk';
 
 transform $doc, sub {
     return ($_[0]->name eq 'Link' ? [] : ());
@@ -47,7 +53,11 @@ sub escape_links {
 
 $doc = load();
 transform $doc, \&escape_links;
-is scalar @{ query($doc, \&urls) }, 1, 'escaped links';
+is scalar @{ query($doc, \&urls) }, 1, 'transform, escaped links';
+
+$doc = load();
+$doc->transform(\&escape_links);
+is scalar @{ query($doc, \&urls) }, 1, '->transform, escaped links';
 
 my $header = $doc->content->[0]->content;
 is_deeply $header, [ 
@@ -58,9 +68,17 @@ $doc = load();
 transform $doc, sub {
     my $e = shift;
     return unless $e->name eq 'Header';
-    transform [$e], \&escape_links;
+    $e->transform(\&escape_links);
 };
 
 is scalar @{ query($doc, \&urls) }, 2, 'nested transformation';
+
+#SKIP: {
+#    $header = $doc->content->[0];
+#    $header->transform(sub {
+#        return unless $_[0]->name eq 'Header';
+#        return Para $_[0]->[0]->content;
+#    });
+#}
 
 done_testing;
