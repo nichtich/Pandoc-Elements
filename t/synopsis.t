@@ -30,12 +30,12 @@ is_deeply $ast, [
 
 my $json = JSON->new->utf8->convert_blessed->encode($ast);
 is_deeply decode_json($json), $ast, 'encode/decode JSON';
-is_deeply Pandoc::Elements::from_json($json), $ast, 'from_json';
+is_deeply Pandoc::Elements::pandoc_json($json), $ast, 'pandoc_json';
 $json = $ast->to_json;
 is_deeply decode_json($json), $ast, 'to_json';
 
-eval { Pandoc::Elements->from_json(".") };
-like $@, qr{.+at.+synopsis\.t}, 'error in from_json';
+eval { Pandoc::Elements->pandoc_json(".") };
+like $@, qr{.+at.+synopsis\.t}, 'error in pandoc_json';
 
 done_testing;
 

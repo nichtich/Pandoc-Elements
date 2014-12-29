@@ -30,7 +30,7 @@ sub stringify {
 
 sub pandoc_filter(@) { ## no critic
     my $filter = Pandoc::Filter->new(@_);
-    my $ast = Pandoc::Elements::from_json(<STDIN>);
+    my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
     $filter->apply($ast);
     my $json = JSON->new->utf8->allow_blessed->convert_blessed->encode($ast);
     #my $json = $ast->to_json; # TODO
@@ -114,7 +114,7 @@ Document by default (if the AST is a Document root).
 Read a single line of JSON from STDIN, apply actions and print the resulting
 AST as single line of JSON. This function is roughly equivalent to
 
-    my $ast = Pandoc::Elements::from_json(<>);
+    my $ast = Pandoc::Elements::pandoc_json(<>);
     Pandoc::Filter->new(@action)->apply($ast);
     say $ast->to_json;
 

@@ -4,7 +4,9 @@ use Pandoc::Elements;
 use JSON;
 use Encode;
 
-my $ast = Pandoc::Elements::from_json('{"t":"Str","c":"☃"}');
+# FIXME: don't require decode_utf8 (?)
+
+my $ast = Pandoc::Elements::pandoc_json('{"t":"Str","c":"☃"}');
 is_deeply $ast, { t => 'Str', c => decode_utf8("☃") }, 'JSON with Unicode';
 Pandoc::Filter->new()->apply($ast);
 is_deeply $ast, { t => 'Str', c => decode_utf8("☃") }, 'identity filter';

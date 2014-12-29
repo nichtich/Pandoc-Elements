@@ -28,7 +28,7 @@ our %ELEMENTS = (
     Subscript => [ Inline => 'content' ],
     SmallCaps => [ Inline => 'content' ],
     Quoted => [ Inline => qw(type content) ],
-    Cite => [ Inline => qw(citation content) ],
+    Cite => [ Inline => qw(citations content) ],
     Code => [ Inline => qw(attr content) ],
     Space => [ 'Inline' ],
     LineBreak => [ 'Inline' ],
@@ -62,8 +62,8 @@ use Scalar::Util qw(reftype);
 use Pandoc::Walker qw(walk);
 
 use parent 'Exporter';
-our @EXPORT = (keys %ELEMENTS, qw(Document attributes));
-our @EXPORT_OK = (@EXPORT, 'element', 'from_json');
+our @EXPORT = (keys %ELEMENTS, qw(Document attributes pandoc_json));
+our @EXPORT_OK = (@EXPORT, 'element');
 
 # create constructor functions
 foreach my $name (keys %ELEMENTS) {
@@ -131,7 +131,7 @@ sub attributes($) {
     ];
 }
 
-sub from_json {
+sub pandoc_json {
     shift if $_[0] =~ /^Pandoc::/;
 
     my $ast = eval { decode_json($_[0]) };
@@ -176,16 +176,19 @@ sub from_json {
     our $VERSION = $Pandoc::Document::VERSION;
     use JSON ();
     use Scalar::Util qw(reftype);
+    use Pandoc::Walker ();
     sub to_json { 
         JSON->new->utf8->convert_blessed->encode($_[0])
     }
-    sub TO_JSON { return { %{$_[0]} } }    
+    sub TO_JSON     { return { %{$_[0]} } }    
     sub name        { $_[0]->{t} }
     sub content     { $_[0]->{c} }
     sub is_document { 0 }
     sub is_block    { 0 }
     sub is_inline   { 0 }
     sub is_meta     { 0 }
+    sub walk        { Pandoc::Walker::walk(@_) }
+    sub query       { Pandoc::Walker::query(@_) }
 }
 
 {
@@ -268,6 +271,10 @@ such as HTML, LaTeX, ODT, and ePUB.
 In addition to constructor functions for each document element, the following
 functions are exported.
 
+=head3 pandoc_json( $json )
+
+Parse a JSON string, as emitted by pandoc JSON format.
+
 =head3 attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
@@ -329,15 +336,18 @@ Block quote, consisting of a list of L<blocks|/BLOCK ELEMENTS> (C<content>)
 
 =head3 BulletList
 
-...
+Unnumbered list of items (C<content>=C<items>), each a list of
+L<blocks|/BLOCK ELEMENTS>
 
 =head3 CodeBlock
 
-...
+Code block (literal string C<content>) with attributes (C<attr>)
 
 =head3 DefinitionList
 
-...
+Definition list, consisting of a list of pairs (C<content>=C<items>),
+each a term (C<term>, a list of L<inlines|/INLINE ELEMENTS>) and one
+or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
 
 =head3 Div
 
@@ -346,7 +356,8 @@ Generic container of L<blocks|/BLOCK ELEMENTS> (C<content>) with attributes
 
 =head3 Header
 
-...
+Header with C<level> (integer), attributes (C<attr>), and text (C<content>, a
+list of L<inlines|/INLINE ELEMENTS>).
 
 =head3 HorizontalRule
 
@@ -385,6 +396,9 @@ C<rows> (each a list of lists of L<blocks|/BLOCK ELEMENTS>).
 =head2 INLINE ELEMENTS
 
 =head3 Cite
+
+Citation, a list of L<inlines|/INLINE ELEMENTS> (C<content>) and a list of
+C<citations>.
 
 =head3 Code
 

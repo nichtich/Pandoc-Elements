@@ -70,9 +70,9 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
 =head1 SYNOPSIS
 
     use Pandoc::Walker;
-    use JSON;
+    use Pandoc::Elements qw(pandoc_json);
 
-    my $ast = decode_json(<>);
+    my $ast = pandoc_json(<>);
 
     # extract all links
     my $links = query $ast, sub {

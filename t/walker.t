@@ -1,11 +1,11 @@
 use strict;
 use Test::More;
 use Pandoc::Walker;
-use Pandoc::Elements qw(Str Space from_json);
+use Pandoc::Elements qw(Str Space pandoc_json);
 
 sub load {
     local (@ARGV, $/) = ('t/documents/example.json'); 
-    from_json(<>);
+    pandoc_json(<>);
 }
 
 my $doc = load();
