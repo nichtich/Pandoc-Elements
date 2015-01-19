@@ -71,8 +71,12 @@ foreach my $name (keys %ELEMENTS) {
     my ($parent, @accessors) = @{$ELEMENTS{$name}};
     my $numargs = scalar @accessors;
     my $class = "Pandoc::Document::$name";
+    my @parents = map { "Pandoc::Document::$_" } ($parent);
+    $parent = join ' ', map { "Pandoc::Document::$_" } 
+        $parent, 
+        map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
 
-    eval "package $class; our \@ISA = qw(Pandoc::Document::$parent);";
+    eval "package $class; our \@ISA = qw($parent);";
 
     *{__PACKAGE__."::$name"} = Scalar::Util::set_prototype( sub {
         croak "$name expects $numargs arguments, but given " . scalar @_
@@ -192,6 +196,13 @@ sub pandoc_json {
 }
 
 {
+    package Pandoc::Document::AttributesRole;
+    sub id { $_[0]->attr->[0] }
+    sub classes { $_[0]->attr->[1] }
+    sub class { join ' ', @{$_[0]->classes} }
+}    
+ 
+{
     package Pandoc::Document::Block;
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA = ('Pandoc::Document::Element');
@@ -283,6 +294,10 @@ setting multi-value attributes or controlled order is not supported with this
 function. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ key => $value, ... ] ]
+
+Elements with attributes (element accessor method C<attr>) also provide the
+accessor method C<id>, C<classes>, and C<class>. See L<Hash::MultiValue> for
+easy access to key-value-pairs.
 
 =head3 element( $name => $content )
 

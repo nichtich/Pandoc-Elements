@@ -2,8 +2,13 @@ use strict;
 use Test::More;
 use Pandoc::Elements;
 
-my $e = CodeBlock attributes { class => 'perl' }, 'say "Hi";';
+my $e = CodeBlock attributes { classes => ['perl'], id => 2 }, 'say "Hi";';
+
 is_deeply $e->attr, $e->{c}->[0], 'CodeBlock->attr';
+is $e->id, '2', 'AttributeRole->id';
+is_deeply $e->classes, ['perl'], 'AttributeRole->classes';
+is $e->class, 'perl', 'AttributeRole->class';
+
 is $e->content, 'say "Hi";', 'CodeBlock->content';
 
 $e = Quoted SingleQuote, 'x';
