@@ -45,7 +45,6 @@ our %ELEMENTS = (
     MetaInlines => [ Meta => 'content' ],
     MetaList => [ Meta => 'content' ],
     MetaBlocks => [ Meta => 'content' ],
-
 );
 
 # type constructors
@@ -279,7 +278,11 @@ Parse a JSON string, as emitted by pandoc JSON format.
 =head3 attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs.
+key-value pairs. The special keys C<id> and C<classes> are recognized but
+setting multi-value attributes or controlled order is not supported with this
+function. You can always manually create an attributes structure:
+
+    [ $id, [ @classes ], [ key => $value, ... ] ]
 
 =head3 element( $name => $content )
 
@@ -365,7 +368,7 @@ or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
 =head3 Div
 
 Generic container of L<blocks|/BLOCK ELEMENTS> (C<content>) with attributes
-(C<attrs>)
+(C<attr>).
 
 =head3 Header
 
@@ -384,7 +387,7 @@ Nothing
 
 Definition list of C<items>/C<content>, each a pair consisting of a term (a
 list of L<inlines|/INLINE ELEMENTS>) and one or more definitions (each a list
-of L<blocks|/BLOCK ELEMENTS>) 
+of L<blocks|/BLOCK ELEMENTS>).
 
 =head3 Para
 
@@ -411,41 +414,114 @@ C<rows> (each a list of lists of L<blocks|/BLOCK ELEMENTS>).
 =head3 Cite
 
 Citation, a list of L<inlines|/INLINE ELEMENTS> (C<content>) and a list of
-C<citations>
+C<citations>.
 
 =head3 Code
 
+Inline code, a literal string (C<content>) with attributes (C<attr>)
+
+    Code attributes { %attr }, $content
+
 =head3 Emph
+
+Emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
+ 
+    Emph [ @inlines ]
 
 =head3 Image
 
+Image with alt text (C<content>, a list of L<inlines|/INLINE ELEMENTS>) and
+C<target> (list of C<url> and C<title>).
+
+    Image [ @inlines ], [ $url, $title ]
+
 =head3 LineBreak
+
+Hard line break
+
+    LineBreak
 
 =head3 Link
 
+Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
+and C<target> (list of C<url> and C<title>).
+
+    Link [ @inlines ], [ $url, $title ]
+
 =head3 Math
+
+TeX math, given as literal string (C<content>) with C<type> (one of
+C<DisplayMath> and C<InlineMath>).
+
+    Math $type, $content
 
 =head3 Note
 
+Footnote or Endnote, a list of L<blocks|/BLOCK ELEMENTS> (C<content>).
+
+    Note [ @blocks ]
+
 =head3 Quoted
+
+Quoted text with quote C<type> (one of C<SingleQuote> and C<DoubleQuote>) and a
+list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    Quoted $type, [ $inlines ]
 
 =head3 RawInline
 
+Raw inline with C<format> (a string) and C<content> (a string).
+
+    RawInline $format, $content
+
 =head3 SmallCaps
+
+Small caps text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    SmallCaps [ @inlines ]
 
 =head3 Space
 
+Inter-word space
+
+    Space
+
 =head3 Span
+
+Generic container of L<inlines|/INLINE ELEMENTS> (C<content>) with attributes
+(C<attr>).
+
+    Span attributes { %attr }, [ @inlines ]
 
 =head3 Str
 
+Plain text, a string (C<content>).
+
+    Str $text
+
 =head3 Strikeout
+
+Strikeout text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    Strikeout [ @inlines ]
 
 =head3 Strong
 
+Strongly emphasized text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    Strong [ @inlines ]
+
 =head3 Subscript
 
+Subscripted text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    Supscript [ @inlines ]
+
 =head3 Superscript
+
+Superscripted text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+
+    Superscript [ @inlines ]
 
 =head2 METADATA ELEMENTS
 

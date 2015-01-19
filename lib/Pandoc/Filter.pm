@@ -53,7 +53,7 @@ sub apply {
     $meta ||= eval { $ast->[0]->{unMeta} } || { };
 
     foreach my $action (@$self) {
-        transform($ast, $action, $format || '', $meta);
+        Pandoc::Walker::transform($ast, $action, $format || '', $meta);
     }
     $ast;
 }
@@ -90,15 +90,18 @@ process a L<Pandoc|http://johnmacfarlane.net/pandoc/> abstract syntax tree
 (AST) serialized as JSON. See L<Pandoc::Elements> for documentation of AST
 elements.
 
-In most cases you better use the function interface in L<Pandoc::Walker> which
-this module is based on.
+This module is based on L<Pandoc::Walker> and its function C<transform>. Please
+consider using its function interface (C<transform>, C<query>, C<walk>) instead
+of this module.
 
 =head1 METHODS
 
 =head2 new( @action )
 
 Create a new filter with one or more action functions, given as code
-reference(s).
+reference(s). Each function is expected to return an element, an empty array
+reference, or C<undef> to modify, remove, or keep a traversed element in the
+AST.
 
 =head2 apply( $ast [, $format [ $metadata ] ] )
 
