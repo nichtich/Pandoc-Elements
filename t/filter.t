@@ -20,4 +20,13 @@ is_deeply $doc->content->[1], Para [ Emph [ Str 'hello' ] ], 'apply';
 
 eval { Pandoc::Filter->new( 1 ) }; ok $@, 'invalid filter';
 
+$doc = Document {}, [ Str "hello" ];
+Pandoc::Filter->new(sub {
+    return if $_[0]->name ne 'Str';
+    $_[0]->{c} = uc $_[0]->{c};
+    return [ $_[0], Str " world!" ];
+})->apply($doc);
+
+is_deeply $doc->content, [ Str('HELLO'), Str(' world!') ], "don't filter injected elements";
+
 done_testing;

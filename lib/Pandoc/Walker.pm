@@ -15,13 +15,13 @@ sub transform {
     my $reftype = reftype($ast) || ''; 
 
     if ($reftype eq 'ARRAY') {
-        my $i = 0;
-        foreach my $item (@$ast) {
+        for (my $i=0; $i<@$ast; ) {
+            my $item = $ast->[$i];
             if ((reftype $item || '') eq 'HASH' and $item->{t}) {
                 my $res = $action->($item, @_);
                 # replace current item with result element(s)
                 if (defined $res) {
-                    my @elements = map { transform($_, $action, @_) } 
+                    my @elements = #map { transform($_, $action, @_) } 
                         (reftype $res || '') eq 'ARRAY' ? @$res : $res;
                     splice @$ast, $i, 1, @elements;
                     $i += scalar @elements;
