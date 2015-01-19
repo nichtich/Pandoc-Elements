@@ -6,6 +6,15 @@ perl:
     - "5.14"
     - "5.12"
     - "5.10"
+
+matrix:
+    allow_failures:
+        - perl: "5.10"
+    fast_finish: true
+
+before_install:
+    - cpanm --notest --force Pod::Readme
+
 install:
     - cpanm --quiet --notest --skip-satisfied Dist::Milla
     - cpanm --installdeps .

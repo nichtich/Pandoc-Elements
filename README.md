@@ -47,10 +47,22 @@ such as HTML, LaTeX, ODT, and ePUB.
 In addition to constructor functions for each document element, the following
 functions are exported.
 
+### pandoc\_json( $json )
+
+Parse a JSON string, as emitted by pandoc JSON format.
+
 ### attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs.
+key-value pairs. The special keys `id` and `classes` are recognized but
+setting multi-value attributes or controlled order is not supported with this
+function. You can always manually create an attributes structure:
+
+    [ $id, [ @classes ], [ key => $value, ... ] ]
+
+Elements with attributes (element accessor method `attr`) also provide the
+accessor method `id`, `classes`, and `class`. See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
+easy access to key-value-pairs.
 
 ### element( $name => $content )
 
@@ -65,7 +77,7 @@ methods specific to each element.
 
 ## ELEMENT METHODS
 
-### json
+### to\_json
 
 Return the element as JSON encoded string. The following are equivalent:
 
@@ -100,6 +112,18 @@ True if the element is a [Metadata element](#metadata-elements)
 
 True if the element is a [Document element](#document-element)
 
+### walk
+
+Walk the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
+
+### query
+
+Query the element to extract results with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
+
+### transform
+
+Transform the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
+
 ## BLOCK ELEMENTS
 
 ### BlockQuote
@@ -108,24 +132,28 @@ Block quote, consisting of a list of [blocks](#block-elements) (`content`)
 
 ### BulletList
 
-...
+Unnumbered list of items (`content`=`items`), each a list of
+[blocks](#block-elements)
 
 ### CodeBlock
 
-...
+Code block (literal string `content`) with attributes (`attr`)
 
 ### DefinitionList
 
-...
+Definition list, consisting of a list of pairs (`content`=`items`),
+each a term (`term`, a list of [inlines](#inline-elements)) and one
+or more definitions (`definitions`, a list of [blocks](#block-elements)).
 
 ### Div
 
 Generic container of [blocks](#block-elements) (`content`) with attributes
-(`attrs`)
+(`attr`).
 
 ### Header
 
-...
+Header with `level` (integer), attributes (`attr`), and text (`content`, a
+list of [inlines](#inline-elements)).
 
 ### HorizontalRule
 
@@ -139,7 +167,7 @@ Nothing
 
 Definition list of `items`/`content`, each a pair consisting of a term (a
 list of [inlines](#inline-elements)) and one or more definitions (each a list
-of [blocks](#block-elements)) 
+of [blocks](#block-elements)).
 
 ### Para
 
@@ -164,39 +192,115 @@ default), column `headers` (each a list of [blocks](#block-elements)), and
 
 ### Cite
 
+Citation, a list of [inlines](#inline-elements) (`content`) and a list of
+`citations`.
+
 ### Code
+
+Inline code, a literal string (`content`) with attributes (`attr`)
+
+    Code attributes { %attr }, $content
 
 ### Emph
 
+Emphasized text, a list of [inlines](#inline-elements) (`content`).
+
+    Emph [ @inlines ]
+
 ### Image
+
+Image with alt text (`content`, a list of [inlines](#inline-elements)) and
+`target` (list of `url` and `title`).
+
+    Image [ @inlines ], [ $url, $title ]
 
 ### LineBreak
 
+Hard line break
+
+    LineBreak
+
 ### Link
+
+Hyperlink with link text (`content`, a list of [inlines](#inline-elements))
+and `target` (list of `url` and `title`).
+
+    Link [ @inlines ], [ $url, $title ]
 
 ### Math
 
+TeX math, given as literal string (`content`) with `type` (one of
+`DisplayMath` and `InlineMath`).
+
+    Math $type, $content
+
 ### Note
+
+Footnote or Endnote, a list of [blocks](#block-elements) (`content`).
+
+    Note [ @blocks ]
 
 ### Quoted
 
+Quoted text with quote `type` (one of `SingleQuote` and `DoubleQuote`) and a
+list of [inlines](#inline-elements)) (`content`).
+
+    Quoted $type, [ $inlines ]
+
 ### RawInline
+
+Raw inline with `format` (a string) and `content` (a string).
+
+    RawInline $format, $content
 
 ### SmallCaps
 
+Small caps text, a list of [inlines](#inline-elements)) (`content`).
+
+    SmallCaps [ @inlines ]
+
 ### Space
+
+Inter-word space
+
+    Space
 
 ### Span
 
+Generic container of [inlines](#inline-elements) (`content`) with attributes
+(`attr`).
+
+    Span attributes { %attr }, [ @inlines ]
+
 ### Str
+
+Plain text, a string (`content`).
+
+    Str $text
 
 ### Strikeout
 
+Strikeout text, a list of [inlines](#inline-elements)) (`content`).
+
+    Strikeout [ @inlines ]
+
 ### Strong
+
+Strongly emphasized text, a list of [inlines](#inline-elements)) (`content`).
+
+    Strong [ @inlines ]
 
 ### Subscript
 
+Subscripted text, a list of [inlines](#inline-elements)) (`content`).
+
+    Supscript [ @inlines ]
+
 ### Superscript
+
+Superscripted text, a list of [inlines](#inline-elements)) (`content`).
+
+    Superscript [ @inlines ]
 
 ## METADATA ELEMENTS
 

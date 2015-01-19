@@ -1,6 +1,9 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - fix endless recursion bug (issue #7)
+    - add walker methods to documente elements (issue #4)
+    - simplify access to attributes (issue #8, not documented yet)
     - rename and document function pandoc_json
     - extend documentation
 
