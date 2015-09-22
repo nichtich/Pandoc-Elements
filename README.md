@@ -150,37 +150,58 @@ or more definitions (`definitions`, a list of [blocks](#block-elements)).
 Generic container of [blocks](#block-elements) (`content`) with attributes
 (`attr`).
 
+    Div $attributes, [ @blocks ]
+
 ### Header
 
 Header with `level` (integer), attributes (`attr`), and text (`content`, a
 list of [inlines](#inline-elements)).
 
+    Header $level, $attributes, [ @inlines ]
+
 ### HorizontalRule
 
 Horizontal rule
+
+    HorizontalRule 
 
 ### Null
 
 Nothing
 
+    Null
+
 ### OrderedList
 
-Definition list of `items`/`content`, each a pair consisting of a term (a
-list of [inlines](#inline-elements)) and one or more definitions (each a list
-of [blocks](#block-elements)).
+Numbered list of items (`content`=`items`), each a list of [blocks](#block-elements)), preceded by list attributes (start number, numbering style, and
+delimiter).
+
+    OrderedList [ $start, $style, $delim ], [[ @blocks ]]
+
+Supported styles are `DefaultStyle`, `Example`, `Decimal`, `LowerRoman`,
+`UpperRoman`, `LowerAlpha`, and `UpperAlpha`.
+
+Supported delimiters are `DefaultDelim`, `Period`, `OneParen`, and
+`TwoParens`.
 
 ### Para
 
 Paragraph, consisting of a list of [Inline elements](#inline-elements)
 (`content`).
 
+    Para [ $elements ]
+
 ### Plain
 
 Plain text, not a paragraph, consisting of a list of [Inline elements](#inline-elements) (`content`).
 
+    Plain [ @inlines ]
+
 ### RawBlock
 
 Raw block with `format` and `content` string.
+
+    RawBlock $format, $content
 
 ### Table
 
@@ -245,7 +266,7 @@ Footnote or Endnote, a list of [blocks](#block-elements) (`content`).
 Quoted text with quote `type` (one of `SingleQuote` and `DoubleQuote`) and a
 list of [inlines](#inline-elements)) (`content`).
 
-    Quoted $type, [ $inlines ]
+    Quoted $type, [ @inlines ]
 
 ### RawInline
 
@@ -255,7 +276,7 @@ Raw inline with `format` (a string) and `content` (a string).
 
 ### SmallCaps
 
-Small caps text, a list of [inlines](#inline-elements)) (`content`).
+Small caps text, a list of [inlines](#inline-elements) (`content`).
 
     SmallCaps [ @inlines ]
 
@@ -280,25 +301,25 @@ Plain text, a string (`content`).
 
 ### Strikeout
 
-Strikeout text, a list of [inlines](#inline-elements)) (`content`).
+Strikeout text, a list of [inlines](#inline-elements) (`content`).
 
     Strikeout [ @inlines ]
 
 ### Strong
 
-Strongly emphasized text, a list of [inlines](#inline-elements)) (`content`).
+Strongly emphasized text, a list of [inlines](#inline-elements) (`content`).
 
     Strong [ @inlines ]
 
 ### Subscript
 
-Subscripted text, a list of [inlines](#inline-elements)) (`content`).
+Subscripted text, a list of [inlines](#inline-elements) (`content`).
 
     Supscript [ @inlines ]
 
 ### Superscript
 
-Superscripted text, a list of [inlines](#inline-elements)) (`content`).
+Superscripted text, a list of [inlines](#inline-elements) (`content`).
 
     Superscript [ @inlines ]
 
@@ -322,6 +343,8 @@ Superscripted text, a list of [inlines](#inline-elements)) (`content`).
 
 Root element, consisting of metadata hash (`meta`) and document element array
 (`content`).
+
+    Document $meta, [ @blocks ]
 
 ## TYPES
 
