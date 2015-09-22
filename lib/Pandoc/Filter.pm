@@ -69,7 +69,7 @@ Pandoc::Filter - process Pandoc abstract syntax tree
 
 =head1 SYNOPSIS
 
-The following filter, adopted from L<pandoc scripting
+The following filter C<flatten.pl>, adopted from L<pandoc scripting
 documentation|http://johnmacfarlane.net/pandoc/scripting.html> converts level
 2+ headers to regular paragraphs.
 
@@ -80,6 +80,13 @@ documentation|http://johnmacfarlane.net/pandoc/scripting.html> converts level
         return unless ($_[0]->name eq 'Header' and $_[0]->level >= 2);
         return Para [ Emph $_[0]->content ];
     };
+
+To apply this filter on a Markdown file:
+
+    pandoc --filter flatten.pl -t markdown < input.md
+
+See L<https://metacpan.org/pod/distribution/Pandoc-Elements/examples/> for more 
+examples of filters.
 
 =head1 DESCRIPTION
 
@@ -111,6 +118,8 @@ metadata are also passed to the action function. Metadata is taken from the
 Document by default (if the AST is a Document root).
 
 =head1 FUNCTIONS
+
+The following functions are exported by default.
 
 =head2 pandoc_filter( @action )
 

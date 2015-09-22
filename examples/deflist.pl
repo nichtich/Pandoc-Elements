@@ -22,23 +22,14 @@ sub to_bullet {
     [ Para [ Strong $item->term ], map { @$_} @{$item->definitions} ]
 }
 
+=head1 SYNOPSIS
+
+  pandoc --filter deflist.pl -o output.html < input.md
+
 =head1 SEE ALSO
 
 This is a port of
 L<deflists.py|https://github.com/jgm/pandocfilters/blob/master/examples/deflists.py>
-from Python to Perl with L<Pandoc::Elements>.
+from Python to Perl with L<Pandoc::Elements> and L<Pandoc::Filter>.
 
 =cut
-
-# awk '(d){print};/__DATA__/{d=1};' examples/deflists.pl | pandoc -t json | perl -Ilib examples/deflists.pl | pandoc -f json -t markdown
-__DATA__
-
-term 1
-  ~ definition 1
-
-term 2
-  ~ definition 2
-
-  ~ definition 3
-
-    following paragraph
