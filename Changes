@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - extend documentation and examples
 
 0.06  2015-01-19 12:58:09 CET
     - fix endless recursion bug (issue #7)

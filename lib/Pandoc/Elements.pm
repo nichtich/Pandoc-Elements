@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.008_005;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 our %ELEMENTS = (
     Plain => [ Block => 'content' ],
@@ -385,38 +385,60 @@ or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
 Generic container of L<blocks|/BLOCK ELEMENTS> (C<content>) with attributes
 (C<attr>).
 
+    Div $attributes, [ @blocks ]
+
 =head3 Header
 
 Header with C<level> (integer), attributes (C<attr>), and text (C<content>, a
 list of L<inlines|/INLINE ELEMENTS>).
 
+    Header $level, $attributes, [ @inlines ]
+
 =head3 HorizontalRule
 
 Horizontal rule
+
+    HorizontalRule 
 
 =head3 Null
 
 Nothing
 
+    Null
+
 =head3 OrderedList
 
-Definition list of C<items>/C<content>, each a pair consisting of a term (a
-list of L<inlines|/INLINE ELEMENTS>) and one or more definitions (each a list
-of L<blocks|/BLOCK ELEMENTS>).
+Numbered list of items (C<content>=C<items>), each a list of L<blocks|/BLOCK
+ELEMENTS>), preceded by list attributes (start number, numbering style, and
+delimiter).
+
+    OrderedList [ $start, $style, $delim ], [[ @blocks ]]
+
+Supported styles are C<DefaultStyle>, C<Example>, C<Decimal>, C<LowerRoman>,
+C<UpperRoman>, C<LowerAlpha>, and C<UpperAlpha>.
+
+Supported delimiters are C<DefaultDelim>, C<Period>, C<OneParen>, and
+C<TwoParens>.
 
 =head3 Para
 
 Paragraph, consisting of a list of L<Inline elements|/INLINE ELEMENTS>
 (C<content>).
 
+    Para [ $elements ]
+
 =head3 Plain
 
 Plain text, not a paragraph, consisting of a list of L<Inline elements|/INLINE
 ELEMENTS> (C<content>).
 
+    Plain [ @inlines ]
+
 =head3 RawBlock
 
 Raw block with C<format> and C<content> string.
+
+    RawBlock $format, $content
 
 =head3 Table
 
@@ -481,7 +503,7 @@ Footnote or Endnote, a list of L<blocks|/BLOCK ELEMENTS> (C<content>).
 Quoted text with quote C<type> (one of C<SingleQuote> and C<DoubleQuote>) and a
 list of L<inlines|/INLINE ELEMENTS>) (C<content>).
 
-    Quoted $type, [ $inlines ]
+    Quoted $type, [ @inlines ]
 
 =head3 RawInline
 
@@ -491,7 +513,7 @@ Raw inline with C<format> (a string) and C<content> (a string).
 
 =head3 SmallCaps
 
-Small caps text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+Small caps text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     SmallCaps [ @inlines ]
 
@@ -516,25 +538,25 @@ Plain text, a string (C<content>).
 
 =head3 Strikeout
 
-Strikeout text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+Strikeout text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     Strikeout [ @inlines ]
 
 =head3 Strong
 
-Strongly emphasized text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+Strongly emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     Strong [ @inlines ]
 
 =head3 Subscript
 
-Subscripted text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+Subscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     Supscript [ @inlines ]
 
 =head3 Superscript
 
-Superscripted text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+Superscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     Superscript [ @inlines ]
 
@@ -558,6 +580,8 @@ Superscripted text, a list of L<inlines|/INLINE ELEMENTS>) (C<content>).
 
 Root element, consisting of metadata hash (C<meta>) and document element array
 (C<content>).
+
+    Document $meta, [ @blocks ]
 
 =head2 TYPES
 
