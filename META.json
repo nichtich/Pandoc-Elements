@@ -38,7 +38,7 @@
       "runtime" : {
          "requires" : {
             "JSON" : "0",
-            "perl" : "5.008005"
+            "perl" : "5.010"
          }
       },
       "test" : {
@@ -60,7 +60,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.07",
+   "version" : "0.08",
    "x_contributors" : [
       "Jakob Voss <voss@gbv.de>"
    ]

@@ -42,14 +42,20 @@ Pandoc::Elements provides utility functions to create abstract syntax trees
 data structure can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats,
 such as HTML, LaTeX, ODT, and ePUB. 
 
-## FUNCTIONS
+## EXPORTED FUNCTIONS
 
-In addition to constructor functions for each document element, the following
-functions are exported.
+- Constructors for all Pandoc document element ([block elements](#block-elements)
+such as `Para` and [inline elements](#inline-elements) such as `Emph`,
+[metadata elements](#metadata-elements) and the ["Document" in DOCUMENT ELEMENT](https://metacpan.org/pod/DOCUMENT&#x20;ELEMENT#Document)).
+- [Type keywords](#type-keywords) such as `Decimal` and `LowerAlpha` to be used
+as types in other document elements.
+- The helper following functions `pandoc_json`, `attributes`, `citation`, and
+`element`.
 
 ### pandoc\_json( $json )
 
-Parse a JSON string, as emitted by pandoc JSON format.
+Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
+to method `to_json`.
 
 ### attributes { key => $value, ... }
 
@@ -64,13 +70,35 @@ Elements with attributes (element accessor method `attr`) also provide the
 accessor method `id`, `classes`, and `class`. See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
 easy access to key-value-pairs.
 
+### citation { ... }
+
+A citation as part of document element [Cite](#cite) must be a hash reference
+with fields `citationID` (string), `citationPrefix` (list of [inline
+elements](#inline-elements)) `citationSuffix` (list of [inline
+elements](#inline-elements)), `citationMode` (one of `NormalCitation`,
+C>AuthorInText>, `SuppressAuthor`), `citationNoteNum` (integer), and
+`citationHash` (integer). The helper method `citation` can be used to
+construct such hash by filling in default values and using shorter field names
+(`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`. For instance
+
+    citation { 
+        id => 'foo', 
+        prefix => [ Str "see" ], 
+        suffix => [ Str "p.", Space, Str "42" ]
+    }
+
+    # in Pandoc Markdown
+
+    [see @foo p. 42]
+
 ### element( $name => $content )
 
-Create a Pandoc document element. This function is only exported on request.
+Create a Pandoc document element of arbitrary name. This function is only
+exported on request.
 
 # ELEMENTS 
 
-AST elements are encoded as Perl data structures equivalent to the JSON
+Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
 objects that provide the following element methods and additional accessor
 methods specific to each element.
@@ -130,20 +158,32 @@ Transform the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc
 
 Block quote, consisting of a list of [blocks](#block-elements) (`content`)
 
+    BlockQuote [ @blocks ]
+
 ### BulletList
 
 Unnumbered list of items (`content`=`items`), each a list of
 [blocks](#block-elements)
 
+    BlockQuote [ [ @blocks ] ]
+
 ### CodeBlock
 
 Code block (literal string `content`) with attributes (`attr`)
+
+    CodeBlock $attributes, $content
 
 ### DefinitionList
 
 Definition list, consisting of a list of pairs (`content`=`items`),
 each a term (`term`, a list of [inlines](#inline-elements)) and one
 or more definitions (`definitions`, a list of [blocks](#block-elements)).
+
+    DefinitionList [ @definitions ]
+
+    # each item in @definitions being a pair of the form
+
+        [ [ @inlines ], [ @blocks ] ]
 
 ### Div
 
@@ -176,7 +216,7 @@ Nothing
 Numbered list of items (`content`=`items`), each a list of [blocks](#block-elements)), preceded by list attributes (start number, numbering style, and
 delimiter).
 
-    OrderedList [ $start, $style, $delim ], [[ @blocks ]]
+    OrderedList [ $start, $style, $delim ], [ [ @blocks ] ]
 
 Supported styles are `DefaultStyle`, `Example`, `Decimal`, `LowerRoman`,
 `UpperRoman`, `LowerAlpha`, and `UpperAlpha`.
@@ -209,12 +249,29 @@ Table, with `caption`, column `alignments`, relative column `widths` (0 =
 default), column `headers` (each a list of [blocks](#block-elements)), and
 `rows` (each a list of lists of [blocks](#block-elements)).
 
+    Table [ @inlines ], [ @alignments ], [ @width ], [ @headers ], [ @rows ]
+
+Possible alignments are `AlignLeft`, `AlignRight`, `AlignCenter`, and
+`AlignDefault`.
+
+An example:
+
+    Table [Str "Example"], [AlignLeft,AlignRight], [0.0,0.0],
+     [[Plain [Str "name"]]
+     ,[Plain [Str "number"]]],
+     [[[Plain [Str "Alice"]]
+      ,[Plain [Str "42"]]]
+     ,[[Plain [Str "Bob"]]
+      ,[Plain [Str "23"]]]];
+
 ## INLINE ELEMENTS
 
 ### Cite
 
-Citation, a list of [inlines](#inline-elements) (`content`) and a list of
-`citations`.
+Citation, a list of `citations` and a list of [inlines](#inline-elements)
+(`content`).  See helper function ["citation" in citation](https://metacpan.org/pod/citation#citation) to construct citations.
+
+    Cite [ @citations ], [ @inlines ]
 
 ### Code
 
@@ -264,7 +321,7 @@ Footnote or Endnote, a list of [blocks](#block-elements) (`content`).
 ### Quoted
 
 Quoted text with quote `type` (one of `SingleQuote` and `DoubleQuote`) and a
-list of [inlines](#inline-elements)) (`content`).
+list of [inlines](#inline-elements) (`content`).
 
     Quoted $type, [ @inlines ]
 
@@ -346,15 +403,18 @@ Root element, consisting of metadata hash (`meta`) and document element array
 
     Document $meta, [ @blocks ]
 
-## TYPES
+## TYPE KEYWORDS
 
-The following elements are used as types only: 
+The following document elements are only as used as type keywords in other
+document elements:
 
-`DefaultDelim`, `Period`, `OneParen`, `TwoParens`, `SingleQuote`,
-`DoubleQuote`, `DisplayMath`, `InlineMath`, `AuthorInText`,
-`SuppressAuthor`, `NormalCitation`, `AlignLeft`, `AlignRight`,
-`AlignCenter`, `AlignDefault`, `DefaultStyle`, `Example`, `Decimal`,
-`LowerRoman`, `UpperRoman`, `LowerAlpha`, `UpperAlpha`
+- `SingleQuote`, `DoubleQuote`
+- `DisplayMath`, `InlineMath`
+- `AuthorInText`, `SuppressAuthor`, `NormalCitation` 
+- `AlignLeft`, `AlignRight`, `AlignCenter`, `AlignDefault` 
+- `DefaultStyle`, `Example`, `Decimal`, `LowerRoman`, `UpperRoman`,
+`LowerAlpha`, `UpperAlpha`
+- `DefaultDelim`, `Period`, `OneParen`, `TwoParens`
 
 # SEE ALSO
 
@@ -362,7 +422,7 @@ The following elements are used as types only:
 
 [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 contains the original definition of Pandoc document data structure in Haskell.
-This module version was last aligned with pandoc-types-1.12.4.1.
+This module version was last aligned with pandoc-types-1.12.4.
 
 # AUTHOR
 
