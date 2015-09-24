@@ -1,11 +1,12 @@
 package Pandoc::Elements;
 use strict;
 use warnings;
-use 5.008_005;
+use 5.010;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 our %ELEMENTS = (
+    # BLOCK ELEMENTS
     Plain => [ Block => 'content' ],
     Para => [ Block => 'content' ],
     CodeBlock => [ Block => qw(attr content) ],
@@ -19,7 +20,7 @@ our %ELEMENTS = (
     Table => [ Block => qw(caption alignment widths headers rows) ],
     Div => [ Block => qw(attr content) ],
     Null => [ 'Block' ],
-
+    # INLINE ELEMENTS
     Str => [ Inline => 'content' ],
     Emph => [ Inline => 'content' ],
     Strong => [ Inline => 'content' ],
@@ -38,7 +39,7 @@ our %ELEMENTS = (
     Image => [ Inline => qw(content target) ],
     Note => [ Inline => 'content' ],
     Span => [ Inline => qw(attr content) ],
-
+    # METADATA ELEMENTS
     MetaBool => [ Meta => 'content' ],
     MetaString => [ Meta => 'content' ],
     MetaMap => [ Meta => 'content' ],
@@ -61,7 +62,7 @@ use Scalar::Util qw(reftype);
 use Pandoc::Walker qw(walk);
 
 use parent 'Exporter';
-our @EXPORT = (keys %ELEMENTS, qw(Document attributes pandoc_json));
+our @EXPORT = (keys %ELEMENTS, qw(Document attributes citation pandoc_json));
 our @EXPORT_OK = (@EXPORT, 'element');
 
 # create constructor functions
@@ -132,6 +133,20 @@ sub attributes($) {
             keys %$attrs 
         ]
     ];
+}
+
+sub citation($) {    
+    my $a = shift;
+    {
+        citationId => $a->{id} // "missing",
+        citationPrefix => $a->{prefix} // [], 
+        citationSuffix => $a->{suffix} // [], 
+        citationMode => $a->{mode} // 
+            bless({ t => 'NormalCitation', c => [] },
+                  'Pandoc::Document::NormalCitation'),
+        citationNoteNum => $a->{num} // 0,
+        citationHash => $a->{hash} // 1,
+    }
 }
 
 sub pandoc_json {
@@ -277,14 +292,32 @@ Pandoc::Elements provides utility functions to create abstract syntax trees
 data structure can be converted by L<Pandoc> to many other document formats,
 such as HTML, LaTeX, ODT, and ePUB. 
 
-=head2 FUNCTIONS
+=head2 EXPORTED FUNCTIONS
 
-In addition to constructor functions for each document element, the following
-functions are exported.
+=over
+
+=item 
+
+Constructors for all Pandoc document element (L<block elements|/BLOCK ELEMENTS>
+such as C<Para> and L<inline elements|/INLINE ELEMENTS> such as C<Emph>,
+L<metadata elements|/METADATA ELEMENTS> and the L<DOCUMENT ELEMENT/Document>).
+
+=item 
+
+L<Type keywords|/TYPE KEYWORDS> such as C<Decimal> and C<LowerAlpha> to be used
+as types in other document elements.
+
+=item
+
+The helper following functions C<pandoc_json>, C<attributes>, C<citation>, and
+C<element>.
+
+=back
 
 =head3 pandoc_json( $json )
 
-Parse a JSON string, as emitted by pandoc JSON format.
+Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
+to method C<to_json>.
 
 =head3 attributes { key => $value, ... }
 
@@ -299,13 +332,35 @@ Elements with attributes (element accessor method C<attr>) also provide the
 accessor method C<id>, C<classes>, and C<class>. See L<Hash::MultiValue> for
 easy access to key-value-pairs.
 
+=head3 citation { ... }
+
+A citation as part of document element L<Cite|/Cite> must be a hash reference
+with fields C<citationID> (string), C<citationPrefix> (list of L<inline
+elements|/INLINE ELEMENTS>) C<citationSuffix> (list of L<inline
+elements|/INLINE ELEMENTS>), C<citationMode> (one of C<NormalCitation>,
+C>AuthorInText>, C<SuppressAuthor>), C<citationNoteNum> (integer), and
+C<citationHash> (integer). The helper method C<citation> can be used to
+construct such hash by filling in default values and using shorter field names
+(C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>. For instance
+
+    citation { 
+        id => 'foo', 
+        prefix => [ Str "see" ], 
+        suffix => [ Str "p.", Space, Str "42" ]
+    }
+
+    # in Pandoc Markdown
+
+    [see @foo p. 42]
+
 =head3 element( $name => $content )
 
-Create a Pandoc document element. This function is only exported on request.
+Create a Pandoc document element of arbitrary name. This function is only
+exported on request.
 
 =head1 ELEMENTS 
 
-AST elements are encoded as Perl data structures equivalent to the JSON
+Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format C<json>. All elements are blessed
 objects that provide the following element methods and additional accessor
 methods specific to each element.
@@ -365,20 +420,32 @@ Transform the element tree with L<Pandoc::Walker>
 
 Block quote, consisting of a list of L<blocks|/BLOCK ELEMENTS> (C<content>)
 
+    BlockQuote [ @blocks ]
+
 =head3 BulletList
 
 Unnumbered list of items (C<content>=C<items>), each a list of
 L<blocks|/BLOCK ELEMENTS>
 
+    BlockQuote [ [ @blocks ] ]
+
 =head3 CodeBlock
 
 Code block (literal string C<content>) with attributes (C<attr>)
+
+    CodeBlock $attributes, $content
 
 =head3 DefinitionList
 
 Definition list, consisting of a list of pairs (C<content>=C<items>),
 each a term (C<term>, a list of L<inlines|/INLINE ELEMENTS>) and one
 or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
+
+    DefinitionList [ @definitions ]
+
+    # each item in @definitions being a pair of the form
+
+        [ [ @inlines ], [ @blocks ] ]
 
 =head3 Div
 
@@ -412,7 +479,7 @@ Numbered list of items (C<content>=C<items>), each a list of L<blocks|/BLOCK
 ELEMENTS>), preceded by list attributes (start number, numbering style, and
 delimiter).
 
-    OrderedList [ $start, $style, $delim ], [[ @blocks ]]
+    OrderedList [ $start, $style, $delim ], [ [ @blocks ] ]
 
 Supported styles are C<DefaultStyle>, C<Example>, C<Decimal>, C<LowerRoman>,
 C<UpperRoman>, C<LowerAlpha>, and C<UpperAlpha>.
@@ -446,12 +513,29 @@ Table, with C<caption>, column C<alignments>, relative column C<widths> (0 =
 default), column C<headers> (each a list of L<blocks|/BLOCK ELEMENTS>), and
 C<rows> (each a list of lists of L<blocks|/BLOCK ELEMENTS>).
 
+    Table [ @inlines ], [ @alignments ], [ @width ], [ @headers ], [ @rows ]
+
+Possible alignments are C<AlignLeft>, C<AlignRight>, C<AlignCenter>, and
+C<AlignDefault>.
+
+An example:
+
+    Table [Str "Example"], [AlignLeft,AlignRight], [0.0,0.0],
+     [[Plain [Str "name"]]
+     ,[Plain [Str "number"]]],
+     [[[Plain [Str "Alice"]]
+      ,[Plain [Str "42"]]]
+     ,[[Plain [Str "Bob"]]
+      ,[Plain [Str "23"]]]];
+
 =head2 INLINE ELEMENTS
 
 =head3 Cite
 
-Citation, a list of L<inlines|/INLINE ELEMENTS> (C<content>) and a list of
-C<citations>.
+Citation, a list of C<citations> and a list of L<inlines|/INLINE ELEMENTS>
+(C<content>).  See helper function L<citation/citation> to construct citations.
+
+    Cite [ @citations ], [ @inlines ]
 
 =head3 Code
 
@@ -501,7 +585,7 @@ Footnote or Endnote, a list of L<blocks|/BLOCK ELEMENTS> (C<content>).
 =head3 Quoted
 
 Quoted text with quote C<type> (one of C<SingleQuote> and C<DoubleQuote>) and a
-list of L<inlines|/INLINE ELEMENTS>) (C<content>).
+list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     Quoted $type, [ @inlines ]
 
@@ -583,15 +667,39 @@ Root element, consisting of metadata hash (C<meta>) and document element array
 
     Document $meta, [ @blocks ]
 
-=head2 TYPES
+=head2 TYPE KEYWORDS
 
-The following elements are used as types only: 
+The following document elements are only as used as type keywords in other
+document elements:
 
-C<DefaultDelim>, C<Period>, C<OneParen>, C<TwoParens>, C<SingleQuote>,
-C<DoubleQuote>, C<DisplayMath>, C<InlineMath>, C<AuthorInText>,
-C<SuppressAuthor>, C<NormalCitation>, C<AlignLeft>, C<AlignRight>,
-C<AlignCenter>, C<AlignDefault>, C<DefaultStyle>, C<Example>, C<Decimal>,
-C<LowerRoman>, C<UpperRoman>, C<LowerAlpha>, C<UpperAlpha>
+=over
+
+=item
+
+C<SingleQuote>, C<DoubleQuote>
+
+=item
+
+C<DisplayMath>, C<InlineMath>
+
+=item
+
+C<AuthorInText>, C<SuppressAuthor>, C<NormalCitation> 
+
+=item
+
+C<AlignLeft>, C<AlignRight>, C<AlignCenter>, C<AlignDefault> 
+
+=item
+
+C<DefaultStyle>, C<Example>, C<Decimal>, C<LowerRoman>, C<UpperRoman>,
+C<LowerAlpha>, C<UpperAlpha>
+
+=item
+
+C<DefaultDelim>, C<Period>, C<OneParen>, C<TwoParens>
+
+=back
 
 =head1 SEE ALSO
 
@@ -599,7 +707,7 @@ L<Pandoc> implements a wrapper around the pandoc executable.
 
 L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
 contains the original definition of Pandoc document data structure in Haskell.
-This module version was last aligned with pandoc-types-1.12.4.1.
+This module version was last aligned with pandoc-types-1.12.4.
 
 =head1 AUTHOR
 
