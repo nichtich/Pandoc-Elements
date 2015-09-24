@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.08  2015-09-24 11:10:54 CEST
     - new helper function: citation
 
 0.07  2015-09-22 15:39:49 CEST
