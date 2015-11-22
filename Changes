@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.09  2015-11-22 20:40:49 CET
     - support definition of filters as hash
 
 0.08  2015-09-24 11:10:54 CEST
