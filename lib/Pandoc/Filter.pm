@@ -16,18 +16,12 @@ use parent 'Exporter';
 our @EXPORT = qw(pandoc_filter stringify);
 
 sub stringify {
-    my ($ast) = @_;
-    my @result;
-    walk( $ast, sub {
-        my ($name, $content) = ($_[0]->name, $_[0]->content);
-        if ($name eq 'Str' or $name eq 'Code' or $name eq 'Math') {
-            push @result, $content;
-        } elsif ($name eq 'LineBreak' or $name eq 'Space') {
-            push @result, " ";
-        }
-        return; 
-    }, "", {} );
-    return join '', @result;
+    join '', @{
+        $_[0]->query({ 
+            'Str|Code|Math'   => sub { $_[0]->content },
+            'LineBreak|Space' => sub { ' ' },
+        });
+    };
 }
 
 sub pandoc_filter(@) { ## no critic
@@ -45,6 +39,7 @@ sub new {
     my $class = shift;
     if ( @_ and !(ref $_[0] or @_ % 2) ) {
         my @actions;
+        # TODO: partly duplicated code in Pandoc::Walker
         for( my $i=0; $i<@_; $i+=2 ) {
             my @names  = split /\|/, $_[$i];
             my $action = $_[$i+1];

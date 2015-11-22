@@ -22,8 +22,11 @@ sub urls {
 };
 
 my $links = query $doc, \&urls;
-is_deeply $links, $LINKS, 'query';
+is_deeply $links, $LINKS, 'query( action )';
 is_deeply $doc->query(\&urls), $LINKS, '->query';
+
+$links = query $doc, 'Link|Image' => sub { $_[0]->target->[0] };
+is_deeply $links, $LINKS, 'query( name => action )';
 
 sub links {
     return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
