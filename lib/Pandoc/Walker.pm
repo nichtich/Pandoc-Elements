@@ -2,15 +2,13 @@ package Pandoc::Walker;
 use strict;
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.09';
 
 use Scalar::Util qw(reftype blessed);
-use List::Util qw(first);
 
 use parent 'Exporter';
 our @EXPORT = qw(walk query transform);
 
-# TODO: Duplicated in Pandoc::Filter?
 sub _walker {
     return @_ if @_ == 2 and ref $_[1] eq 'CODE';
 
