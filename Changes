@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - new method: pandoc_walk
 
 0.09  2015-11-22 20:40:49 CET
     - support definition of filters as hash
