@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - support definition of filters as hash
 
 0.08  2015-09-24 11:10:54 CEST
     - new helper function: citation

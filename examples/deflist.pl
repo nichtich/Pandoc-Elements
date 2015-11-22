@@ -11,10 +11,8 @@ terms in strong emphasis (for compatibility with standard markdown).
 use Pandoc::Filter qw(pandoc_filter);
 use Pandoc::Elements qw(BulletList Para Strong Str);
 
-pandoc_filter sub {
-    my $dl = shift;
-    return if $dl->name ne 'DefinitionList';
-    BulletList [ map { to_bullet($_) } @{$dl->items} ]
+pandoc_filter DefinitionList => sub {
+    BulletList [ map { to_bullet($_) } @{$_[0]->items} ]
 };
 
 sub to_bullet {

@@ -3,6 +3,7 @@ use Pandoc::Filter;
 use Pandoc::Elements;
 use JSON;
 use Encode;
+use Test::Output;
 
 # FIXME: don't require decode_utf8 (?)
 
@@ -22,11 +23,16 @@ Pandoc::Filter->new(\&shout)->apply($ast);
 is_deeply $ast, [{ t => 'Str', c => "\x{2603}!" }], 'applied filter';
 
 {
-    use Test::Output;
     local *STDIN = *DATA;
+    my $data_start = tell DATA;
     stdout_like(sub { 
             pandoc_filter( \&shout ) 
-        }, qr/"c":"☃!"/), 'pandoc_filter';
+        }, qr/"c":"☃!"/, 'pandoc_filter (sub)');
+
+    seek DATA, $data_start, 0;
+    stdout_like(sub { 
+            pandoc_filter( Str => sub { Str($_[0]->content.'!') } ) 
+        }, qr/"c":"☃!"/, 'pandoc_filter (hash)');
 }
 
 done_testing;

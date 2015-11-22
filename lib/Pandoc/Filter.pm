@@ -1,4 +1,5 @@
 package Pandoc::Filter;
+use 5.010;
 use strict;
 use warnings;
 
@@ -7,6 +8,7 @@ our $VERSION = '0.06';
 use JSON;
 use Carp;
 use Scalar::Util 'reftype';
+use List::Util;
 use Pandoc::Walker;
 use Pandoc::Elements ();
 
@@ -34,18 +36,30 @@ sub pandoc_filter(@) { ## no critic
     $filter->apply($ast);
     my $json = JSON->new->utf8->allow_blessed->convert_blessed->encode($ast);
     #my $json = $ast->to_json; # TODO
-    print STDOUT $json;
-    print STDOUT "\n";
+    say STDOUT $json;
 }
 
 # constructor and methods
 
 sub new {
     my $class = shift;
-    if ( grep { !reftype $_ or reftype $_ ne 'CODE' } @_ ) {
-        croak $class.'->new expects a list of CODE references';
+    if ( @_ and !(ref $_[0] or @_ % 2) ) {
+        my @actions;
+        for( my $i=0; $i<@_; $i+=2 ) {
+            my @names  = split /\|/, $_[$i];
+            my $action = $_[$i+1];
+            push @actions, sub {
+                return unless List::Util::first { $_[0]->name eq $_ } @names;
+                $action->(@_);
+            };
+        }
+        bless \@actions, $class;
+    } else {
+        if ( grep { !reftype $_ or reftype $_ ne 'CODE' } @_ ) {
+            croak $class.'->new expects a hash or list of CODE references';
+        }
+        bless \@_, $class;
     }
-    bless \@_, $class;
 }
 
 sub apply {
@@ -76,8 +90,8 @@ documentation|http://johnmacfarlane.net/pandoc/scripting.html> converts level
     use Pandoc::Filter;
     use Pandoc::Elements;
 
-    pandoc_filter sub {
-        return unless ($_[0]->name eq 'Header' and $_[0]->level >= 2);
+    pandoc_filter Header => sub {
+        return unless $_[0]->level >= 2;
         return Para [ Emph $_[0]->content ];
     };
 
@@ -103,12 +117,18 @@ of this module.
 
 =head1 METHODS
 
-=head2 new( @action )
+=head2 new( @actions | %actions )
 
 Create a new filter with one or more action functions, given as code
 reference(s). Each function is expected to return an element, an empty array
 reference, or C<undef> to modify, remove, or keep a traversed element in the
-AST.
+AST. If actions are given as hash, key values are used to check which elements
+to apply for, e.g. 
+
+    Pandoc::Filter->new( 
+        Header                 => sub { ... }, 
+        'Suscript|Superscript' => sub { ... }
+    )
 
 =head2 apply( $ast [, $format [ $metadata ] ] )
 
@@ -121,13 +141,13 @@ Document by default (if the AST is a Document root).
 
 The following functions are exported by default.
 
-=head2 pandoc_filter( @action )
+=head2 pandoc_filter( @actions | %actions )
 
 Read a single line of JSON from STDIN, apply actions and print the resulting
 AST as single line of JSON. This function is roughly equivalent to
 
     my $ast = Pandoc::Elements::pandoc_json(<>);
-    Pandoc::Filter->new(@action)->apply($ast);
+    Pandoc::Filter->new(@actions)->apply($ast);
     say $ast->to_json;
 
 =head2 stringify( $ast )

@@ -11,8 +11,7 @@ Code, link URLs, etc. are not affected.
 use Pandoc::Filter;
 use Pandoc::Elements qw(Str);
 
-pandoc_filter sub {
-    return if $_[0]->name ne 'Str';
+pandoc_filter Str => sub {
     return Str(uc $_[0]->content);
     # alternative to modify in-place (comment out previous line to enable)
     $_[0]->{c} = uc($_[0]->content);
