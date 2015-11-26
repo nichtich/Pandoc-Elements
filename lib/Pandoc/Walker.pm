@@ -19,7 +19,7 @@ sub _walker {
         @actions = ( shift, shift );
     } elsif (ref $_[0] eq 'CODE') {
         my ($action, @args) = @_;
-        return ($ast, sub { $action->($_[0], @args) });
+        return ($ast, sub { $_=$_[0]; $action->($_[0], @args) });
     } elsif (reftype $_[0] eq 'HASH') {
         @actions = %{ shift @_ };
     } 
@@ -80,14 +80,14 @@ sub transform {
 
 sub walk(@) { ## no critic
     my ($ast, $query) = _walker(@_);
-    transform( $ast, sub { $query->(@_); return } );
+    transform( $ast, sub { $_=$_[0]; $query->(@_); return } );
 }
 
 sub query(@) { ## no critic
     my ($ast, $query) = _walker(@_);
 
     my $list = [];
-    transform( $ast, sub { push @$list, $query->(@_); return } );
+    transform( $ast, sub { $_=$_[0]; push @$list, $query->(@_); return } );
     return $list;
 }
 
@@ -108,20 +108,20 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
     my $ast = pandoc_json(<>);
 
     # extract all links and image URLs
-    my $links = query $ast, 'Link|Image' => sub { $_[0]->url };
+    my $links = query $ast, 'Link|Image' => sub { $_->url };
 
     # print all links and image URLs
-    walk $ast, 'Link|Image' => sub { say $_[0]->url };
+    walk $ast, 'Link|Image' => sub { say $_->url };
 
     # remove all links
     transform $ast, sub {
-        return ($_[0]->name eq 'Link' ? [] : ());
+        return ($_->name eq 'Link' ? [] : ());
     };
 
     # replace all links by their link text angle brackets
     use Pandoc::Elements 'Str';
     transform $ast, Link => sub {
-        return (Str "<", $_[0]->content->[0], Str ">");
+        return (Str "<", $_->content->[0], Str ">");
     };
 
 =head1 DESCRIPTION
@@ -153,6 +153,8 @@ See also L<Pandoc::Filter> for an object oriented interface to transformations.
 Walks an abstract syntax tree and calls an action on every element or every
 element of given name(s). Additional arguments are also passed to the action.
 
+See also function C<pandoc_walk> exported by L<Pandoc::Filter>.
+
 =head2 query( $ast, [ $names => ] $query [, @arguments ] )
 
 =head2 query( $ast, \%queries [, @arguments ] )
@@ -164,7 +166,7 @@ C<stringify> method of L<Pandoc::Elements> is implemented as following:
 
     join '', @{ 
         query( $ast, { 
-            'Str|Code|Math'   => sub { $_[0]->content },
+            'Str|Code|Math'   => sub { $_->content },
             'LineBreak|Space' => sub { ' ' } 
         } );
 
@@ -176,6 +178,8 @@ Walks an abstract syntax tree and applies an action on every element, or every
 element of given name(s), to either keep it (if the action returns C<undef>),
 remove it (if it returns an empty array reference), or replace it with one or
 more elements (returned by array reference or as single value).
+
+See also function C<pandoc_filter> exported by L<Pandoc::Filter>.
 
 =head1 COPYRIGHT AND LICENSE
 

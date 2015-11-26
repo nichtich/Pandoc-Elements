@@ -12,9 +12,9 @@ use Pandoc::Filter;
 use Pandoc::Elements qw(Str);
 
 pandoc_filter Str => sub {
-    return Str(uc $_[0]->content);
+    return Str(uc $_->content);
     # alternative to modify in-place (comment out previous line to enable)
-    $_[0]->{c} = uc($_[0]->content);
+    $_->{c} = uc($_->content);
     return
 };
 

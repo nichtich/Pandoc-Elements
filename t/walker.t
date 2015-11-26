@@ -17,20 +17,20 @@ my $LINKS = [qw(
 )];
 
 sub urls {
-    return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
-    return $_[0]->target->[0];
+    return unless ($_->name eq 'Link' or $_->name eq 'Image');
+    return $_->target->[0];
 };
 
 my $links = query $doc, \&urls;
 is_deeply $links, $LINKS, 'query( action )';
 is_deeply $doc->query(\&urls), $LINKS, '->query';
 
-$links = query $doc, 'Link|Image' => sub { $_[0]->target->[0] };
+$links = query $doc, 'Link|Image' => sub { $_->target->[0] };
 is_deeply $links, $LINKS, 'query( name => action )';
 
 sub links {
-    return unless ($_[0]->name eq 'Link' or $_[0]->name eq 'Image');
-    push @$links, $_[0]->url;
+    return unless ($_->name eq 'Link' or $_->name eq 'Image');
+    push @$links, $_->url;
 }
 
 $links = [ ];
@@ -42,7 +42,7 @@ $doc->walk(\&links);
 is_deeply $links, $LINKS, '->walk';
 
 transform $doc, sub {
-    return ($_[0]->name eq 'Link' ? [] : ());
+    return ($_->name eq 'Link' ? [] : ());
 };
 
 is_deeply query($doc,\&urls), ['image.png'], 'transform, remove elements';

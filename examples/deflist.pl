@@ -12,7 +12,7 @@ use Pandoc::Filter qw(pandoc_filter);
 use Pandoc::Elements qw(BulletList Para Strong Str);
 
 pandoc_filter DefinitionList => sub {
-    BulletList [ map { to_bullet($_) } @{$_[0]->items} ]
+    BulletList [ map { to_bullet($_) } @{ $_->items } ]
 };
 
 sub to_bullet {

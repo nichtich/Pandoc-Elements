@@ -11,8 +11,7 @@ use Pandoc::Filter;
 use Pandoc::Elements qw(Str);
 
 pandoc_filter Emph => sub {
-    $_[0]->transform( Str => sub { Str(uc($_[0]->content)) });
-#    $_[0];
+    $_->transform( Str => sub { Str(uc($_->content)) });
 };
 
 =head1 SYNOPSIS

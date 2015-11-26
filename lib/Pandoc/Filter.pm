@@ -18,7 +18,7 @@ our @EXPORT = qw(pandoc_filter pandoc_walk stringify);
 sub stringify {
     join '', @{
         $_[0]->query({ 
-            'Str|Code|Math'   => sub { $_[0]->content },
+            'Str|Code|Math'   => sub { $_->content },
             'LineBreak|Space' => sub { ' ' },
         });
     };
@@ -49,7 +49,8 @@ sub new {
             my $action = $_[$i+1];
             push @actions, sub {
                 return unless List::Util::first { $_[0]->name eq $_ } @names;
-                $action->(@_);
+                $_=$_[0];
+                $action->($_);
             };
         }
         bless \@actions, $class;
@@ -90,8 +91,8 @@ documentation|http://johnmacfarlane.net/pandoc/scripting.html> converts level
     use Pandoc::Elements;
 
     pandoc_filter Header => sub {
-        return unless $_[0]->level >= 2;
-        return Para [ Emph $_[0]->content ];
+        return unless $_->level >= 2;
+        return Para [ Emph $_->content ];
     };
 
 To apply this filter on a Markdown file:
@@ -121,8 +122,11 @@ of this module.
 Create a new filter with one or more action functions, given as code
 reference(s). Each function is expected to return an element, an empty array
 reference, or C<undef> to modify, remove, or keep a traversed element in the
-AST. If actions are given as hash, key values are used to check which elements
-to apply for, e.g. 
+AST. The current element is passed to an action function both as first argument
+and in the special variable C<$_>. 
+
+If actions are given as hash, key values are used to check which elements to
+apply for, e.g. 
 
     Pandoc::Filter->new( 
         Header                 => sub { ... }, 
