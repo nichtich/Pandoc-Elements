@@ -162,6 +162,11 @@ Read a single line of JSON from STDIN and walk down the AST.
 Walks the ast and returns concatenated string content, leaving out all
 formatting.
 
+=head1 SEE ALSO
+
+Script L<pandoc-walk> installed with this module facilitates execution of
+C<pandoc_walk> to traverse a document.
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß

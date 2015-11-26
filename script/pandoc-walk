@@ -1,0 +1,70 @@
+#!/usr/bin/env perl
+use strict;
+use 5.010;
+
+our $VERSION = '0.10';
+
+use Pod::Usage;
+pod2usage(1) unless @ARGV;
+
+my $script = pop @ARGV;
+my $pipe;
+
+if ( -f $script ) {
+    $pipe = sub {
+        exec($script) or die "can't exec $script\n";
+    };
+}
+else {
+    my $filter = eval
+      "use Pandoc::Filter;use Pandoc::Elements;Pandoc::Filter->new($script)";
+    if ($@) {
+        my $error = $@;
+        $error =~ s/ at .*? line .*?$//gm;
+        chomp $error;
+        say STDERR <<ERROR;
+Error calling pandoc_walk in this Perl code:
+ 
+   use strict;
+   use 5.010;
+   use Pandoc::Filter;
+   use Pandoc::Elements;
+   pandoc_walk( $script );
+ERROR
+        say STDERR $error;
+        exit 1;
+    }
+
+    $pipe = sub {
+        my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
+        $filter->apply($ast);
+    };
+}
+
+my $pid = open( STDIN, "-|" ) // die "cannot fork: $!\n";
+if ( $pid == 0 ) {
+    exec( 'pandoc', @ARGV, '-t', 'json' ) or die "can't exec pandoc: $!\n";
+}
+else {
+    $pipe->();
+}
+
+=head1 SYNOPSIS
+
+  pandoc-walk [ options ] script
+
+Calls pandoc with given options to parse a document and process its abstract
+syntax tree. A processing script must be given as executable file or as Perl
+code to be passed to function 'pandoc_walk' from Perl module Pandoc::Filter.
+
+=head2 EXAMPLES
+
+Extract all URLs from a HTML file:
+
+  pandoc-walk document.html 'Link=>sub{say $_->url}'
+
+Extract a table of contents from a LaTeX file:
+
+  pandoc-walk document.tex 'Header=>sub{say " " x $_->level, stringify $_}'
+
+=cut

@@ -285,6 +285,8 @@ an equivalent Pandoc Markdown document would be
 See module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the abstract
 syntax tree of pandoc documents in Perl.
 
+See also script L<pandoc-walk> installed with this module.
+
 =head1 DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
