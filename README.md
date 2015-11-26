@@ -35,6 +35,8 @@ an equivalent Pandoc Markdown document would be
 See module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the abstract
 syntax tree of pandoc documents in Perl.
 
+See also script [pandoc-walk](https://metacpan.org/pod/pandoc-walk) installed with this module.
+
 # DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
