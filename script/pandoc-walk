@@ -1,42 +1,70 @@
-#!/bin/sh
+#!/usr/bin/env perl
+use strict;
+use 5.010;
 
-if [ "$#" -gt "0" ]
-then
-    # get the last argument (POSIX shell)
-    for script; do true; done
+our $VERSION = '0.10';
 
-    # remove the last argument (POSIX shell)
-    n=$(($# -1))
-    for arg do
-        [ "$n" -gt 0 ] && set -- "$@" "$arg"
-        shift
-        n=$((n -1))
-    done
+use Pod::Usage;
+pod2usage(1) unless @ARGV;
 
-    if [ -x "$script" ]
-    then
-        pandoc "$@" -t json | exec "$script"
-    else
-        perl="pandoc_walk($script)"
-        echo "$perl"
-        pandoc "$@" -t json | \
-            perl -Ilib -MPandoc::Filter -MPandoc::Elements -E "$perl"
-    fi
-else
-    echo "Usage: $0 [ options ] script"
-    echo
-    echo \
-" Calls pandoc with given options to parse a document and process its abstract"
-    echo \
-" syntax tree. A processing script must be given as executable file or as Perl"
-    echo \
-" code to be passed to function 'pandoc_walk' from Perl module Pandoc::Filter."
-    echo
-    echo "Examples:"
-    echo 
-    echo " extract all URLs from a HTML file"
-    echo "  $0 document.html '"'Link=>sub{say $_[0]->url}'"'"
-    echo 
-    echo " extract a table of contents from a LaTeX file"
-    echo "  $0 document.tex '"'Header=>sub{say "-" x $_[0]->level, stringify($_[0])}'"'"
-fi
+my $script = pop @ARGV;
+my $pipe;
+
+if ( -f $script ) {
+    $pipe = sub {
+        exec($script) or die "can't exec $script\n";
+    };
+}
+else {
+    my $filter = eval
+      "use Pandoc::Filter;use Pandoc::Elements;Pandoc::Filter->new($script)";
+    if ($@) {
+        my $error = $@;
+        $error =~ s/ at .*? line .*?$//gm;
+        chomp $error;
+        say STDERR <<ERROR;
+Error calling pandoc_walk in this Perl code:
+ 
+   use strict;
+   use 5.010;
+   use Pandoc::Filter;
+   use Pandoc::Elements;
+   pandoc_walk( $script );
+ERROR
+        say STDERR $error;
+        exit 1;
+    }
+
+    $pipe = sub {
+        my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
+        $filter->apply($ast);
+    };
+}
+
+my $pid = open( STDIN, "-|" ) // die "cannot fork: $!\n";
+if ( $pid == 0 ) {
+    exec( 'pandoc', @ARGV, '-t', 'json' ) or die "can't exec pandoc: $!\n";
+}
+else {
+    $pipe->();
+}
+
+=head1 SYNOPSIS
+
+  pandoc-walk [ options ] script
+
+Calls pandoc with given options to parse a document and process its abstract
+syntax tree. A processing script must be given as executable file or as Perl
+code to be passed to function 'pandoc_walk' from Perl module Pandoc::Filter.
+
+=head2 EXAMPLES
+
+Extract all URLs from a HTML file:
+
+  pandoc-walk document.html 'Link=>sub{say $_[0]->url}'
+
+Extract a table of contents from a LaTeX file:
+
+  pandoc-walk document.tex 'Header=>sub{say "-" x $_[0]->level, stringify($_[0])}'
+
+=cut
