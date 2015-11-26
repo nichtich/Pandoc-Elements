@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.10  2015-11-26 22:07:39 CET
     - added utility script pandoc-walk
     - new method: pandoc_walk
     - provide special variable $_ to action functions
