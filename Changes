@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.11  2015-11-30 13:47:17 CET
     - UTF-8 output with pandoc_walk and pandoc_filter
     - include tests of pandoc-walk
 
