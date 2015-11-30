@@ -282,17 +282,18 @@ an equivalent Pandoc Markdown document would be
     # Gruß {.de}
     Hello, world!
 
-See module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the abstract
-syntax tree of pandoc documents in Perl.
-
-See also script L<pandoc-walk> installed with this module.
-
 =head1 DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of L<Pandoc|http://johnmacfarlane.net/pandoc/> documents. The resulting
 data structure can be converted by L<Pandoc> to many other document formats,
 such as HTML, LaTeX, ODT, and ePUB. 
+
+Please make sure to use at least Pandoc 1.12 when processing documents
+
+See module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the AST
+of pandoc documents in Perl. And L<pandoc-walk> for traversing documents
+via command line (requires Pandoc >= 1.12).
 
 =head2 EXPORTED FUNCTIONS
 

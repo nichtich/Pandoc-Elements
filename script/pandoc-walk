@@ -36,7 +36,9 @@ ERROR
     }
 
     $pipe = sub {
-        my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
+        my $json = <STDIN>;
+        exit 1 if substr($json, 0, 1) ne '[';
+        my $ast = Pandoc::Elements::pandoc_json($json);
         $filter->apply($ast);
     };
 }
@@ -46,6 +48,7 @@ if ( $pid == 0 ) {
     exec( 'pandoc', @ARGV, '-t', 'json' ) or die "can't exec pandoc: $!\n";
 }
 else {
+    binmode STDOUT, ':encoding(UTF-8)';
     $pipe->();
 }
 

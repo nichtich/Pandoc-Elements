@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - UTF-8 output with pandoc_walk and pandoc_filter
+    - include tests of pandoc-walk
 
 0.10  2015-11-26 22:07:39 CET
     - added utility script pandoc-walk

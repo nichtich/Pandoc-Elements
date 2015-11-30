@@ -27,13 +27,14 @@ sub stringify {
 sub pandoc_walk(@) { ## no critic
     my $filter = Pandoc::Filter->new(@_);
     my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
+    binmode STDOUT, ':encoding(UTF-8)';
     $filter->apply($ast);
 }
 
 sub pandoc_filter(@) { ## no critic
-    my $ast = pandoc_walk(@_);
-    my $json = JSON->new->utf8->allow_blessed->convert_blessed->encode($ast);
-    #my $json = $ast->to_json; # TODO
+    my $ast = pandoc_walk(@_);  # implies binmode STDOUT UTF-8
+    my $json = JSON->new->allow_blessed->convert_blessed->encode($ast);
+    #my $json = $ast->to_json;  # does not want binmode STDOUT UTF-8
     say STDOUT $json;
 }
 
@@ -144,6 +145,11 @@ Document by default (if the AST is a Document root).
 
 The following functions are exported by default.
 
+=head2 pandoc_walk( @actions | %actions )
+
+Read a single line of JSON from STDIN and walk down the AST.  Implicitly sets
+binmode UTF-8 for STDOUT.
+
 =head2 pandoc_filter( @actions | %actions )
 
 Read a single line of JSON from STDIN, apply actions and print the resulting
@@ -152,10 +158,6 @@ AST as single line of JSON. This function is roughly equivalent to
     my $ast = Pandoc::Elements::pandoc_json(<>);
     Pandoc::Filter->new(@actions)->apply($ast);
     say $ast->to_json;
-
-=head2 pandoc_walk( @actions | %actions )
-
-Read a single line of JSON from STDIN and walk down the AST.
 
 =head2 stringify( $ast )
 
