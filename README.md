@@ -32,17 +32,18 @@ an equivalent Pandoc Markdown document would be
     # Gruß {.de}
     Hello, world!
 
-See module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the abstract
-syntax tree of pandoc documents in Perl.
-
-See also script [pandoc-walk](https://metacpan.org/pod/pandoc-walk) installed with this module.
-
 # DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of [Pandoc](http://johnmacfarlane.net/pandoc/) documents. The resulting
 data structure can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats,
 such as HTML, LaTeX, ODT, and ePUB. 
+
+Please make sure to use at least Pandoc 1.12 when processing documents
+
+See module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the AST
+of pandoc documents in Perl. And [pandoc-walk](https://metacpan.org/pod/pandoc-walk) for traversing documents
+via command line (requires Pandoc >= 1.12).
 
 ## EXPORTED FUNCTIONS
 
