@@ -58,7 +58,8 @@ else {
 
 Calls pandoc with given options to parse a document and process its abstract
 syntax tree. A processing script must be given as executable file or as Perl
-code to be passed to function 'pandoc_walk' from Perl module Pandoc::Filter.
+code to be passed to function C<pandoc_walk> from Perl module
+L<Pandoc::Filter>.
 
 =head2 EXAMPLES
 
@@ -66,7 +67,7 @@ Extract all URLs from a HTML file:
 
   pandoc-walk document.html 'Link=>sub{say $_->url}'
 
-Extract a table of contents from a LaTeX file:
+Extract table of contents from a LaTeX file:
 
   pandoc-walk document.tex 'Header=>sub{say " " x $_->level, stringify $_}'
 
