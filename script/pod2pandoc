@@ -1,0 +1,6 @@
+#!/usr/bin/env perl
+
+use Pod::Simple::Pandoc;
+my $file = shift;
+my $doc = Pod::Simple::Pandoc->parse_file($file);
+print $doc->to_json;

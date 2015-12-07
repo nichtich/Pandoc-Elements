@@ -430,7 +430,7 @@ Block quote, consisting of a list of L<blocks|/BLOCK ELEMENTS> (C<content>)
 Unnumbered list of items (C<content>=C<items>), each a list of
 L<blocks|/BLOCK ELEMENTS>
 
-    BlockQuote [ [ @blocks ] ]
+    BulletList [ [ @blocks ] ]
 
 =head3 CodeBlock
 
