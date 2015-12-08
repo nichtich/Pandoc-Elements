@@ -1,6 +1,69 @@
 #!/usr/bin/env perl
+require 5.010;
+use strict;
 
+use Getopt::Long;
+use Pod::Usage;
 use Pod::Simple::Pandoc;
-my $file = shift;
-my $doc = Pod::Simple::Pandoc->parse_file($file);
-print $doc->to_json;
+
+my $VERSION = '0.12';
+
+my %opt;
+GetOptions( \%opt, 'help|h|?', 'man' ) or exit 1;
+pod2usage(1) if $opt{help};
+pod2usage( -verbose => 2 ) if $opt{man};
+@ARGV = '-' unless @ARGV;
+
+my $combined;
+
+foreach my $input (@ARGV) {
+    my $doc = Pod::Simple::Pandoc->parse_file($input);
+    if ($combined) {
+        push @{$combined->content}, @{$doc->content};
+    } else {
+        $combined = $doc;
+    }
+}
+
+print $combined->to_json;
+
+=head1 NAME
+
+pod2pandoc - convert Pod to Pandoc document model
+
+=head1 SYNOPSIS
+
+  pod2pandoc [OPTIONS] [INPUT...] | pandoc -f json
+
+=head1 DESCRIPTION
+
+C<pod2pandoc> converts POD format documentation (L<perlpod>) to the abstract
+document model used by L<Pandoc|http://pandoc.org/> for further processing to
+other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man,
+ICML...). Convertion is based on L<Pod::Simple::Pandoc>.
+
+By default or with input C<-> a document is read from STDIN. Multiple input
+files are combined to one document.
+
+=head1 OPTIONS
+
+=over 
+
+=item --help|-h|-?
+
+Print out usage information and exit
+
+=item --man
+
+Print the full manual page and exit
+
+=back
+
+=head1 SEE ALSO
+
+L<Pandoc::Elements>
+
+L<pod2html>, L<pod2man>, L<pod2readme>, L<pod2usage>, L<pod2latex>,
+L<pod2markdown>, L<pod2text> 
+
+=cut
