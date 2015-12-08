@@ -35,9 +35,9 @@ an equivalent Pandoc Markdown document would be
 # DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
-(AST) of [Pandoc](http://johnmacfarlane.net/pandoc/) documents. The resulting
-data structure can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats,
-such as HTML, LaTeX, ODT, and ePUB. 
+(AST) of [Pandoc](http://pandoc.org/) documents. The resulting data structure
+can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats, such as HTML,
+LaTeX, ODT, and ePUB. 
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
@@ -47,6 +47,8 @@ via command line (requires Pandoc >= 1.12).
 
 ## EXPORTED FUNCTIONS
 
+The following functions and keywords are exported by default:
+
 - Constructors for all Pandoc document element ([block elements](#block-elements)
 such as `Para` and [inline elements](#inline-elements) such as `Emph`,
 [metadata elements](#metadata-elements) and the ["Document" in DOCUMENT ELEMENT](https://metacpan.org/pod/DOCUMENT&#x20;ELEMENT#Document)).
@@ -55,7 +57,7 @@ as types in other document elements.
 - The helper following functions `pandoc_json`, `attributes`, `citation`, and
 `element`.
 
-### pandoc\_json( $json )
+### pandoc\_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
 to method `to_json`.
@@ -82,7 +84,7 @@ elements](#inline-elements)), `citationMode` (one of `NormalCitation`,
 C>AuthorInText>, `SuppressAuthor`), `citationNoteNum` (integer), and
 `citationHash` (integer). The helper method `citation` can be used to
 construct such hash by filling in default values and using shorter field names
-(`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`. For instance
+(`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`):
 
     citation { 
         id => 'foo', 
@@ -143,17 +145,21 @@ True if the element is a [Metadata element](#metadata-elements)
 
 True if the element is a [Document element](#document-element)
 
-### walk
+### walk(...)
 
 Walk the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
 
-### query
+### query(...)
 
 Query the element to extract results with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
 
-### transform
+### transform(...)
 
 Transform the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
+
+### string
+
+Returns a concatenated string of element content, leaving out all formatting.
 
 ## BLOCK ELEMENTS
 
@@ -168,7 +174,7 @@ Block quote, consisting of a list of [blocks](#block-elements) (`content`)
 Unnumbered list of items (`content`=`items`), each a list of
 [blocks](#block-elements)
 
-    BlockQuote [ [ @blocks ] ]
+    BulletList [ [ @blocks ] ]
 
 ### CodeBlock
 

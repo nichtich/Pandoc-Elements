@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - add string as method to replace function stringify
+    - fixed nasty bug in Pandoc::Element constructor reuse
 
 0.11  2015-11-30 13:47:17 CET
     - UTF-8 output with pandoc_walk and pandoc_filter

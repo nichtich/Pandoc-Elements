@@ -38,6 +38,10 @@
       "runtime" : {
          "requires" : {
             "JSON" : "0",
+            "List::Util" : "0",
+            "Pod::Simple" : "3.08",
+            "Pod::Usage" : "0",
+            "Scalar::Util" : "0",
             "perl" : "5.010"
          }
       },
@@ -60,7 +64,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.11",
+   "version" : "0.12",
    "x_contributors" : [
       "Jakob Voß <jakob.voss@gbv.de>"
    ]
