@@ -16,12 +16,7 @@ use parent 'Exporter';
 our @EXPORT = qw(pandoc_filter pandoc_walk stringify);
 
 sub stringify {
-    join '', @{
-        $_[0]->query({ 
-            'Str|Code|Math'   => sub { $_->content },
-            'LineBreak|Space' => sub { ' ' },
-        });
-    };
+    $_[0]->string
 }
 
 sub pandoc_walk(@) { ## no critic
@@ -85,8 +80,8 @@ Pandoc::Filter - process Pandoc abstract syntax tree
 =head1 SYNOPSIS
 
 The following filter C<flatten.pl>, adopted from L<pandoc scripting
-documentation|http://johnmacfarlane.net/pandoc/scripting.html> converts level
-2+ headers to regular paragraphs.
+documentation|http://pandoc.org/scripting.html> converts level 2+ headers to
+regular paragraphs.
 
     use Pandoc::Filter;
     use Pandoc::Elements;
@@ -108,9 +103,8 @@ examples of filters.
 Pandoc::Filter is a port of
 L<pandocfilters|https://github.com/jgm/pandocfilters> from Python to modern
 Perl.  The module provide provides functions to aid writing Perl scripts that
-process a L<Pandoc|http://johnmacfarlane.net/pandoc/> abstract syntax tree
-(AST) serialized as JSON. See L<Pandoc::Elements> for documentation of AST
-elements.
+process a L<Pandoc|http://pandoc.org/> abstract syntax tree (AST) serialized as
+JSON. See L<Pandoc::Elements> for documentation of AST elements.
 
 This module is based on L<Pandoc::Walker> and its function C<transform>. Please
 consider using its function interface (C<transform>, C<query>, C<walk>) instead
@@ -162,7 +156,9 @@ AST as single line of JSON. This function is roughly equivalent to
 =head2 stringify( $ast )
 
 Walks the ast and returns concatenated string content, leaving out all
-formatting.
+formatting. This function is also accessible as method of L<Pandoc::Element>
+since version 0.12, so I<it will be removed as exportable function> in a later
+version.
 
 =head1 SEE ALSO
 

@@ -160,9 +160,9 @@ See also function C<pandoc_walk> exported by L<Pandoc::Filter>.
 =head2 query( $ast, \%queries [, @arguments ] )
 
 Walks an abstract syntax tree and applies one or multiple query functions to
-extract results.  The query function is expected to return a list. The
-combined query result is returned as array reference. For instance the
-C<stringify> method of L<Pandoc::Elements> is implemented as following:
+extract results.  The query function is expected to return a list. The combined
+query result is returned as array reference. For instance the C<string> method
+of L<Pandoc::Elements> is implemented as following:
 
     join '', @{ 
         query( $ast, { 

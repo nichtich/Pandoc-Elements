@@ -6,54 +6,60 @@ use 5.010;
 our $VERSION = '0.11';
 
 our %ELEMENTS = (
+
     # BLOCK ELEMENTS
-    Plain => [ Block => 'content' ],
-    Para => [ Block => 'content' ],
-    CodeBlock => [ Block => qw(attr content) ],
-    RawBlock => [ Block => qw(format content) ],
-    BlockQuote => [ Block => 'content' ],
-    OrderedList => [ Block => qw(attr content/items) ],
-    BulletList => [ Block => 'content/items' ],
+    Plain          => [ Block => 'content' ],
+    Para           => [ Block => 'content' ],
+    CodeBlock      => [ Block => qw(attr content) ],
+    RawBlock       => [ Block => qw(format content) ],
+    BlockQuote     => [ Block => 'content' ],
+    OrderedList    => [ Block => qw(attr content/items) ],
+    BulletList     => [ Block => 'content/items' ],
     DefinitionList => [ Block => 'content/items:[DefinitionPair]' ],
-    Header => [ Block => qw(level attr content) ],
-    HorizontalRule => [ 'Block' ],
-    Table => [ Block => qw(caption alignment widths headers rows) ],
-    Div => [ Block => qw(attr content) ],
-    Null => [ 'Block' ],
+    Header         => [ Block => qw(level attr content) ],
+    HorizontalRule => ['Block'],
+    Table          => [ Block => qw(caption alignment widths headers rows) ],
+    Div            => [ Block => qw(attr content) ],
+    Null           => ['Block'],
+
     # INLINE ELEMENTS
-    Str => [ Inline => 'content' ],
-    Emph => [ Inline => 'content' ],
-    Strong => [ Inline => 'content' ],
-    Strikeout => [ Inline => 'content' ],
+    Str         => [ Inline => 'content' ],
+    Emph        => [ Inline => 'content' ],
+    Strong      => [ Inline => 'content' ],
+    Strikeout   => [ Inline => 'content' ],
     Superscript => [ Inline => 'content' ],
-    Subscript => [ Inline => 'content' ],
-    SmallCaps => [ Inline => 'content' ],
-    Quoted => [ Inline => qw(type content) ],
-    Cite => [ Inline => qw(citations content) ],
-    Code => [ Inline => qw(attr content) ],
-    Space => [ 'Inline' ],
-    LineBreak => [ 'Inline' ],
-    Math => [ Inline => qw(type content) ],
-    RawInline => [ Inline => qw(format content) ],
-    Link => [ Inline => qw(content target) ],
-    Image => [ Inline => qw(content target) ],
-    Note => [ Inline => 'content' ],
-    Span => [ Inline => qw(attr content) ],
+    Subscript   => [ Inline => 'content' ],
+    SmallCaps   => [ Inline => 'content' ],
+    Quoted      => [ Inline => qw(type content) ],
+    Cite        => [ Inline => qw(citations content) ],
+    Code        => [ Inline => qw(attr content) ],
+    Space       => ['Inline'],
+    LineBreak   => ['Inline'],
+    Math        => [ Inline => qw(type content) ],
+    RawInline   => [ Inline => qw(format content) ],
+    Link        => [ Inline => qw(content target) ],
+    Image       => [ Inline => qw(content target) ],
+    Note        => [ Inline => 'content' ],
+    Span        => [ Inline => qw(attr content) ],
+
     # METADATA ELEMENTS
-    MetaBool => [ Meta => 'content' ],
-    MetaString => [ Meta => 'content' ],
-    MetaMap => [ Meta => 'content' ],
+    MetaBool    => [ Meta => 'content' ],
+    MetaString  => [ Meta => 'content' ],
+    MetaMap     => [ Meta => 'content' ],
     MetaInlines => [ Meta => 'content' ],
-    MetaList => [ Meta => 'content' ],
-    MetaBlocks => [ Meta => 'content' ],
+    MetaList    => [ Meta => 'content' ],
+    MetaBlocks  => [ Meta => 'content' ],
 );
 
 # type constructors
-foreach (qw(DefaultDelim Period OneParen TwoParens SingleQuote DoubleQuote
-    DisplayMath InlineMath AuthorInText SuppressAuthor NormalCitation 
-    AlignLeft AlignRight AlignCenter AlignDefault DefaultStyle Example 
-    Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha)) {
-    $ELEMENTS{$_} = ['Inline']
+foreach (
+    qw(DefaultDelim Period OneParen TwoParens SingleQuote DoubleQuote
+    DisplayMath InlineMath AuthorInText SuppressAuthor NormalCitation
+    AlignLeft AlignRight AlignCenter AlignDefault DefaultStyle Example
+    Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha)
+  )
+{
+    $ELEMENTS{$_} = ['Inline'];
 }
 
 use Carp;
@@ -62,38 +68,40 @@ use Scalar::Util qw(reftype);
 use Pandoc::Walker qw(walk);
 
 use parent 'Exporter';
-our @EXPORT = (keys %ELEMENTS, qw(Document attributes citation pandoc_json));
-our @EXPORT_OK = (@EXPORT, 'element');
+our @EXPORT = ( keys %ELEMENTS, qw(Document attributes citation pandoc_json) );
+our @EXPORT_OK = ( @EXPORT, 'element' );
 
 # create constructor functions
-foreach my $name (keys %ELEMENTS) {
-    no strict 'refs'; ## no critic
+foreach my $name ( keys %ELEMENTS ) {
+    no strict 'refs';    ## no critic
 
-    my ($parent, @accessors) = @{$ELEMENTS{$name}};
+    my ( $parent, @accessors ) = @{ $ELEMENTS{$name} };
     my $numargs = scalar @accessors;
-    my $class = "Pandoc::Document::$name";
+    my $class   = "Pandoc::Document::$name";
     my @parents = map { "Pandoc::Document::$_" } ($parent);
-    $parent = join ' ', map { "Pandoc::Document::$_" } 
-        $parent, 
-        map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
+    $parent = join ' ', map { "Pandoc::Document::$_" } $parent,
+      map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
 
     eval "package $class; our \@ISA = qw($parent);";
 
-    *{__PACKAGE__."::$name"} = Scalar::Util::set_prototype( sub {
-        croak "$name expects $numargs arguments, but given " . scalar @_
-            if @_ != $numargs;
-        bless { t => $name, c => (@_ == 1 ? $_[0] : \@_) }, $class;
-    }, '$' x $numargs );
+    *{ __PACKAGE__ . "::$name" } = Scalar::Util::set_prototype(
+        sub {
+            croak "$name expects $numargs arguments, but given " . scalar @_
+              if @_ != $numargs;
+            bless { t => $name, c => ( @_ == 1 ? $_[0] : [@_] ) }, $class;
+        },
+        '$' x $numargs
+    );
 
-    for (my $i=0; $i<@accessors; $i++) {
-        my $code = @accessors == 1
-                 ? "\$_[0]->{c}" : "\$_[0]->{c}->[$i]";
+    for ( my $i = 0 ; $i < @accessors ; $i++ ) {
+        my $code = @accessors == 1 ? "\$_[0]->{c}" : "\$_[0]->{c}->[$i]";
+
         # auto-bless on access via accessor (TODO: move to constructor?)
-        if ($accessors[$i] =~ s/:\[(.+)\]$//) {
+        if ( $accessors[$i] =~ s/:\[(.+)\]$// ) {
             $code = "[ map { bless \$_, 'Pandoc::Document::$1' } \@{$code} ]";
         }
-        for (split '/', $accessors[$i]) {
-            *{$class."::$_"} = eval "sub { $code }";
+        for ( split '/', $accessors[$i] ) {
+            *{ $class . "::$_" } = eval "sub { $code }";
         }
     }
 }
@@ -107,52 +115,53 @@ sub element {
 }
 
 sub Document($$) {
-   @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
-   return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::Document';
+    @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
+    return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::Document';
 }
 
 # specific accessors
 
-sub Pandoc::Document::Link::url { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Link::title { $_[0]->{c}->[1][1] }
-sub Pandoc::Document::Image::url { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Image::title { $_[0]->{c}->[1][1] }
-sub Pandoc::Document::DefinitionPair::term { $_[0]->[0] }
+sub Pandoc::Document::Link::url                   { $_[0]->{c}->[1][0] }
+sub Pandoc::Document::Link::title                 { $_[0]->{c}->[1][1] }
+sub Pandoc::Document::Image::url                  { $_[0]->{c}->[1][0] }
+sub Pandoc::Document::Image::title                { $_[0]->{c}->[1][1] }
+sub Pandoc::Document::DefinitionPair::term        { $_[0]->[0] }
 sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
 # additional functions
 
 sub attributes($) {
     my ($attrs) = @_;
-    return [ 
-        defined $attrs->{id} ? $attrs->{id} : '',
+    return [
+        defined $attrs->{id}      ? $attrs->{id}      : '',
         defined $attrs->{classes} ? $attrs->{classes} : [],
-        [ 
-            map { $_ => $attrs->{$_} } 
-            grep { $_ ne 'id' and $_ ne 'classes' } 
-            keys %$attrs 
+        [
+            map { $_ => $attrs->{$_} }
+              grep { $_ ne 'id' and $_ ne 'classes' }
+              keys %$attrs
         ]
     ];
 }
 
-sub citation($) {    
+sub citation($) {
     my $a = shift;
     {
-        citationId => $a->{id} // "missing",
-        citationPrefix => $a->{prefix} // [], 
-        citationSuffix => $a->{suffix} // [], 
-        citationMode => $a->{mode} // 
-            bless({ t => 'NormalCitation', c => [] },
-                  'Pandoc::Document::NormalCitation'),
-        citationNoteNum => $a->{num} // 0,
-        citationHash => $a->{hash} // 1,
-    }
+        citationId     => $a->{id}     // "missing",
+        citationPrefix => $a->{prefix} // [],
+        citationSuffix => $a->{suffix} // [],
+        citationMode   => $a->{mode}   // bless(
+            { t => 'NormalCitation', c => [] },
+            'Pandoc::Document::NormalCitation'
+        ),
+        citationNoteNum => $a->{num}  // 0,
+        citationHash    => $a->{hash} // 1,
+    };
 }
 
-sub pandoc_json {
+sub pandoc_json($) {
     shift if $_[0] =~ /^Pandoc::/;
 
-    my $ast = eval { decode_json($_[0]) };
+    my $ast = eval { decode_json( $_[0] ) };
     if ($@) {
         $@ =~ s/ at [^ ]+Elements\.pm line \d+//;
         chomp $@;
@@ -160,14 +169,15 @@ sub pandoc_json {
     }
     return unless reftype $ast;
 
-    if (reftype $ast eq 'ARRAY') {
+    if ( reftype $ast eq 'ARRAY' ) {
         $ast = Document( $ast->[0]->{unMeta}, $ast->[1] );
-    } elsif (reftype $ast eq 'HASH') {
+    }
+    elsif ( reftype $ast eq 'HASH' ) {
         $ast = element( $ast->{t}, $ast->{c} );
     }
 
     walk $ast, sub {
-        bless $_[0], 'Pandoc::Document::'.$_[0]->{t};
+        bless $_[0], 'Pandoc::Document::' . $_[0]->{t};
     };
 
     return $ast;
@@ -176,18 +186,20 @@ sub pandoc_json {
 # document element packages
 
 {
+
     package Pandoc::Document;
     use strict;
     our $VERSION = '0.04';
-    our @ISA = ('Pandoc::Document::Element');
-    sub TO_JSON { [ @{$_[0]} ] }
-    sub name { 'Document' }
-    sub meta { $_[0]->[0]->{unMeta} }
-    sub content { $_[0]->[1] }
+    our @ISA     = ('Pandoc::Document::Element');
+    sub TO_JSON     { [ @{ $_[0] } ] }
+    sub name        { 'Document' }
+    sub meta        { $_[0]->[0]->{unMeta} }
+    sub content     { $_[0]->[1] }
     sub is_document { 1 }
 }
 
 {
+
     package Pandoc::Document::Element;
     use strict;
     use warnings;
@@ -195,12 +207,13 @@ sub pandoc_json {
     use JSON ();
     use Scalar::Util qw(reftype);
     use Pandoc::Walker ();
-    sub to_json { 
-        JSON->new->utf8->convert_blessed->encode($_[0])
+
+    sub to_json {
+        JSON->new->utf8->convert_blessed->encode( $_[0] );
     }
-    sub TO_JSON     { return { %{$_[0]} } }    
-    sub name        { $_[0]->{t} }
-    sub content     { $_[0]->{c} }
+    sub TO_JSON { return { %{ $_[0] } } }
+    sub name    { $_[0]->{t} }
+    sub content { $_[0]->{c} }
     sub is_document { 0 }
     sub is_block    { 0 }
     sub is_inline   { 0 }
@@ -208,36 +221,56 @@ sub pandoc_json {
     *walk      = *Pandoc::Walker::walk;
     *query     = *Pandoc::Walker::query;
     *transform = *Pandoc::Walker::transform;
+
+    sub string {
+        # TODO: fix issue #4 to avoid this duplication
+        if ($_[0]->name =~ /^(Str|Code|Math)$/) {
+            return $_[0]->content;
+        } elsif ($_[0]->name =~ /^(LineBreak|Space)$/) {
+            return ' ';
+        }
+        join '', @{
+            $_[0]->query(
+                {
+                    'Str|Code|Math'   => sub { $_->content },
+                    'LineBreak|Space' => sub { ' ' },
+                }
+            );
+        };
+    }
 }
 
 {
+
     package Pandoc::Document::AttributesRole;
-    sub id { $_[0]->attr->[0] }
+    sub id      { $_[0]->attr->[0] }
     sub classes { $_[0]->attr->[1] }
-    sub class { join ' ', @{$_[0]->classes} }
-}    
- 
+    sub class   { join ' ', @{ $_[0]->classes } }
+}
+
 {
+
     package Pandoc::Document::Block;
     our $VERSION = $PANDOC::Document::VERSION;
-    our @ISA = ('Pandoc::Document::Element');
+    our @ISA     = ('Pandoc::Document::Element');
     sub is_block { 1 }
 }
 
 {
+
     package Pandoc::Document::Inline;
     our $VERSION = $PANDOC::Document::VERSION;
-    our @ISA = ('Pandoc::Document::Element');
+    our @ISA     = ('Pandoc::Document::Element');
     sub is_inline { 1 }
 }
 
 {
+
     package Pandoc::Document::Meta;
     our $VERSION = $PANDOC::Document::VERSION;
-    our @ISA = ('Pandoc::Document::Element');
+    our @ISA     = ('Pandoc::Document::Element');
     sub is_meta { 1 }
 }
-
 
 1;
 __END__
@@ -285,9 +318,9 @@ an equivalent Pandoc Markdown document would be
 =head1 DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
-(AST) of L<Pandoc|http://johnmacfarlane.net/pandoc/> documents. The resulting
-data structure can be converted by L<Pandoc> to many other document formats,
-such as HTML, LaTeX, ODT, and ePUB. 
+(AST) of L<Pandoc|http://pandoc.org/> documents. The resulting data structure
+can be converted by L<Pandoc> to many other document formats, such as HTML,
+LaTeX, ODT, and ePUB. 
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
@@ -296,6 +329,8 @@ of pandoc documents in Perl. And L<pandoc-walk> for traversing documents
 via command line (requires Pandoc >= 1.12).
 
 =head2 EXPORTED FUNCTIONS
+
+The following functions and keywords are exported by default:
 
 =over
 
@@ -317,7 +352,7 @@ C<element>.
 
 =back
 
-=head3 pandoc_json( $json )
+=head3 pandoc_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
 to method C<to_json>.
@@ -344,7 +379,7 @@ elements|/INLINE ELEMENTS>), C<citationMode> (one of C<NormalCitation>,
 C>AuthorInText>, C<SuppressAuthor>), C<citationNoteNum> (integer), and
 C<citationHash> (integer). The helper method C<citation> can be used to
 construct such hash by filling in default values and using shorter field names
-(C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>. For instance
+(C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>):
 
     citation { 
         id => 'foo', 
@@ -405,17 +440,21 @@ True if the element is a L<Metadata element|/METADATA ELEMENTS>
 
 True if the element is a L<Document element|/DOCUMENT ELEMENT>
 
-=head3 walk
+=head3 walk(...)
 
 Walk the element tree with L<Pandoc::Walker>
 
-=head3 query
+=head3 query(...)
 
 Query the element to extract results with L<Pandoc::Walker>
 
-=head3 transform
+=head3 transform(...)
 
 Transform the element tree with L<Pandoc::Walker>
+
+=head3 string
+
+Returns a concatenated string of element content, leaving out all formatting.
 
 =head2 BLOCK ELEMENTS
 

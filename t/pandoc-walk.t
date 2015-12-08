@@ -8,7 +8,7 @@ if ( (`pandoc -v` // '') !~ /^pandoc (\d+)\.(\d+)/ or ($1 eq '1' and $2 < 12) ) 
     plan skip_all => 'pandoc >= 1.12 required';
 }
 
-my $header = 'Header=>sub{say " " x ($_->level-1), stringify $_}';
+my $header = 'Header=>sub{say " " x ($_->level-1), $_->string }';
 my $link   = 'Link=>sub{say $_->url}';
 
 output_like { system($^X,'script/pandoc-walk') } qr/^Usage:/, qr//, 'usage';

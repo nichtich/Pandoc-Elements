@@ -65,10 +65,10 @@ L<Pandoc::Filter>.
 
 Extract all URLs from a HTML file:
 
-  pandoc-walk document.html 'Link=>sub{say $_->url}'
+  pandoc-walk document.html 'Link => sub{say $_->url}'
 
 Extract table of contents from a LaTeX file:
 
-  pandoc-walk document.tex 'Header=>sub{say " " x $_->level, stringify $_}'
+  pandoc-walk document.tex 'Header => sub{say " " x $_->level, $_->string }'
 
 =cut

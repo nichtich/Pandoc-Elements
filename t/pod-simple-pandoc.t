@@ -12,7 +12,7 @@ my $doc = $parser->parse_file($file);
 isa_ok( $doc, 'Pandoc::Document', );
 
 is_deeply $doc->query(
-    Header => sub { $_[0]->level == 1 ? $_[0]->stringify : () } ),
+    Header => sub { $_[0]->level == 1 ? $_[0]->string : () } ),
   [ 'NAME', 'SYNOPSIS', 'DESCRIPTION', 'METHODS', 'MAPPING', 'LIMITATIONS', 'SEE ALSO' ],
   'got header';
 
