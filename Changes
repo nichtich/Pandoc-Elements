@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.12  2015-12-08 13:55:43 CET
     - add string as method to replace function stringify
     - fixed nasty bug in Pandoc::Element constructor reuse
 
