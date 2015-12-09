@@ -52,6 +52,10 @@ else {
     $pipe->();
 }
 
+=head1 NAME
+
+pandocwalk - parse document with pandoc and process abstract syntax tree
+
 =head1 SYNOPSIS
 
   pandocwalk [ options ] script
