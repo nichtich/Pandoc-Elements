@@ -16,19 +16,20 @@ use parent 'Exporter';
 our @EXPORT = qw(pandoc_filter pandoc_walk stringify);
 
 sub stringify {
-    $_[0]->string
+    $_[0]->string;
 }
 
-sub pandoc_walk(@) { ## no critic
+sub pandoc_walk(@) {    ## no critic
     my $filter = Pandoc::Filter->new(@_);
-    my $ast = Pandoc::Elements::pandoc_json(<STDIN>);
+    my $ast    = Pandoc::Elements::pandoc_json(<STDIN>);
     binmode STDOUT, ':encoding(UTF-8)';
-    $filter->apply($ast);
+    $filter->apply( $ast, @ARGV ? $ARGV[0] : '' );
 }
 
-sub pandoc_filter(@) { ## no critic
-    my $ast = pandoc_walk(@_);  # implies binmode STDOUT UTF-8
+sub pandoc_filter(@) {    ## no critic
+    my $ast = pandoc_walk(@_);    # implies binmode STDOUT UTF-8
     my $json = JSON->new->allow_blessed->convert_blessed->encode($ast);
+
     #my $json = $ast->to_json;  # does not want binmode STDOUT UTF-8
     say STDOUT $json;
 }
@@ -37,33 +38,35 @@ sub pandoc_filter(@) { ## no critic
 
 sub new {
     my $class = shift;
-    if ( @_ and !(ref $_[0] or @_ % 2) ) {
+    if ( @_ and !( ref $_[0] or @_ % 2 ) ) {
         my @actions;
+
         # TODO: partly duplicated code in Pandoc::Walker
-        for( my $i=0; $i<@_; $i+=2 ) {
-            my @names  = split /\|/, $_[$i];
-            my $action = $_[$i+1];
+        for ( my $i = 0 ; $i < @_ ; $i += 2 ) {
+            my @names = split /\|/, $_[$i];
+            my $action = $_[ $i + 1 ];
             push @actions, sub {
                 return unless List::Util::first { $_[0]->name eq $_ } @names;
-                $_=$_[0];
+                $_ = $_[0];
                 $action->($_);
             };
         }
         bless \@actions, $class;
-    } else {
+    }
+    else {
         if ( grep { !reftype $_ or reftype $_ ne 'CODE' } @_ ) {
-            croak $class.'->new expects a hash or list of CODE references';
+            croak $class. '->new expects a hash or list of CODE references';
         }
         bless \@_, $class;
     }
 }
 
 sub apply {
-    my ($self, $ast, $format, $meta) = @_;
-    $meta ||= eval { $ast->[0]->{unMeta} } || { };
+    my ( $self, $ast, $format, $meta ) = @_;
+    $meta ||= eval { $ast->[0]->{unMeta} } || {};
 
     foreach my $action (@$self) {
-        Pandoc::Walker::transform($ast, $action, $format || '', $meta);
+        Pandoc::Walker::transform( $ast, $action, $format || '', $meta );
     }
     $ast;
 }
@@ -118,7 +121,8 @@ Create a new filter with one or more action functions, given as code
 reference(s). Each function is expected to return an element, an empty array
 reference, or C<undef> to modify, remove, or keep a traversed element in the
 AST. The current element is passed to an action function both as first argument
-and in the special variable C<$_>. 
+and in the special variable C<$_>. Output format (if specified) and document
+metadata are passed as second and third argument.
 
 If actions are given as hash, key values are used to check which elements to
 apply for, e.g. 
@@ -150,7 +154,7 @@ Read a single line of JSON from STDIN, apply actions and print the resulting
 AST as single line of JSON. This function is roughly equivalent to
 
     my $ast = Pandoc::Elements::pandoc_json(<>);
-    Pandoc::Filter->new(@actions)->apply($ast);
+    Pandoc::Filter->new(@actions)->apply($ast, @ARGV ? $ARGV[0] : ());
     say $ast->to_json;
 
 =head2 stringify( $ast )
