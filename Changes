@@ -1,9 +1,14 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    -
+    - fix passing of output format
+    - add method match (experimental)
+    - added examples myemph.pl and theorem.pl
 
 0.12  2015-12-08 13:55:43 CET
-    - add string as method to replace function stringify
+    - added pod2pandoc script and Pod::Simple::Pandoc
+    - added string as method to replace function stringify
     - fixed nasty bug in Pandoc::Element constructor reuse
 
 0.11  2015-11-30 13:47:17 CET
