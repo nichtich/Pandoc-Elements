@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.13  2015-12-09 12:43:50 CET
     -
     - fix passing of output format
     - add method match (experimental)
