@@ -33,17 +33,30 @@ pod2pandoc - convert Pod to Pandoc document model
 
 =head1 SYNOPSIS
 
-  pod2pandoc [OPTIONS] [INPUT...] | pandoc -f json
+  pod2pandoc [OPTIONS] [INPUT...] | pandoc -f json ...
 
 =head1 DESCRIPTION
 
 C<pod2pandoc> converts POD format documentation (L<perlpod>) to the abstract
 document model used by L<Pandoc|http://pandoc.org/> for further processing to
 other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man,
-ICML...). Convertion is based on L<Pod::Simple::Pandoc>.
+ICML...). By default or with input C<-> a document is read from STDIN. Multiple
+input files are combined to one document.
 
-By default or with input C<-> a document is read from STDIN. Multiple input
-files are combined to one document.
+Conversion is based on L<Pod::Simple::Pandoc> which uses L<Pandoc::Element>.
+
+=head2 Examples
+
+  pod2pandoc Module.pm | pandoc -f json -o Module.pdf
+  pod2pandoc Module.pm | pandoc -f json -o Module.html
+
+Or even shorter:
+
+  pod2pandoc Module.pm -- -o Module.pdf
+
+With processing:
+
+  pod2pandoc --filter 'Header => sub { Header $_->level, [ Str $_->string ] }' Module.pm
 
 =head1 OPTIONS
 
@@ -61,9 +74,8 @@ Print the full manual page and exit
 
 =head1 SEE ALSO
 
-L<Pandoc::Elements>
-
-L<pod2html>, L<pod2man>, L<pod2readme>, L<pod2usage>, L<pod2latex>,
-L<pod2markdown>, L<pod2text> 
+This script together with Pandoc can be used as customizable replacement for
+specialized Pod converter scripts such as L<pod2html>, L<pod2man>,
+L<pod2readme>, L<pod2usage>, L<pod2latex>, L<pod2markdown>, and L<pod2text>.
 
 =cut

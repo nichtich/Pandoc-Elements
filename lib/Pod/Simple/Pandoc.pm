@@ -276,6 +276,11 @@ model used by L<Pandoc|http://pandoc.org/>. The result can be accessed with
 methods of L<Pandoc::Element> and emitted as JSON for further processing to
 other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man...).
 
+The command line script L<pod2pandoc> makes use of this module, for instance to
+directly convert to PDF:
+
+  pod2pandoc input.pod | pandoc -f json -t output.pdf
+
 =head1 METHODS
 
 =head2 parse_file( $filename | *INPUT )
@@ -297,14 +302,11 @@ L<Formatting codes|perlpod/Formatting Codes> for I<italic text>
 (C<CE<lt>...E<gt>>) are mapped to Emphasized text (C<Emph>), strongly
 emphasized text (C<Strong>), and inline code (C<Code>). Formatting code for
 F<filenames> (C<FE<lt>...E<gt>>) are mapped to inline code with class
-C<filename> (C<`...`{.filename}> in Markdown).
-
-formatting codes inside code and filenames (e.g. C<code with B<bold>> or
-F<L<http://example.org/>> as filename) are ignored because Pandoc Code elements
-cannot contain formatting.
-
-Character escapes (C<EE<lt>...E<gt>>) and C<SE<lt>...E<gt>> are directly mapped to
-Unicode characters. C<XE<lt>...E<gt>> and C<ZE<lt>E<gt>> are ignored.
+C<filename> (C<`...`{.filename}> in Pandoc Markdown).  Formatting codes inside
+code and filenames (e.g. C<code with B<bold>> or F<L<http://example.org/>> as
+filename) are stripped to unformatted code.  Character escapes
+(C<EE<lt>...E<gt>>) and C<SE<lt>...E<gt>> are directly mapped to Unicode
+characters. The special formatting code C<XE<lt>...E<gt>> is ignored.
 
 =head2 Links
 
@@ -422,8 +424,10 @@ Configuration will be added in a later version.
 
 =head1 SEE ALSO
 
-L<Pod::Simple>
-
-L<pod2pandoc>
+This module is based on L<Pod::Simple> (L<Pod::Simple::SimpleTree>). It makes
+obsolete several specialized C<Pod::Simple::...> modules such as
+L<Pod::Simple::HTML>, L<Pod::Simple::XHTML>, L<Pod::Simple::LaTeX>,
+L<Pod::Simple::RTF> L<Pod::Simple::Text>, L<Pod::Simple::Wiki>, L<Pod::WordML>,
+L<Pod::Perldoc::ToToc> etc.
 
 =cut
