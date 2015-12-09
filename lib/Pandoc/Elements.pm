@@ -223,10 +223,12 @@ sub pandoc_json($) {
     *transform = *Pandoc::Walker::transform;
 
     sub string {
+
         # TODO: fix issue #4 to avoid this duplication
-        if ($_[0]->name =~ /^(Str|Code|Math)$/) {
+        if ( $_[0]->name =~ /^(Str|Code|Math)$/ ) {
             return $_[0]->content;
-        } elsif ($_[0]->name =~ /^(LineBreak|Space)$/) {
+        }
+        elsif ( $_[0]->name =~ /^(LineBreak|Space)$/ ) {
             return ' ';
         }
         join '', @{
@@ -238,14 +240,56 @@ sub pandoc_json($) {
             );
         };
     }
+
+    # TODO: replace by new class Pandoc::Selector with compiled code
+    sub match {
+        my ( $self, $selector ) = @_;
+        $selector =~ s/^\s+|\s+$//g;
+
+        # name
+        return 0
+          if $selector =~ s/^([a-z]+)\s*//i and lc($1) ne lc( $self->name );
+        return 1 if $selector eq '';
+
+        # type
+        if ( $selector =~ s/^:(document|block|inline|meta)\s*// ) {
+            my $method = "is_$1";
+            return 0 unless $self->$method;
+            return 1 if $selector eq '';
+        }
+
+        # id and/or classes
+        return 0 unless $self->can('match_attributes');
+        return $self->match_attributes($selector);
+    }
 }
 
 {
 
     package Pandoc::Document::AttributesRole;
+    my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
     sub id      { $_[0]->attr->[0] }
     sub classes { $_[0]->attr->[1] }
     sub class   { join ' ', @{ $_[0]->classes } }
+
+    sub match_attributes {
+        my ( $self, $selector ) = @_;
+        $selector =~ s/^\s+|\s+$//g;
+
+        while ( $selector ne '' ) {
+            if ( $selector =~ s/^#($IDENTIFIER)\s*// ) {
+                return 0 unless $self->id eq $1;
+            }
+            elsif ( $selector =~ s/^\.($IDENTIFIER)\s*// ) {
+                return 0 unless grep { $1 eq $_ } @{ $self->classes };
+            }
+            else {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
 }
 
 {
