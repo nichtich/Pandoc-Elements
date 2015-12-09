@@ -166,7 +166,7 @@ version.
 
 =head1 SEE ALSO
 
-Script L<pandoc-walk> installed with this module facilitates execution of
+Script L<pandocwalk> installed with this module facilitates execution of
 C<pandoc_walk> to traverse a document.
 
 =head1 COPYRIGHT AND LICENSE

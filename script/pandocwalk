@@ -54,7 +54,7 @@ else {
 
 =head1 SYNOPSIS
 
-  pandoc-walk [ options ] script
+  pandocwalk [ options ] script
 
 Calls pandoc with given options to parse a document and process its abstract
 syntax tree. A processing script must be given as executable file or as Perl
@@ -65,10 +65,10 @@ L<Pandoc::Filter>.
 
 Extract all URLs from a HTML file:
 
-  pandoc-walk document.html 'Link => sub{say $_->url}'
+  pandocwalk document.html 'Link => sub{say $_->url}'
 
 Extract table of contents from a LaTeX file:
 
-  pandoc-walk document.tex 'Header => sub{say " " x $_->level, $_->string }'
+  pandocwalk document.tex 'Header => sub{say " " x $_->level, $_->string }'
 
 =cut

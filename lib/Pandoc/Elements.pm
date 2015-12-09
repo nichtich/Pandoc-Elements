@@ -369,7 +369,7 @@ LaTeX, ODT, and ePUB.
 Please make sure to use at least Pandoc 1.12 when processing documents
 
 See module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the AST
-of pandoc documents in Perl. And L<pandoc-walk> for traversing documents
+of pandoc documents in Perl. And L<pandocwalk> for traversing documents
 via command line (requires Pandoc >= 1.12).
 
 =head2 EXPORTED FUNCTIONS
