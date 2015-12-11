@@ -1,9 +1,9 @@
 package Pandoc::Filter::Lazy;
-use 5.010;
 use strict;
 use warnings;
+use 5.010;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use parent 'Pandoc::Filter';
 

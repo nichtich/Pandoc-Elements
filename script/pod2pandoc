@@ -2,7 +2,7 @@
 use strict;
 require 5.010;
 
-my $VERSION = '0.13';
+my $VERSION = '0.14';
 
 use Getopt::Long;
 use Pod::Usage;

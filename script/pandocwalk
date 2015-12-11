@@ -2,7 +2,7 @@
 use strict;
 use 5.010;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 use Pod::Usage;
 pod2usage(1) unless @ARGV;
