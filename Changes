@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.14  2015-12-11 14:11:51 CET
     - refactor and introduce Pandoc::Filter::Lazy
 
 0.13  2015-12-09 12:43:50 CET
