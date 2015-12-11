@@ -11,6 +11,7 @@ ok Str('')->match(':inline'), 'type match';
 ok !Str('')->match(':block'), 'type not match';
 
 ok Str('')->match('str:inline'), 'multiple match';
+ok Str('')->match('Foo|Str'), '| match';
 
 ok !Str('')->match('#id'), 'no id match';
 

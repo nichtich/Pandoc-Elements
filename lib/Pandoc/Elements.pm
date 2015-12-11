@@ -243,6 +243,14 @@ sub pandoc_json($) {
 
     # TODO: replace by new class Pandoc::Selector with compiled code
     sub match {
+        my $self = shift;
+        foreach my $selector ( split /\|/, shift ) {
+            return 1 if $self->match_simple($selector);
+        }
+        return 0;
+    }
+
+    sub match_simple {
         my ( $self, $selector ) = @_;
         $selector =~ s/^\s+|\s+$//g;
 
@@ -362,15 +370,15 @@ an equivalent Pandoc Markdown document would be
 =head1 DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
-(AST) of L<Pandoc|http://pandoc.org/> documents. The resulting data structure
-can be converted by L<Pandoc> to many other document formats, such as HTML,
-LaTeX, ODT, and ePUB. 
+(AST) of L<Pandoc|http://pandoc.org/> documents. Pandoc can convert the
+resulting data structure to many other document formats, such as HTML, LaTeX,
+ODT, and ePUB. 
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
-See module L<Pandoc::Filter> and L<Pandoc::Walker> for processing the AST
-of pandoc documents in Perl. And L<pandocwalk> for traversing documents
-via command line (requires Pandoc >= 1.12).
+See also module L<Pandoc::Filter>, command line scripts L<pandocwalk> and
+L<pod2pando>, and the internal modules L<Pandoc::Walker> and
+L<Pandoc::Filter::Lazy>.
 
 =head2 EXPORTED FUNCTIONS
 

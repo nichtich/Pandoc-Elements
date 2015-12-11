@@ -5,89 +5,132 @@ use warnings;
 our $VERSION = '0.13';
 
 use Scalar::Util qw(reftype blessed);
+use Carp;
 
 use parent 'Exporter';
 our @EXPORT = qw(walk query transform);
+our @EXPORT_OK = ( @EXPORT, 'action' );
 
-sub _walker {
-    return @_ if @_ == 2 and ref $_[1] eq 'CODE';
+sub _simple_action {
+    my $action = shift // return sub { };
 
-    my $ast = shift;
-    my @actions;
-
-    if (!ref $_[0]) {
-        @actions = ( shift, shift );
-    } elsif (ref $_[0] eq 'CODE') {
-        my ($action, @args) = @_;
-        return ($ast, sub { $_=$_[0]; $action->($_[0], @args) });
-    } elsif (reftype $_[0] eq 'HASH') {
-        @actions = %{ shift @_ };
-    } 
-
-    my @args = @_;
-
-    my %names;
-    for (my $i=0; $i<@actions; $i+=2) {
-        foreach( split /\|/, $actions[$i] ) {
-            $names{$_} = $actions[$i+1];
-        }
+    if ( blessed $action and $action->isa('Pandoc::Filter') ) {
+        $action = $action->action;
+    }
+    elsif ( !ref $action or ref $action ne 'CODE' ) {
+        croak "expected code reference, got: " . ( $action // 'undef' );
     }
 
-    # compile callback
-    my $callback = sub {
-        my $element = shift;
-        my $action = $names{ $element->name } or return;
-        $action->($element, @args);
-    };
+    if (@_) {
+        my @args = @_;
+        return sub { $_ = $_[0]; $action->( $_[0], @args ) };
+    }
+    else {
+        return $action;
+    }
+}
 
-    return ($ast, $callback);
+sub action {
+    my @actions;
+    my @args;
+
+    # $selector => $action [, @arguments ]
+    if ( !ref $_[0] ) {
+        @actions = ( shift, shift );
+        @args = @_;
+    }
+
+    # { $selector => $code, ... } [, @arguments ]
+    elsif ( ref $_[0] eq 'HASH' ) {
+        @actions = %{ shift @_ };
+        @args    = @_;
+
+        # code [, @arguments ]
+    }
+    else {
+        return _simple_action(@_);
+    }
+
+    my $n = ( scalar @actions ) / 2 - 1;
+
+    # check action functions and add arguments
+    $actions[ $_ * 2 + 1 ] = _simple_action( $actions[ $_ * 2 + 1 ], @args )
+      for 0 .. $n;
+
+    # TODO: compile selectors for performance
+
+    sub {
+        my $element = $_[0];
+
+        # get all matching actions
+        my @matching =
+          map  { $actions[ $_ * 2 + 1 ] }
+          grep { $element->match( $actions[ $_ * 2 ] ) } 0 .. $n;
+
+        my @return = ();
+
+        foreach my $action (@matching) {
+            $_      = $_[0];
+            @return = ($action->(@_));
+        }
+
+        wantarray ? @return : $return[0];
+      }
 }
 
 sub transform {
-    my ($ast, $action) = _walker(@_);
+    my $ast    = shift;
+    my $action = action(@_);
 
-    my $reftype = reftype($ast) || ''; 
+    my $reftype = reftype($ast) || '';
 
-    if ($reftype eq 'ARRAY') {
-        for (my $i=0; $i<@$ast; ) {
+    if ( $reftype eq 'ARRAY' ) {
+        for ( my $i = 0 ; $i < @$ast ; ) {
             my $item = $ast->[$i];
-            if ((reftype $item || '') eq 'HASH' and $item->{t}) {
+            if ( ( reftype $item || '' ) eq 'HASH' and $item->{t} ) {
                 my $res = $action->($item);
+
                 # replace current item with result element(s)
-                if (defined $res) {
-                    my @elements = #map { transform($_, $action, @_) } 
-                        (reftype $res || '') eq 'ARRAY' ? @$res : $res;
+                if ( defined $res ) {
+                    my @elements =    #map { transform($_, $action, @_) }
+                      ( reftype $res || '' ) eq 'ARRAY' ? @$res : $res;
                     splice @$ast, $i, 1, @elements;
                     $i += scalar @elements;
                     next;
                 }
             }
-            transform($item, $action);
+            transform( $item, $action );
             $i++;
         }
-    } elsif ($reftype eq 'HASH') {
-        # TODO: directly transform an element. 
+    }
+    elsif ( $reftype eq 'HASH' ) {
+
+        # TODO: directly transform an element.
         # if (blessed $ast and $ast->isa('Pandoc::Elements::Element')) {
         # } else {
-            foreach (keys %$ast) {
-                transform($ast->{$_}, $action, @_);
-            }
+        foreach ( keys %$ast ) {
+            transform( $ast->{$_}, $action, @_ );
+        }
+
         # }
     }
 
     $ast;
 }
 
-sub walk(@) { ## no critic
-    my ($ast, $query) = _walker(@_);
-    transform( $ast, sub { $_=$_[0]; $query->(@_); return } );
+sub walk(@) {    ## no critic
+    my $ast    = shift;
+    my $action = action(@_);
+
+    transform( $ast, sub { $_ = $_[0]; $action->(@_); return } );
 }
 
-sub query(@) { ## no critic
-    my ($ast, $query) = _walker(@_);
+sub query(@) {    ## no critic
+    my $ast    = shift;
+    my $action = action(@_);
 
     my $list = [];
-    transform( $ast, sub { $_=$_[0]; push @$list, $query->(@_); return } );
+    transform( $ast, sub { $_ = $_[0]; push @$list, $action->(@_); return } );
     return $list;
 }
 
@@ -98,7 +141,7 @@ __END__
 
 =head1 NAME
 
-Pandoc::Walker - utility functions to traverse Pandoc documents
+Pandoc::Walker - utility functions to process Pandoc documents
 
 =head1 SYNOPSIS
 
@@ -121,12 +164,12 @@ Pandoc::Walker - utility functions to traverse Pandoc documents
     # replace all links by their link text angle brackets
     use Pandoc::Elements 'Str';
     transform $ast, Link => sub {
-        return (Str "<", $_->content->[0], Str ">");
+        return (Str " < ", $_->content->[0], Str " > ");
     };
 
 =head1 DESCRIPTION
 
-This module provides to helper functions to traverse the abstract syntax tree
+This module provides utility functions to traverse the abstract syntax tree
 (AST) of a pandoc document (see L<Pandoc::Elements> for documentation of AST
 elements).
 
@@ -146,18 +189,20 @@ See also L<Pandoc::Filter> for an object oriented interface to transformations.
 
 =head1 FUNCTIONS
 
-=head2 walk( $ast, [ $names => ] $action [, @arguments ] )
+=head2 action ( [ $selector => ] $code [, @arguments ] )
 
-=head2 walk( $ast, \%actions [, @arguments ] )
+=head2 action ( { $selector => $code, ... } [, @arguments ] )
+
+Return an an action function to process document elements.
+
+=head2 walk( $ast, ... )
 
 Walks an abstract syntax tree and calls an action on every element or every
 element of given name(s). Additional arguments are also passed to the action.
 
 See also function C<pandoc_walk> exported by L<Pandoc::Filter>.
 
-=head2 query( $ast, [ $names => ] $query [, @arguments ] )
-
-=head2 query( $ast, \%queries [, @arguments ] )
+=head2 query( $ast, ... )
 
 Walks an abstract syntax tree and applies one or multiple query functions to
 extract results.  The query function is expected to return a list. The combined
@@ -170,9 +215,7 @@ of L<Pandoc::Elements> is implemented as following:
             'LineBreak|Space' => sub { ' ' } 
         } );
 
-=head2 transform( $ast [ $names => ] $action [, @arguments ] )
-
-=head2 transform( $ast, \%actions [, @arguments ] )
+=head2 transform( $ast, ... )
 
 Walks an abstract syntax tree and applies an action on every element, or every
 element of given name(s), to either keep it (if the action returns C<undef>),

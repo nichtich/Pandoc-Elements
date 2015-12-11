@@ -38,36 +38,42 @@ sub pandoc_filter(@) {    ## no critic
 
 sub new {
     my $class = shift;
-    if ( @_ and !( ref $_[0] or @_ % 2 ) ) {
-        my @actions;
-
-        # TODO: partly duplicated code in Pandoc::Walker
-        for ( my $i = 0 ; $i < @_ ; $i += 2 ) {
-            my @names = split /\|/, $_[$i];
-            my $action = $_[ $i + 1 ];
-            push @actions, sub {
-                return unless List::Util::first { $_[0]->name eq $_ } @names;
-                $_ = $_[0];
-                $action->($_);
-            };
-        }
-        bless \@actions, $class;
-    }
-    else {
-        if ( grep { !reftype $_ or reftype $_ ne 'CODE' } @_ ) {
-            croak $class. '->new expects a hash or list of CODE references';
-        }
-        bless \@_, $class;
-    }
+    bless { 
+        action => Pandoc::Walker::action(@_),
+        error  => '',
+    }, $class;
 }
 
+sub error {
+    $_[0]->{error}
+}
+
+sub action {
+    return $_[0]->{action};
+
+    my $actions = $_[0]->{actions};
+
+    sub {
+        my ( $element, $format, $meta ) = @_;
+        foreach my $action (@$actions) {
+            local $_ = $element;
+            $action->( $element, $format, $meta );
+        }
+      }
+}
+
+# TODO: refactor with method action
 sub apply {
     my ( $self, $ast, $format, $meta ) = @_;
+    $format ||= '';
     $meta ||= eval { $ast->[0]->{unMeta} } || {};
 
-    foreach my $action (@$self) {
-        Pandoc::Walker::transform( $ast, $action, $format || '', $meta );
+    if ($self->{action}) {
+        Pandoc::Walker::transform( $ast, $self->{action}, $format, $meta );
     }
+#    foreach my $action (@{$self->{actions}}) {
+#        Pandoc::Walker::transform( $ast, $action, $format, $meta );
+#    }
     $ast;
 }
 
@@ -138,6 +144,14 @@ Apply all actions to a given abstract syntax tree (AST). The AST is modified in
 place and also returned for convenience. Additional argument format and
 metadata are also passed to the action function. Metadata is taken from the
 Document by default (if the AST is a Document root).
+
+=head2 action
+
+Return a code reference to call all actions.
+
+=head2 size
+
+Return the number of actions in this filter.
 
 =head1 FUNCTIONS
 

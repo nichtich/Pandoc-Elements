@@ -1,6 +1,7 @@
 use strict;
 use Test::More;
 use Pandoc::Walker;
+use Pandoc::Filter;
 use Pandoc::Elements qw(Str Space pandoc_json);
 
 sub load {
@@ -33,13 +34,23 @@ sub links {
     push @$links, $_->url;
 }
 
-$links = [ ];
-walk $doc, \&links;
-is_deeply $links, $LINKS, 'walk';
+{
+    $links = [ ];
+    walk $doc, \&links;
+    is_deeply $links, $LINKS, 'walk(sub)';
+}
 
-$links = [ ];
-$doc->walk(\&links);
-is_deeply $links, $LINKS, '->walk';
+{
+    $links = [ ];
+    $doc->walk(\&links);
+    is_deeply $links, $LINKS, '->walk';
+}
+
+{
+    $links = [ ];
+    walk $doc, Pandoc::Filter->new(\&links);
+    is_deeply $links, $LINKS, 'walk(Filter)';
+}
 
 transform $doc, sub {
     return ($_->name eq 'Link' ? [] : ());

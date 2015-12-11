@@ -35,15 +35,15 @@ an equivalent Pandoc Markdown document would be
 # DESCRIPTION
 
 Pandoc::Elements provides utility functions to create abstract syntax trees
-(AST) of [Pandoc](http://pandoc.org/) documents. The resulting data structure
-can be converted by [Pandoc](https://metacpan.org/pod/Pandoc) to many other document formats, such as HTML,
-LaTeX, ODT, and ePUB. 
+(AST) of [Pandoc](http://pandoc.org/) documents. Pandoc can convert the
+resulting data structure to many other document formats, such as HTML, LaTeX,
+ODT, and ePUB. 
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
-See module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter) and [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) for processing the AST
-of pandoc documents in Perl. And [pandocwalk](https://metacpan.org/pod/pandocwalk) for traversing documents
-via command line (requires Pandoc >= 1.12).
+See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter), command line scripts [pandocwalk](https://metacpan.org/pod/pandocwalk) and
+[pod2pando](https://metacpan.org/pod/pod2pando), and the internal modules [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) and
+[Pandoc::Filter::Lazy](https://metacpan.org/pod/Pandoc::Filter::Lazy).
 
 ## EXPORTED FUNCTIONS
 

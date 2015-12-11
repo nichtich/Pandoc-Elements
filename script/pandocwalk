@@ -16,22 +16,12 @@ if ( -f $script ) {
     };
 }
 else {
-    my $filter = eval
-      "use Pandoc::Filter;use Pandoc::Elements;Pandoc::Filter->new($script)";
-    if ($@) {
-        my $error = $@;
-        $error =~ s/ at .*? line .*?$//gm;
-        chomp $error;
-        say STDERR <<ERROR;
-Error calling pandoc_walk in this Perl code:
- 
-   use strict;
-   use 5.010;
-   use Pandoc::Filter;
-   use Pandoc::Elements;
-   pandoc_walk( $script );
-ERROR
-        say STDERR $error;
+    use Pandoc::Filter::Lazy;
+    my $filter = Pandoc::Filter::Lazy->new($script);
+    if ( $filter->error ) {
+        say STDERR "Failed to compile filter code:\n";
+        say STDERR $filter->code( indent => '    ' ) . "\n";
+        say STDERR $filter->error;
         exit 1;
     }
 
