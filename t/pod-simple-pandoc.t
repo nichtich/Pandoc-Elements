@@ -16,7 +16,16 @@ is_deeply $doc->query(
   [ 'NAME', 'SYNOPSIS', 'DESCRIPTION', 'METHODS', 'MAPPING', 'LIMITATIONS', 'SEE ALSO' ],
   'got header';
 
-# note explain $doc;
-# note $doc->to_json;
+$doc = $parser->parse_string(<<POD);
+=over
+ 
+I<hello>
+
+=back
+POD
+
+is_deeply $doc, 
+    Document({}, [ BlockQuote [ Para [ Emph [ Str 'hello' ] ] ] ]),
+    'parse_string';
 
 done_testing;

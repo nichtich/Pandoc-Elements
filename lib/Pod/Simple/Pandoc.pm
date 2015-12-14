@@ -18,7 +18,6 @@ sub _parser {
 
     my $parser = Pod::Simple::SimpleTree->new;
     $parser->nix_X_codes(1);         # ignore X<...> codes
-    $parser->parse_empty_lists(0);   # ignore empty lists
     $parser->nbsp_for_S(1);          # map S<...> to U+00A0 (non-breaking space)
     $parser->merge_text(1);          # emit text nodes combined
     $parser->no_errata_section(1);   # omit errata section
@@ -47,7 +46,7 @@ sub parse_file {
 
 sub parse_string {
     my ( $self, $string ) = @_;
-    $self->parse_tree( $self->_parser->parse_content($string)->root );
+    $self->parse_tree( $self->_parser->parse_string_document($string)->root );
 }
 
 sub parse_tree {
