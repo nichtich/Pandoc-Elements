@@ -377,8 +377,8 @@ ODT, and ePUB.
 Please make sure to use at least Pandoc 1.12 when processing documents
 
 See also module L<Pandoc::Filter>, command line scripts L<pandocwalk> and
-L<pod2pando>, and the internal modules L<Pandoc::Walker> and
-L<Pandoc::Filter::Lazy>.
+L<pod2pandoc>, and the internal modules L<Pandoc::Walker>,
+L<Pandoc::Filter::Lazy>, and L<Pod::Simple::Pandoc>.
 
 =head2 EXPORTED FUNCTIONS
 

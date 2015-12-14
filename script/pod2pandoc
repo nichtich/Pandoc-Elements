@@ -70,7 +70,7 @@ Or even shorter (not implemented yet):
 
 With processing:
 
-  pod2pandoc --filter 'Header => sub { Para [ Strong [ Str $_->string ] ] }' Module.pm
+  pod2pandoc --filter 'Header => Para [ Strong [ Str $_->string ] ]' Module.pm
 
 =head1 OPTIONS
 

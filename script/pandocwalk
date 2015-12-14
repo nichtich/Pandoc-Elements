@@ -48,21 +48,20 @@ pandocwalk - parse document with pandoc and process abstract syntax tree
 
 =head1 SYNOPSIS
 
-  pandocwalk [ options ] script
+  pandocwalk [ options ] [ SCRIPT | 'SELECTOR => ACTION' ]
 
 Calls pandoc with given options to parse a document and process its abstract
 syntax tree. A processing script must be given as executable file or as Perl
-code to be passed to function C<pandoc_walk> from Perl module
-L<Pandoc::Filter>.
+code to filter the document. See L<Pandoc::Filter::Lazy> for filter syntax.
 
 =head2 EXAMPLES
 
 Extract all URLs from a HTML file:
 
-  pandocwalk document.html 'Link => sub{say $_->url}'
+  pandocwalk document.html 'Link => say $_->url'
 
 Extract table of contents from a LaTeX file:
 
-  pandocwalk document.tex 'Header => sub{say " " x $_->level, $_->string }'
+  pandocwalk document.tex 'Header => say " " x $_->level, $_->string'
 
 =cut

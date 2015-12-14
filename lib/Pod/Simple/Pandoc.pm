@@ -122,7 +122,7 @@ sub _pod_element {
 sub _pod_content {
     my ($element) = @_;
     my $length = scalar @$element;
-    map { _pod_element($_) } @$element[ 2 .. ($length - 1) ];
+    map { _pod_element($_) } @$element[ 2 .. ( $length - 1 ) ];
 }
 
 # stringify the content of an element
@@ -190,13 +190,14 @@ sub _pod_data {
 
     my $length = scalar @$element;
     my $content = join "\n\n", map { $_->[2] }
-    grep { $_->[0] eq 'Data' } @$element[ 2 .. $length - 1 ];
+      grep { $_->[0] eq 'Data' } @$element[ 2 .. $length - 1 ];
 
     if ( $target eq 'html' ) {
         $content = "<div>$content</div>" if $content !~ /^<.+>$/s;
-        RawBlock 'html', $content."\n";
+        RawBlock 'html', $content . "\n";
     }
     elsif ( $target =~ /^(la)?tex$/ ) {
+
         # TODO: more intelligent check & grouping, especiall at the end
         $content = "\\begingroup $content \\endgroup" if $content !~ /^[\\{]/;
         RawBlock 'tex', "$content\n";
@@ -247,7 +248,6 @@ sub _pod_list {
     # DefinitionList: [ [ @inlines ], [ @blocks ] ], ...
     return @list;
 }
-
 
 1;
 __END__

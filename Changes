@@ -2,6 +2,7 @@ Revision history for Pandoc-Elements
 
 {{$NEXT}}
     - fix Pod::Simple::Pandoc for old Pod::Simple
+    - allow more lazy filter scripting
 
 0.14  2015-12-11 14:11:51 CET
     - refactor and introduce Pandoc::Filter::Lazy
