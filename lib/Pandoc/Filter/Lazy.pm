@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 use parent 'Pandoc::Filter';
 
@@ -14,18 +14,19 @@ sub new {
     $script =~ s/^\s+|\s+$//g;
 
     if ( $script =~ /^(.*?)\s*=>\s*(.+)$/ ) {
-        my ($selector, $action) = ($1, $2);
-        if ($selector =~ /[^a-z]/i && $selector !~ /^["']/) {
+        my ( $selector, $action ) = ( $1, $2 );
+        if ( $selector =~ /[^a-z]/i && $selector !~ /^["']/ ) {
             $selector = "'$selector'";
         }
-        if ($action !~ /^sub\s*{/) {
+        if ( $action !~ /^sub\s*{/ ) {
             $action = "sub { $action }";
         }
         $script = "$selector => $action";
     }
 
-    my $filter = "use Pandoc::Elements;use Pandoc::Walker;Pandoc::Walker::action($script)";
-    $filter = eval $filter; ## no critic
+    my $filter =
+      "use Pandoc::Elements;use Pandoc::Walker;Pandoc::Walker::action($script)";
+    $filter = eval $filter;    ## no critic
     my $self = bless {
         script => $script,
         action => $filter,
@@ -34,7 +35,7 @@ sub new {
 }
 
 sub script {
-    shift->{script}
+    shift->{script};
 }
 
 sub code {

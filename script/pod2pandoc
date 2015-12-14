@@ -2,7 +2,7 @@
 use strict;
 require 5.010;
 
-my $VERSION = '0.14';
+my $VERSION = '0.15';
 
 use Getopt::Long;
 use Pod::Usage;
@@ -34,7 +34,8 @@ if ( $opt{filter} ) {
         say STDERR $filter->code( indent => '    ' ) . "\n";
         say STDERR $filter->error;
         exit 1;
-    } else {
+    }
+    else {
         $filter->apply($combined);
     }
 }

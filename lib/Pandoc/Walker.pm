@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 use Scalar::Util qw(reftype blessed);
 use Carp;
@@ -72,7 +72,7 @@ sub action {
 
         foreach my $action (@matching) {
             $_      = $_[0];
-            @return = ($action->(@_));
+            @return = ( $action->(@_) );
         }
 
         wantarray ? @return : $return[0];

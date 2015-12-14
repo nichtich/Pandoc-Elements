@@ -42,8 +42,8 @@ ODT, and ePUB.
 Please make sure to use at least Pandoc 1.12 when processing documents
 
 See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter), command line scripts [pandocwalk](https://metacpan.org/pod/pandocwalk) and
-[pod2pando](https://metacpan.org/pod/pod2pando), and the internal modules [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) and
-[Pandoc::Filter::Lazy](https://metacpan.org/pod/Pandoc::Filter::Lazy).
+[pod2pandoc](https://metacpan.org/pod/pod2pandoc), and the internal modules [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker),
+[Pandoc::Filter::Lazy](https://metacpan.org/pod/Pandoc::Filter::Lazy), and [Pod::Simple::Pandoc](https://metacpan.org/pod/Pod::Simple::Pandoc).
 
 ## EXPORTED FUNCTIONS
 

@@ -2,7 +2,7 @@
 use strict;
 use 5.010;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 use Pod::Usage;
 pod2usage(1) unless @ARGV;
@@ -27,7 +27,7 @@ else {
 
     $pipe = sub {
         my $json = <STDIN>;
-        exit 1 if substr($json, 0, 1) ne '[';
+        exit 1 if substr( $json, 0, 1 ) ne '[';
         my $ast = Pandoc::Elements::pandoc_json($json);
         $filter->apply($ast);
     };

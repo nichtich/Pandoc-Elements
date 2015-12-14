@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 use JSON;
 use Carp;
@@ -38,14 +38,14 @@ sub pandoc_filter(@) {    ## no critic
 
 sub new {
     my $class = shift;
-    bless { 
+    bless {
         action => Pandoc::Walker::action(@_),
         error  => '',
     }, $class;
 }
 
 sub error {
-    $_[0]->{error}
+    $_[0]->{error};
 }
 
 sub action {
@@ -68,12 +68,13 @@ sub apply {
     $format ||= '';
     $meta ||= eval { $ast->[0]->{unMeta} } || {};
 
-    if ($self->{action}) {
+    if ( $self->{action} ) {
         Pandoc::Walker::transform( $ast, $self->{action}, $format, $meta );
     }
-#    foreach my $action (@{$self->{actions}}) {
-#        Pandoc::Walker::transform( $ast, $action, $format, $meta );
-#    }
+
+    #    foreach my $action (@{$self->{actions}}) {
+    #        Pandoc::Walker::transform( $ast, $action, $format, $meta );
+    #    }
     $ast;
 }
 
