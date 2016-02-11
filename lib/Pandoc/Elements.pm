@@ -37,8 +37,8 @@ our %ELEMENTS = (
     LineBreak   => ['Inline'],
     Math        => [ Inline => qw(type content) ],
     RawInline   => [ Inline => qw(format content) ],
-    Link        => [ Inline => qw(content target) ],
-    Image       => [ Inline => qw(content target) ],
+    Link        => [ Inline => qw(attr content target) ],
+    Image       => [ Inline => qw(attr content target) ],
     Note        => [ Inline => 'content' ],
     Span        => [ Inline => qw(attr content) ],
 
@@ -121,10 +121,10 @@ sub Document($$) {
 
 # specific accessors
 
-sub Pandoc::Document::Link::url                   { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Link::title                 { $_[0]->{c}->[1][1] }
-sub Pandoc::Document::Image::url                  { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Image::title                { $_[0]->{c}->[1][1] }
+sub Pandoc::Document::Link::url                   { $_[0]->{c}->[-1][0] }
+sub Pandoc::Document::Link::title                 { $_[0]->{c}->[-1][1] }
+sub Pandoc::Document::Image::url                  { $_[0]->{c}->[-1][0] }
+sub Pandoc::Document::Image::title                { $_[0]->{c}->[-1][1] }
 sub Pandoc::Document::DefinitionPair::term        { $_[0]->[0] }
 sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
@@ -473,7 +473,7 @@ Return the name of the element, e.g. "Para" for a L<paragraph element|/Para>.
 Return the element content. For most elements (L<Para|/Para>, L<Emph|/Emph>,
 L<Str|/Str>...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the L<Link|/Link> element has
-a link text (C<content>) and a link target (C<target>) with C<url> and
+attributes (C<attr>) a link text (C<content>) and a link target (C<target>) with C<url> and
 C<title>.
 
 =head3 is_block
@@ -646,9 +646,9 @@ Emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 =head3 Image
 
 Image with alt text (C<content>, a list of L<inlines|/INLINE ELEMENTS>) and
-C<target> (list of C<url> and C<title>).
+C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
-    Image [ @inlines ], [ $url, $title ]
+    Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
 =head3 LineBreak
 
@@ -659,9 +659,9 @@ Hard line break
 =head3 Link
 
 Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
-and C<target> (list of C<url> and C<title>).
+and C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
-    Link [ @inlines ], [ $url, $title ]
+    Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
 =head3 Math
 
