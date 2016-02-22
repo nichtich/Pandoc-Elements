@@ -124,10 +124,6 @@ sub Document($$) {
 
 # specific accessors
 
-# sub Pandoc::Document::Link::url                   { $_[0]->{c}->[-1][0] }
-# sub Pandoc::Document::Link::title                 { $_[0]->{c}->[-1][1] }
-# sub Pandoc::Document::Image::url                  { $_[0]->{c}->[-1][0] }
-# sub Pandoc::Document::Image::title                { $_[0]->{c}->[-1][1] }
 sub Pandoc::Document::DefinitionPair::term        { $_[0]->[0] }
 sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
@@ -169,7 +165,7 @@ sub pandoc_json($) {
                 $v = $_[1]->($v);
             }
         }
-        return $class->ast_to_element($_[0])
+        return $class->new_from_ast($_[0])
     };
 
     shift if $_[0] =~ /^Pandoc::/;
@@ -238,7 +234,7 @@ sub pandoc_json($) {
     *query     = *Pandoc::Walker::query;
     *transform = *Pandoc::Walker::transform;
 
-    sub ast_to_element { bless $_[1] => $_[0] }
+    sub new_from_ast { bless $_[1] => $_[0] }
 
     sub string {
 
@@ -356,8 +352,8 @@ sub pandoc_json($) {
     sub url                   { $_[0]->{c}->[-1][0] }
     sub title                 { $_[0]->{c}->[-1][1] }
     
-    sub ast_to_element {
-        my($class, $ast) = @_;
+    sub new_from_ast {
+        my ($class, $ast) = @_;
         if ( 2 == @{ $ast->{c} } ) {
             # prepend attributes to old-style ast
             unshift @{ $ast->{c} }, ["",[],[]];
@@ -462,7 +458,8 @@ C<element>.
 =head3 pandoc_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
-to method C<to_json>.
+to method C<to_json> but it can read both old (before Pandoc 1.16) and new
+format.
 
 =head3 attributes { key => $value, ... }
 
@@ -518,6 +515,11 @@ Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
+
+Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
+of attributes to L<Link|/Link> and L<Image|/Image> elements. Since Pandoc::Elements
+0.15 the new format is serialized by default. Set the package variable or
+environment variable C<PANDOC_VERSION> to 1.15 or below to use the old format.
 
 =head3 name
 
@@ -705,6 +707,8 @@ C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
+Serializing the attributes in JSON can be disabled with C<PANDOC_VERSION>.
+
 =head3 LineBreak
 
 Hard line break
@@ -717,6 +721,8 @@ Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
 and C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
+
+Serializing the attributes in JSON can be disabled with C<PANDOC_VERSION>.
 
 =head3 Math
 
