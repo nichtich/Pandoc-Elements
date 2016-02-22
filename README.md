@@ -60,7 +60,8 @@ as types in other document elements.
 ### pandoc\_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
-to method `to_json`.
+to method `to_json` but it can read both old (before Pandoc 1.16) and new
+format.
 
 ### attributes { key => $value, ... }
 
@@ -117,6 +118,11 @@ Return the element as JSON encoded string. The following are equivalent:
     $element->to_json;
     JSON->new->utf8->convert_blessed->encode($element);
 
+Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
+of attributes to [Link](#link) and [Image](#image) elements. Since Pandoc::Elements
+0.15 the new format is serialized by default. Set the package variable or
+environment variable `PANDOC_VERSION` to 1.15 or below to use the old format.
+
 ### name
 
 Return the name of the element, e.g. "Para" for a [paragraph element](#para).
@@ -126,7 +132,7 @@ Return the name of the element, e.g. "Para" for a [paragraph element](#para).
 Return the element content. For most elements ([Para](#para), [Emph](#emph),
 [Str](#str)...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the [Link](#link) element has
-a link text (`content`) and a link target (`target`) with `url` and
+attributes (`attr`) a link text (`content`) and a link target (`target`) with `url` and
 `title`.
 
 ### is\_block
@@ -297,9 +303,11 @@ Emphasized text, a list of [inlines](#inline-elements) (`content`).
 ### Image
 
 Image with alt text (`content`, a list of [inlines](#inline-elements)) and
-`target` (list of `url` and `title`).
+`target` (list of `url` and `title`) with attributes (`attr`).
 
-    Image [ @inlines ], [ $url, $title ]
+    Image attributes { %attr }, [ @inlines ], [ $url, $title ]
+
+Serializing the attributes in JSON can be disabled with `PANDOC_VERSION`.
 
 ### LineBreak
 
@@ -310,9 +318,11 @@ Hard line break
 ### Link
 
 Hyperlink with link text (`content`, a list of [inlines](#inline-elements))
-and `target` (list of `url` and `title`).
+and `target` (list of `url` and `title`) with attributes (`attr`).
 
-    Link [ @inlines ], [ $url, $title ]
+    Link attributes { %attr }, [ @inlines ], [ $url, $title ]
+
+Serializing the attributes in JSON can be disabled with `PANDOC_VERSION`.
 
 ### Math
 

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 our $PANDOC_VERSION;   # a string like '1.16'
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};

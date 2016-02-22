@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Support new (Pandoc 1.16) document model with Link and Image attributes (issue #11)
+    - Fix blessing metadata top level values
 
 0.15  2015-12-14 10:12:50 CET
     - fix Pod::Simple::Pandoc for old Pod::Simple
