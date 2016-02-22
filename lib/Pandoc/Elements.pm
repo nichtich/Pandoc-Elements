@@ -819,6 +819,10 @@ This module version was last aligned with pandoc-types-1.12.4.
 
 Jakob Voß E<lt>jakob.voss@gbv.deE<gt>
 
+=head1 CONTRIBUTORS
+
+Benct Philip Jonsson E<lt>bpjonsson@gmail.comE<gt>
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß

@@ -437,6 +437,10 @@ This module version was last aligned with pandoc-types-1.12.4.
 
 Jakob Voß <jakob.voss@gbv.de>
 
+# CONTRIBUTORS
+
+Benct Philip Jonsson <bpjonsson@gmail.com>
+
 # COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
