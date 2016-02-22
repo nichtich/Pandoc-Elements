@@ -180,7 +180,7 @@ sub _pod_link {
         }
     }
 
-    return Link [ _pod_content( $_[0] ) ], [ $url, '' ];
+    return Link attributes { }, [ _pod_content( $_[0] ) ], [ $url, '' ];
 }
 
 # map data section
