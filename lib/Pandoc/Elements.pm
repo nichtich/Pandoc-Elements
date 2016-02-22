@@ -162,7 +162,7 @@ sub citation($) {
 }
 
 sub pandoc_json($) {
-    state $ast_to_element = sub { # be dry, compile once, use repeatedly, keep private
+    state $ast_to_element = sub { # compile once, use repeatedly, keep private
         my $class = 'Pandoc::Document::' . $_[0]->{t};
         if ( 'MetaMap' eq $_[0]->{t} ) {
             for my $v ( values %{ $_[0]->{c} } ) {
