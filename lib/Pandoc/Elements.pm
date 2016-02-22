@@ -159,6 +159,15 @@ sub citation($) {
 }
 
 sub pandoc_json($) {
+    state $ast_to_element = sub { # be dry, compile once, use repeatedly, keep private
+        if ( 'MetaMap' eq $_[0]->{t} ) {
+            for my $v ( values %{ $_[0]->{c} } ) {
+                $v = $_[1]->($v);
+            }
+        }
+        return bless $_[0], 'Pandoc::Document::' . $_[0]->{t};
+    };
+
     shift if $_[0] =~ /^Pandoc::/;
 
     my $ast = eval { decode_json( $_[0] ) };
@@ -170,15 +179,18 @@ sub pandoc_json($) {
     return unless reftype $ast;
 
     if ( reftype $ast eq 'ARRAY' ) {
-        $ast = Document( $ast->[0]->{unMeta}, $ast->[1] );
+        my $meta = $ast->[0]->{unMeta};
+        for my $v ( values %$meta ) {
+            $v = $ast_to_element->($v, $ast_to_element);
+        }
+        $ast = Document( $meta, $ast->[1] );
     }
-    elsif ( reftype $ast eq 'HASH' ) {
-        $ast = element( $ast->{t}, $ast->{c} );
+    elsif ( reftype $ast eq 'HASH' and $ast->{t} ) {
+        # $ast = element( $ast->{t}, $ast->{c} );
+        $ast = $ast_to_element->($ast, $ast_to_element)
     }
 
-    walk $ast, sub {
-        bless $_[0], 'Pandoc::Document::' . $_[0]->{t};
-    };
+    walk $ast, $ast_to_element;
 
     return $ast;
 }
