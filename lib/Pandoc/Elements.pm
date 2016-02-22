@@ -5,6 +5,9 @@ use 5.010;
 
 our $VERSION = '0.15';
 
+our $PANDOC_VERSION;   # a string like '1.16'
+$PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
+
 our %ELEMENTS = (
 
     # BLOCK ELEMENTS
@@ -37,8 +40,8 @@ our %ELEMENTS = (
     LineBreak   => ['Inline'],
     Math        => [ Inline => qw(type content) ],
     RawInline   => [ Inline => qw(format content) ],
-    Link        => [ Inline => qw(content target) ],
-    Image       => [ Inline => qw(content target) ],
+    Link        => [ Inline => qw(attr content target) ],
+    Image       => [ Inline => qw(attr content target) ],
     Note        => [ Inline => 'content' ],
     Span        => [ Inline => qw(attr content) ],
 
@@ -121,10 +124,10 @@ sub Document($$) {
 
 # specific accessors
 
-sub Pandoc::Document::Link::url                   { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Link::title                 { $_[0]->{c}->[1][1] }
-sub Pandoc::Document::Image::url                  { $_[0]->{c}->[1][0] }
-sub Pandoc::Document::Image::title                { $_[0]->{c}->[1][1] }
+# sub Pandoc::Document::Link::url                   { $_[0]->{c}->[-1][0] }
+# sub Pandoc::Document::Link::title                 { $_[0]->{c}->[-1][1] }
+# sub Pandoc::Document::Image::url                  { $_[0]->{c}->[-1][0] }
+# sub Pandoc::Document::Image::title                { $_[0]->{c}->[-1][1] }
 sub Pandoc::Document::DefinitionPair::term        { $_[0]->[0] }
 sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
@@ -159,6 +162,16 @@ sub citation($) {
 }
 
 sub pandoc_json($) {
+    state $ast_to_element = sub { # compile once, use repeatedly, keep private
+        my $class = 'Pandoc::Document::' . $_[0]->{t};
+        if ( 'MetaMap' eq $_[0]->{t} ) {
+            for my $v ( values %{ $_[0]->{c} } ) {
+                $v = $_[1]->($v);
+            }
+        }
+        return $class->ast_to_element($_[0])
+    };
+
     shift if $_[0] =~ /^Pandoc::/;
 
     my $ast = eval { decode_json( $_[0] ) };
@@ -170,15 +183,18 @@ sub pandoc_json($) {
     return unless reftype $ast;
 
     if ( reftype $ast eq 'ARRAY' ) {
-        $ast = Document( $ast->[0]->{unMeta}, $ast->[1] );
+        my $meta = $ast->[0]->{unMeta};
+        for my $v ( values %$meta ) {
+            $v = $ast_to_element->($v, $ast_to_element);
+        }
+        $ast = Document( $meta, $ast->[1] );
     }
-    elsif ( reftype $ast eq 'HASH' ) {
-        $ast = element( $ast->{t}, $ast->{c} );
+    elsif ( reftype $ast eq 'HASH' and $ast->{t} ) {
+        # $ast = element( $ast->{t}, $ast->{c} );
+        $ast = $ast_to_element->($ast, $ast_to_element)
     }
 
-    walk $ast, sub {
-        bless $_[0], 'Pandoc::Document::' . $_[0]->{t};
-    };
+    walk $ast, $ast_to_element;
 
     return $ast;
 }
@@ -221,6 +237,8 @@ sub pandoc_json($) {
     *walk      = *Pandoc::Walker::walk;
     *query     = *Pandoc::Walker::query;
     *transform = *Pandoc::Walker::transform;
+
+    sub ast_to_element { bless $_[1] => $_[0] }
 
     sub string {
 
@@ -270,6 +288,7 @@ sub pandoc_json($) {
         return 0 unless $self->can('match_attributes');
         return $self->match_attributes($selector);
     }
+
 }
 
 {
@@ -322,6 +341,42 @@ sub pandoc_json($) {
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
     sub is_meta { 1 }
+}
+
+{
+
+    package Pandoc::Document::LinkageRole;
+    our $VERSION = $PANDOC::Document::VERSION;
+
+    for my $Element ( qw[ Link Image ] ) {
+        no strict 'refs'; #no critic
+        unshift @{"Pandoc::Document::${Element}::ISA"}, __PACKAGE__; # no critic
+    }
+
+    sub url                   { $_[0]->{c}->[-1][0] }
+    sub title                 { $_[0]->{c}->[-1][1] }
+    
+    sub ast_to_element {
+        my($class, $ast) = @_;
+        if ( 2 == @{ $ast->{c} } ) {
+            # prepend attributes to old-style ast
+            unshift @{ $ast->{c} }, ["",[],[]];
+        }
+        return bless $ast => $class;
+    }
+
+    sub TO_JSON {
+        my ( $self ) = @_;
+        my $ast = {%$self};
+        if (    $Pandoc::Elements::PANDOC_VERSION
+            and ($Pandoc::Elements::PANDOC_VERSION lt '1.16') )
+        {
+            # remove attributes from new-style ast
+            $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
+        }
+        return $ast;
+    }
+
 }
 
 1;
@@ -473,7 +528,7 @@ Return the name of the element, e.g. "Para" for a L<paragraph element|/Para>.
 Return the element content. For most elements (L<Para|/Para>, L<Emph|/Emph>,
 L<Str|/Str>...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the L<Link|/Link> element has
-a link text (C<content>) and a link target (C<target>) with C<url> and
+attributes (C<attr>) a link text (C<content>) and a link target (C<target>) with C<url> and
 C<title>.
 
 =head3 is_block
@@ -646,9 +701,9 @@ Emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 =head3 Image
 
 Image with alt text (C<content>, a list of L<inlines|/INLINE ELEMENTS>) and
-C<target> (list of C<url> and C<title>).
+C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
-    Image [ @inlines ], [ $url, $title ]
+    Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
 =head3 LineBreak
 
@@ -659,9 +714,9 @@ Hard line break
 =head3 Link
 
 Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
-and C<target> (list of C<url> and C<title>).
+and C<target> (list of C<url> and C<title>) with attributes (C<attr>).
 
-    Link [ @inlines ], [ $url, $title ]
+    Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
 =head3 Math
 
