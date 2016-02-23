@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.16  2016-02-23 20:16:52 CET
     - Support new (Pandoc 1.16) document model with Link and Image attributes (issue #11)
     - Fix blessing metadata top level values
 

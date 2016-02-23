@@ -120,7 +120,7 @@ Return the element as JSON encoded string. The following are equivalent:
 
 Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
 of attributes to [Link](#link) and [Image](#image) elements. Since Pandoc::Elements
-0.15 the new format is serialized by default. Set the package variable or
+0.16 the new format is serialized by default. Set the package variable or
 environment variable `PANDOC_VERSION` to 1.15 or below to use the old format.
 
 ### name
