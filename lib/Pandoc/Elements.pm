@@ -518,7 +518,7 @@ Return the element as JSON encoded string. The following are equivalent:
 
 Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
 of attributes to L<Link|/Link> and L<Image|/Image> elements. Since Pandoc::Elements
-0.15 the new format is serialized by default. Set the package variable or
+0.16 the new format is serialized by default. Set the package variable or
 environment variable C<PANDOC_VERSION> to 1.15 or below to use the old format.
 
 =head3 name
