@@ -162,7 +162,7 @@ sub pandoc_json($) {
         my $class = 'Pandoc::Document::' . $_[0]->{t};
         if ( 'MetaMap' eq $_[0]->{t} ) {
             for my $v ( values %{ $_[0]->{c} } ) {
-                $v = $_[1]->($v);
+                $_[1]->($v, $_[1]);
             }
         }
         return $class->new_from_ast($_[0])
