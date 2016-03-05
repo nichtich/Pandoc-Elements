@@ -7,11 +7,13 @@ my $ast = Document { }, [
     BulletList [ [ Plain [ Str 'world', Space, Str '!' ] ] ],
 ];
 
-$ast->meta->{foo} = MetaInlines Emph Str "FOO";
-$ast->meta->{bar} = MetaString "BAR";
-$ast->meta->{doz} = MetaMap { x => MetaList [ MetaInlines Str "DOZ" ] };
-
 is $ast->string, 'hello, world !', 'stringify Document';
+
+note $ast->string;
+
+$ast->meta->{foo} = MetaInlines [ Emph [ Str "FOO" ] ];
+$ast->meta->{bar} = MetaString "BAR";
+$ast->meta->{doz} = MetaMap { x => MetaList [ MetaInlines [ Str "DOZ" ] ] };
 
 is $ast->meta->{foo}->string, 'FOO', 'stringify MetaInlines';
 is $ast->meta->{bar}->string, 'BAR', 'stringify MetaString';
