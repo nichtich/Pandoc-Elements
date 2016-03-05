@@ -37,6 +37,7 @@ our %ELEMENTS = (
     Cite        => [ Inline => qw(citations content) ],
     Code        => [ Inline => qw(attr content) ],
     Space       => ['Inline'],
+    SoftBreak   => ['Inline'],
     LineBreak   => ['Inline'],
     Math        => [ Inline => qw(type content) ],
     RawInline   => [ Inline => qw(format content) ],
