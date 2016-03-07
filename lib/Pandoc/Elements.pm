@@ -757,6 +757,12 @@ Small caps text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
     SmallCaps [ @inlines ]
 
+=head3 SoftBreak
+
+Soft line break
+
+    SoftBreak
+
 =head3 Space
 
 Inter-word space
@@ -863,7 +869,7 @@ L<Pandoc> implements a wrapper around the pandoc executable.
 
 L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
 contains the original definition of Pandoc document data structure in Haskell.
-This module version was last aligned with pandoc-types-1.12.4.
+This module version was last aligned with pandoc-types-1.16.1.
 
 =head1 AUTHOR
 

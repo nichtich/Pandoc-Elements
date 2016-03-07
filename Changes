@@ -1,7 +1,10 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Support stringification of meta elements
+    - Add SoftBreak inline element, introduced in Pandoc 1.16
 
+added new SoftBreak inline element from pandoc 1.16 
 0.16  2016-02-23 20:16:52 CET
     - Support new (Pandoc 1.16) document model with Link and Image attributes (issue #11)
     - Fix blessing metadata top level values
