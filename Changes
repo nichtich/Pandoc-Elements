@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.17  2016-03-07 21:15:58 CET
     - Support stringification of meta elements
     - Add SoftBreak inline element, introduced in Pandoc 1.16
 
