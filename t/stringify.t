@@ -7,7 +7,19 @@ my $ast = Document { }, [
     BulletList [ [ Plain [ Str 'world', Space, Str '!' ] ] ],
 ];
 
-is $ast->string, 'hello, world !';
+is $ast->string, 'hello, world !', 'stringify Document';
+
+note $ast->string;
+
+$ast->meta->{foo} = MetaInlines [ Emph [ Str "FOO" ] ];
+$ast->meta->{bar} = MetaString "BAR";
+$ast->meta->{doz} = MetaMap { x => MetaList [ MetaInlines [ Str "DOZ" ] ] };
+
+is $ast->meta->{foo}->string, 'FOO', 'stringify MetaInlines';
+is $ast->meta->{bar}->string, 'BAR', 'stringify MetaString';
+is $ast->meta->{doz}->string, 'DOZ', 'stringify MetaMap>MetaList>MetaInlines';
+
+note $ast->string;
 
 is RawBlock('html','<b>hi</hi>')->string,  '', 'RawBlock has no string';
 is RawInline('html','<b>hi</hi>')->string,  '', 'RawInline has no string';
