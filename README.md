@@ -356,6 +356,12 @@ Small caps text, a list of [inlines](#inline-elements) (`content`).
 
     SmallCaps [ @inlines ]
 
+### SoftBreak
+
+Soft line break
+
+    SoftBreak
+
 ### Space
 
 Inter-word space
@@ -441,7 +447,7 @@ document elements:
 
 [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 contains the original definition of Pandoc document data structure in Haskell.
-This module version was last aligned with pandoc-types-1.12.4.
+This module version was last aligned with pandoc-types-1.16.1.
 
 # AUTHOR
 
