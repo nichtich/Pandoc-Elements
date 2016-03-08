@@ -136,7 +136,7 @@ sub attributes($) {
         defined $attrs->{id}      ? $attrs->{id}      : '',
         defined $attrs->{classes} ? $attrs->{classes} : [],
         [
-            map { $_ => $attrs->{$_} }
+            map { [ $_ => $attrs->{$_} ] }
               grep { $_ ne 'id' and $_ ne 'classes' }
               keys %$attrs
         ]
@@ -220,6 +220,8 @@ sub pandoc_json($) {
     use JSON ();
     use Scalar::Util qw(reftype);
     use Pandoc::Walker ();
+    # Silence "only used once" syntax warnings;
+    use subs qw( walk query transform );
 
     sub to_json {
         JSON->new->utf8->convert_blessed->encode( $_[0] );
@@ -292,9 +294,19 @@ sub pandoc_json($) {
 
     package Pandoc::Document::AttributesRole;
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
-    sub id      { $_[0]->attr->[0] }
-    sub classes { $_[0]->attr->[1] }
-    sub class   { join ' ', @{ $_[0]->classes } }
+    sub id           { $_[0]->attr->[0] }
+    sub classes      { $_[0]->attr->[1] }
+    sub class        { join ' ', @{ $_[0]->classes } }
+    sub keyval_pairs { $_[0]->attr->[2] }
+
+    sub keyval_list {
+        map { ; @$_ } @{ $_[0]->keyval_pairs };
+    }
+
+    # Add the 'proper' id & classes at the end so that they win when hashifying
+    sub attr_list {
+        return ( $_[0]->keyval_list, id => $_[0]->id, classes => $_[0]->classes, );
+    }
 
     sub match_attributes {
         my ( $self, $selector ) = @_;
@@ -465,15 +477,50 @@ format.
 =head3 attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs. The special keys C<id> and C<classes> are recognized but
+key-value pairs, the latter an array of arrays with one key-value fair in each. 
+The special keys C<id> and C<classes> are recognized but
 setting multi-value attributes or controlled order is not supported with this
 function. You can always manually create an attributes structure:
 
-    [ $id, [ @classes ], [ key => $value, ... ] ]
+    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
-Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, and C<class>. See L<Hash::MultiValue> for
-easy access to key-value-pairs.
+Elements with attributes (element accessor method C<attr>) also
+provide the following accessor methods:
+
+=over
+
+=item C<id>
+
+=item C<classes>
+
+=item C<class>
+
+Returns the C<classes> as a space-separated string.
+
+=item C<keyval_pairs>
+
+=item C<keyval_list> 
+
+Is equivalent to C<< map { @$_ } @{ $element->keyval_pairs } >>.
+
+=item C<attr_list> 
+
+Like C<keyval_list> but adds the key-value pairs C<< id => $element->id >>
+and C<< classes => $element->classes >> and thus C<< { $element->attr_list } >>
+is the reverse of the C<attributes> function (though pairs with duplicate
+keys are overwritten!).
+
+=back
+
+See L<Hash::MultiValue> for easy access to key-value-pairs. To
+get a Hash::MultiValue object with the attributes of an element
+you can do:
+
+    my $attr = Hash::MultiValue->from_mixed( $element->attr_list );
+
+and to include the attributes in a Hash::MultiValue object in an element:
+
+    Code attributes $hash_multi_value->as_hashref_multi, $content;
 
 =head3 citation { ... }
 
