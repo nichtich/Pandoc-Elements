@@ -763,6 +763,24 @@ Soft line break
 
     SoftBreak
 
+Note that the C<SoftBreak> element was added in Pandoc 1.16 and will not be
+recognised by older versions of Pandoc. If you are going to feed a document
+containing C<SoftBreak> elements to Pandoc E<lt> 1.16 you will have to remove
+all those elements first:
+
+    $document->transform( SoftBreak => sub { [] } );
+    say $document->to_json;
+
+Be aware that this modifies C<$document>! If you want to keep a copy with the
+C<SoftBreak> elements intact use L<Clone> or L<Clone::PP>:
+
+    say clone($document)->transform( SoftBreak => sub { [] } )->to_json;
+
+Hardly any semantics are lost by removing all C<SoftBreak> elements. They were
+introduced so that Pandoc can preserve line breaks (as opposed to paragraph
+breaks) from its input in its output, i.e. mainly as a matter of editing
+convenience.
+
 =head3 Space
 
 Inter-word space
