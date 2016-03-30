@@ -1,6 +1,6 @@
 use strict;
 use Test::More;
-use Pandoc::Elements qw(pandoc_json);
+use Pandoc::Elements qw(pandoc_json Space);
 
 my $json_in = <DATA>;
 my $ast = pandoc_json( $json_in );
@@ -8,18 +8,19 @@ my $ast = pandoc_json( $json_in );
 SKIP: {
     eval { require Clone::PP } or skip 'Clone::PP not installed', 2;
 
-    my $modified = Clone::PP::clone($ast)->transform( SoftBreak => sub { [] } );
+    my $modified = Clone::PP::clone($ast)->transform( SoftBreak => sub { Space } );
 
     unlike $modified->to_json, qr/"SoftBreak"/, 'no SoftBreak in cloned ast';
     like $ast->to_json, qr/"SoftBreak"/, 'preserved SoftBreak in original ast';
-
 }
 
-# Remove all soft breaks
-$ast->transform( SoftBreak => sub { [] } );
+$ast->transform( SoftBreak => sub { Space } );
+
+is $ast->string,
+    'Dolorem sapiente ducimus quia beatae sapiente perspiciatis quia. Praesentium est cupiditate architecto temporibus eos.',
+    'replaced SoftBreak with spaces';
 
 unlike $ast->to_json, qr/"SoftBreak"/, 'no SoftBreak in modified ast';
-
 
 done_testing;
 

@@ -243,14 +243,14 @@ sub pandoc_json($) {
         if ( $_[0]->name =~ /^(Str|Code|Math|MetaString)$/ ) {
             return $_[0]->content;
         }
-        elsif ( $_[0]->name =~ /^(LineBreak|Space|MetaString)$/ ) {
+        elsif ( $_[0]->name =~ /^(LineBreak|SoftBreak|Space|MetaString)$/ ) {
             return ' ';
         }
         join '', @{
             $_[0]->query(
                 {
                     'Str|Code|Math|MetaString'   => sub { $_->content },
-                    'LineBreak|Space' => sub { ' ' },
+                    'LineBreak|Space|SoftBreak' => sub { ' ' },
                 }
             );
         };
@@ -763,23 +763,19 @@ Soft line break
 
     SoftBreak
 
-Note that the C<SoftBreak> element was added in Pandoc 1.16 and will not be
-recognised by older versions of Pandoc. If you are going to feed a document
-containing C<SoftBreak> elements to Pandoc E<lt> 1.16 you will have to remove
-all those elements first:
+Note that the C<SoftBreak> element was added in Pandoc 1.16 to as a matter of
+editing convenience to preserve line breaks (as opposed to paragraph breaks)
+from input source to output. If you are going to feed a document containing
+C<SoftBreak> elements to Pandoc E<lt> 1.16 you will have to convert those
+elements to simple spaces:
 
-    $document->transform( SoftBreak => sub { [] } );
+    $document->transform( SoftBreak => sub { Space } );
     say $document->to_json;
 
-Be aware that this modifies C<$document>! If you want to keep a copy with the
-C<SoftBreak> elements intact use L<Clone> or L<Clone::PP>:
+If you want to keep a copy with the C<SoftBreak> elements intact use L<Clone>
+or L<Clone::PP>:
 
-    say clone($document)->transform( SoftBreak => sub { [] } )->to_json;
-
-Hardly any semantics are lost by removing all C<SoftBreak> elements. They were
-introduced so that Pandoc can preserve line breaks (as opposed to paragraph
-breaks) from its input in its output, i.e. mainly as a matter of editing
-convenience.
+    say clone($document)->transform( SoftBreak => sub { Space } )->to_json;
 
 =head3 Space
 

@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Document and test removal of SoftBreak element
 
 0.17  2016-03-07 21:15:58 CET
     - Support stringification of meta elements
