@@ -4,8 +4,8 @@ Pandoc::Elements - create and process Pandoc documents
 
 # STATUS
 
-[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.png)](https://travis-ci.org/nichtich/Pandoc-Elements)
-[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.png)](https://coveralls.io/r/nichtich/Pandoc-Elements)
+[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.svg)](https://travis-ci.org/nichtich/Pandoc-Elements)
+[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.svg)](https://coveralls.io/r/nichtich/Pandoc-Elements)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
 
 # SYNOPSIS
@@ -66,11 +66,13 @@ format.
 ### attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs. The special keys `id` and `classes` are recognized but
-setting multi-value attributes or controlled order is not supported with this
-function. You can always manually create an attributes structure:
+key-value pairs. The special keys `id` (string), `classes` (array reference
+of class names), and `class` (string with space-separated class names) are
+recognized but setting multi-value attributes or controlled order is not
+supported with this function. You can always manually create an attributes
+structure:
 
-    [ $id, [ @classes ], [ key => $value, ... ] ]
+    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method `attr`) also provide the
 accessor method `id`, `classes`, and `class`. See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
@@ -82,7 +84,7 @@ A citation as part of document element [Cite](#cite) must be a hash reference
 with fields `citationID` (string), `citationPrefix` (list of [inline
 elements](#inline-elements)) `citationSuffix` (list of [inline
 elements](#inline-elements)), `citationMode` (one of `NormalCitation`,
-C>AuthorInText>, `SuppressAuthor`), `citationNoteNum` (integer), and
+`AuthorInText`, `SuppressAuthor`), `citationNoteNum` (integer), and
 `citationHash` (integer). The helper method `citation` can be used to
 construct such hash by filling in default values and using shorter field names
 (`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`):
@@ -365,16 +367,8 @@ Soft line break
 Note that the `SoftBreak` element was added in Pandoc 1.16 to as a matter of
 editing convenience to preserve line breaks (as opposed to paragraph breaks)
 from input source to output. If you are going to feed a document containing
-`SoftBreak` elements to Pandoc < 1.16 you will have to convert those
-elements to simple spaces:
-
-    $document->transform( SoftBreak => sub { Space } );
-    say $document->to_json;
-
-If you want to keep a copy with the `SoftBreak` elements intact use [Clone](https://metacpan.org/pod/Clone)
-or [Clone::PP](https://metacpan.org/pod/Clone::PP):
-
-    say clone($document)->transform( SoftBreak => sub { Space } )->to_json;
+`SoftBreak` elements to Pandoc < 1.16 you will have to set the package
+variable or environment variable `PANDOC_VERSION` to 1.15 or below.
 
 ### Space
 

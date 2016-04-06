@@ -3,6 +3,7 @@ Revision history for Pandoc-Elements
 {{$NEXT}}
     - Fix and extend attributes function (#29/#26/#14)
     - Document and test removal of SoftBreak element
+    - fix json serialization to ensure right scalar types (#27)
 
 0.17  2016-03-07 21:15:58 CET
     - Support stringification of meta elements
