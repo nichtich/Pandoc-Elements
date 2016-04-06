@@ -15,7 +15,12 @@ use Pandoc::Elements ();
 use parent 'Exporter';
 our @EXPORT = qw(pandoc_filter pandoc_walk stringify);
 
+# FUNCTIONS
+
 sub stringify {
+
+    # warning added in version 0.18
+    warn "Pandoc::Filter::stringify deprecated => Pandoc::Element::stringify\n";
     $_[0]->string;
 }
 
@@ -34,7 +39,7 @@ sub pandoc_filter(@) {    ## no critic
     say STDOUT $json;
 }
 
-# constructor and methods
+# METHODS
 
 sub new {
     my $class = shift;
@@ -49,17 +54,7 @@ sub error {
 }
 
 sub action {
-    return $_[0]->{action};
-
-    my $actions = $_[0]->{actions};
-
-    sub {
-        my ( $element, $format, $meta ) = @_;
-        foreach my $action (@$actions) {
-            local $_ = $element;
-            $action->( $element, $format, $meta );
-        }
-      }
+    $_[0]->{action};
 }
 
 # TODO: refactor with method action
@@ -90,15 +85,15 @@ Pandoc::Filter - process Pandoc abstract syntax tree
 =head1 SYNOPSIS
 
 The following filter C<flatten.pl>, adopted from L<pandoc scripting
-documentation|http://pandoc.org/scripting.html> converts level 2+ headers to
+documentation|http://pandoc.org/scripting.html>, converts level 2+ headers to
 regular paragraphs.
 
     use Pandoc::Filter;
     use Pandoc::Elements;
 
     pandoc_filter Header => sub {
-        return unless $_->level >= 2;
-        return Para [ Emph $_->content ];
+        return unless $_->level >= 2;       # keep
+        return Para [ Emph $_->content ];   # replace
     };
 
 To apply this filter on a Markdown file:
@@ -110,36 +105,53 @@ examples of filters.
 
 =head1 DESCRIPTION
 
-Pandoc::Filter is a port of
-L<pandocfilters|https://github.com/jgm/pandocfilters> from Python to modern
-Perl.  The module provide provides functions to aid writing Perl scripts that
-process a L<Pandoc|http://pandoc.org/> abstract syntax tree (AST) serialized as
-JSON. See L<Pandoc::Elements> for documentation of AST elements.
+This module is a port of L<pandocfilters|https://github.com/jgm/pandocfilters>
+from Python to modern Perl.  It provides methods and functions to aid writing
+Perl scripts that process a L<Pandoc|http://pandoc.org/> abstract syntax tree
+(AST) serialized as JSON. See L<Pandoc::Elements> for documentation of AST
+elements.
 
-This module is based on L<Pandoc::Walker> and its function C<transform>. Please
-consider using its function interface (C<transform>, C<query>, C<walk>) instead
-of this module.
+The function interface (see L</FUNCTIONS>) directly reads AST and format from
+STDIN and ARGV and prints the transformed AST to STDOUT. 
+
+The object oriented interface (see L</METHODS>) requires to:
+
+    my $filter = Pandoc::Filter->new( ... );  # create a filter object
+    $filter->apply( $ast, $format );          # pass it an AST for processing
+
+If you don't need the C<format> parameter, consider using the interface
+provided by module L<Pandoc::Walker> instead. It can be used both:
+
+    transform $ast, ...;        # as function
+    $ast->transform( ... );     # or as method
+
+=head1 ACTIONS
+
+An action is a code reference that is executed on matching document elements of
+an AST. The action is passed a reference to the current element, the output
+format (the empty string by default), and the document metadata (an empty hash
+by default).  The current element is also given in the special variable C<$_>
+for convenience.
+
+The action is expected to return an element, an empty array reference, or
+C<undef> to modify, remove, or keep a traversed element in the AST. 
+
+=back
 
 =head1 METHODS
 
 =head2 new( @actions | %actions )
 
-Create a new filter with one or more action functions, given as code
-reference(s). Each function is expected to return an element, an empty array
-reference, or C<undef> to modify, remove, or keep a traversed element in the
-AST. The current element is passed to an action function both as first argument
-and in the special variable C<$_>. Output format (if specified) and document
-metadata are passed as second and third argument.
-
-If actions are given as hash, key values are used to check which elements to
-apply for, e.g. 
+Create a new filter object with one or more actions (see L</ACTIONS>). If
+actions are given as hash, key values are used to check which elements to apply
+for, e.g. 
 
     Pandoc::Filter->new( 
         Header                 => sub { ... }, 
         'Suscript|Superscript' => sub { ... }
     )
 
-=head2 apply( $ast [, $format [ $metadata ] ] )
+=head2 apply( $ast [, $format [, $metadata ] ] )
 
 Apply all actions to a given abstract syntax tree (AST). The AST is modified in
 place and also returned for convenience. Additional argument format and
@@ -168,21 +180,15 @@ binmode UTF-8 for STDOUT.
 Read a single line of JSON from STDIN, apply actions and print the resulting
 AST as single line of JSON. This function is roughly equivalent to
 
-    my $ast = Pandoc::Elements::pandoc_json(<>);
-    Pandoc::Filter->new(@actions)->apply($ast, @ARGV ? $ARGV[0] : ());
+    my $ast    = Pandoc::Elements::pandoc_json(<>);
+    my $format = $ARGV[0];
+    Pandoc::Filter->new(@actions)->apply($ast, $format);
     say $ast->to_json;
-
-=head2 stringify( $ast )
-
-Walks the ast and returns concatenated string content, leaving out all
-formatting. This function is also accessible as method of L<Pandoc::Element>
-since version 0.12, so I<it will be removed as exportable function> in a later
-version.
 
 =head1 SEE ALSO
 
-Script L<pandocwalk> installed with this module facilitates execution of
-C<pandoc_walk> to traverse a document.
+Script L<pandocwalk>, installed with this module, facilitates execution of
+C<pandoc_walk> to traverse a document from command line.
 
 =head1 COPYRIGHT AND LICENSE
 

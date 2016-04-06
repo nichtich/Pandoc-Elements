@@ -389,8 +389,8 @@ Pandoc::Elements - create and process Pandoc documents
 
 # STATUS
 
-[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.png)](https://travis-ci.org/nichtich/Pandoc-Elements)
-[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.png)](https://coveralls.io/r/nichtich/Pandoc-Elements)
+[![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.svg)](https://travis-ci.org/nichtich/Pandoc-Elements)
+[![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.svg)](https://coveralls.io/r/nichtich/Pandoc-Elements)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
 
 =end markdown
@@ -481,7 +481,7 @@ A citation as part of document element L<Cite|/Cite> must be a hash reference
 with fields C<citationID> (string), C<citationPrefix> (list of L<inline
 elements|/INLINE ELEMENTS>) C<citationSuffix> (list of L<inline
 elements|/INLINE ELEMENTS>), C<citationMode> (one of C<NormalCitation>,
-C>AuthorInText>, C<SuppressAuthor>), C<citationNoteNum> (integer), and
+C<AuthorInText>, C<SuppressAuthor>), C<citationNoteNum> (integer), and
 C<citationHash> (integer). The helper method C<citation> can be used to
 construct such hash by filling in default values and using shorter field names
 (C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>):

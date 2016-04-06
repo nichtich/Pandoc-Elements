@@ -362,6 +362,20 @@ Soft line break
 
     SoftBreak
 
+Note that the `SoftBreak` element was added in Pandoc 1.16 to as a matter of
+editing convenience to preserve line breaks (as opposed to paragraph breaks)
+from input source to output. If you are going to feed a document containing
+`SoftBreak` elements to Pandoc < 1.16 you will have to convert those
+elements to simple spaces:
+
+    $document->transform( SoftBreak => sub { Space } );
+    say $document->to_json;
+
+If you want to keep a copy with the `SoftBreak` elements intact use [Clone](https://metacpan.org/pod/Clone)
+or [Clone::PP](https://metacpan.org/pod/Clone::PP):
+
+    say clone($document)->transform( SoftBreak => sub { Space } )->to_json;
+
 ### Space
 
 Inter-word space
