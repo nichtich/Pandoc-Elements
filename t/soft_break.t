@@ -5,21 +5,14 @@ use Pandoc::Elements qw(pandoc_json Space);
 my $json_in = <DATA>;
 my $ast = pandoc_json( $json_in );
 
-SKIP: {
-    eval { require Clone::PP } or skip 'Clone::PP not installed', 2;
-
-    my $modified = Clone::PP::clone($ast)->transform( SoftBreak => sub { Space } );
-
-    unlike $modified->to_json, qr/"SoftBreak"/, 'no SoftBreak in cloned ast';
-    like $ast->to_json, qr/"SoftBreak"/, 'preserved SoftBreak in original ast';
-}
-
-$ast->transform( SoftBreak => sub { Space } );
-
 is $ast->string,
     'Dolorem sapiente ducimus quia beatae sapiente perspiciatis quia. Praesentium est cupiditate architecto temporibus eos.',
     'replaced SoftBreak with spaces';
 
+$Pandoc::Elements::PANDOC_VERSION = '1.16';
+like $ast->to_json, qr/"SoftBreak"/, 'keep SoftBreak by default';
+
+$Pandoc::Elements::PANDOC_VERSION = '1.15';
 unlike $ast->to_json, qr/"SoftBreak"/, 'no SoftBreak in modified ast';
 
 done_testing;

@@ -401,6 +401,16 @@ sub pandoc_json($) {
 }
 
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
+# and to downgrade document model for Pandoc < 1.16
+
+sub Pandoc::Document::SoftBreak::TO_JSON {
+    if ( $Pandoc::Elements::PANDOC_VERSION
+        and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) ) {
+        return { t => 'Space', c => [] };
+    } else {
+        return { t => 'SoftBreak', c => [] };
+    }
+}
 
 sub Pandoc::Document::LinkageRole::TO_JSON {
     my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
@@ -850,16 +860,8 @@ Soft line break
 Note that the C<SoftBreak> element was added in Pandoc 1.16 to as a matter of
 editing convenience to preserve line breaks (as opposed to paragraph breaks)
 from input source to output. If you are going to feed a document containing
-C<SoftBreak> elements to Pandoc E<lt> 1.16 you will have to convert those
-elements to simple spaces:
-
-    $document->transform( SoftBreak => sub { Space } );
-    say $document->to_json;
-
-If you want to keep a copy with the C<SoftBreak> elements intact use L<Clone>
-or L<Clone::PP>:
-
-    say clone($document)->transform( SoftBreak => sub { Space } )->to_json;
+C<SoftBreak> elements to Pandoc E<lt> 1.16 you will have to set the package
+variable or environment variable C<PANDOC_VERSION> to 1.15 or below.
 
 =head3 Space
 
