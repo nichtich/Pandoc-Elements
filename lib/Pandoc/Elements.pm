@@ -5,7 +5,7 @@ use 5.010;
 
 our $VERSION = '0.17';
 
-our $PANDOC_VERSION;   # a string like '1.16'
+our $PANDOC_VERSION;    # a string like '1.16'
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
 
 our %ELEMENTS = (
@@ -132,12 +132,16 @@ sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
 sub attributes($) {
     my ($attrs) = @_;
+    my $classes = $attrs->{classes} // [];
+    if ( defined $attrs->{class} ) {
+        unshift @$classes, grep { $_ ne '' } split qr/\s+/, $attrs->{class};
+    }
     return [
-        defined $attrs->{id}      ? $attrs->{id}      : '',
-        defined $attrs->{classes} ? $attrs->{classes} : [],
+        $attrs->{id} // '',
+        $classes,
         [
             map { [ $_ => $attrs->{$_} ] }
-              grep { $_ ne 'id' and $_ ne 'classes' }
+              grep { $_ !~ qr/^(id|class(es)?)$/ }
               keys %$attrs
         ]
     ];
@@ -159,14 +163,14 @@ sub citation($) {
 }
 
 sub pandoc_json($) {
-    state $ast_to_element = sub { # compile once, use repeatedly, keep private
+    state $ast_to_element = sub {   # compile once, use repeatedly, keep private
         my $class = 'Pandoc::Document::' . $_[0]->{t};
         if ( 'MetaMap' eq $_[0]->{t} ) {
             for my $v ( values %{ $_[0]->{c} } ) {
-                $_[1]->($v, $_[1]);
+                $_[1]->( $v, $_[1] );
             }
         }
-        return $class->new_from_ast($_[0])
+        return $class->new_from_ast( $_[0] );
     };
 
     shift if $_[0] =~ /^Pandoc::/;
@@ -182,13 +186,14 @@ sub pandoc_json($) {
     if ( reftype $ast eq 'ARRAY' ) {
         my $meta = $ast->[0]->{unMeta};
         for my $v ( values %$meta ) {
-            $v = $ast_to_element->($v, $ast_to_element);
+            $v = $ast_to_element->( $v, $ast_to_element );
         }
         $ast = Document( $meta, $ast->[1] );
     }
     elsif ( reftype $ast eq 'HASH' and $ast->{t} ) {
+
         # $ast = element( $ast->{t}, $ast->{c} );
-        $ast = $ast_to_element->($ast, $ast_to_element)
+        $ast = $ast_to_element->( $ast, $ast_to_element );
     }
 
     walk $ast, $ast_to_element;
@@ -220,7 +225,8 @@ sub pandoc_json($) {
     use JSON ();
     use Scalar::Util qw(reftype);
     use Pandoc::Walker ();
-    use subs qw(walk query transform); # Silence "only used once" syntax warnings
+    use subs qw(walk query transform)
+      ;    # Silence "only used once" syntax warnings
 
     sub to_json {
         JSON->new->utf8->convert_blessed->encode( $_[0] );
@@ -250,7 +256,7 @@ sub pandoc_json($) {
         join '', @{
             $_[0]->query(
                 {
-                    'Str|Code|Math|MetaString'   => sub { $_->content },
+                    'Str|Code|Math|MetaString'  => sub { $_->content },
                     'LineBreak|Space|SoftBreak' => sub { ' ' },
                 }
             );
@@ -346,28 +352,29 @@ sub pandoc_json($) {
     package Pandoc::Document::LinkageRole;
     our $VERSION = $PANDOC::Document::VERSION;
 
-    for my $Element ( qw[ Link Image ] ) {
-        no strict 'refs'; #no critic
+    for my $Element (qw[ Link Image ]) {
+        no strict 'refs';    #no critic
         unshift @{"Pandoc::Document::${Element}::ISA"}, __PACKAGE__; # no critic
     }
 
-    sub url                   { $_[0]->{c}->[-1][0] }
-    sub title                 { $_[0]->{c}->[-1][1] }
-    
+    sub url   { $_[0]->{c}->[-1][0] }
+    sub title { $_[0]->{c}->[-1][1] }
+
     sub new_from_ast {
-        my ($class, $ast) = @_;
+        my ( $class, $ast ) = @_;
         if ( 2 == @{ $ast->{c} } ) {
+
             # prepend attributes to old-style ast
-            unshift @{ $ast->{c} }, ["",[],[]];
+            unshift @{ $ast->{c} }, [ "", [], [] ];
         }
         return bless $ast => $class;
     }
 
     sub TO_JSON {
-        my ( $self ) = @_;
+        my ($self) = @_;
         my $ast = {%$self};
-        if (    $Pandoc::Elements::PANDOC_VERSION
-            and ($Pandoc::Elements::PANDOC_VERSION lt '1.16') )
+        if ( $Pandoc::Elements::PANDOC_VERSION
+            and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) )
         {
             # remove attributes from new-style ast
             $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
@@ -466,9 +473,11 @@ format.
 =head3 attributes { key => $value, ... }
 
 Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs. The special keys C<id> and C<classes> are recognized but
-setting multi-value attributes or controlled order is not supported with this
-function. You can always manually create an attributes structure:
+key-value pairs. The special keys C<id> (string), C<classes> (array reference
+of class names), and C<class> (string with space-separated class names) are
+recognized but setting multi-value attributes or controlled order is not
+supported with this function. You can always manually create an attributes
+structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
