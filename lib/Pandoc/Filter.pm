@@ -136,8 +136,6 @@ for convenience.
 The action is expected to return an element, an empty array reference, or
 C<undef> to modify, remove, or keep a traversed element in the AST. 
 
-=back
-
 =head1 METHODS
 
 =head2 new( @actions | %actions )

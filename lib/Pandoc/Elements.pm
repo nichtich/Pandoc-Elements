@@ -220,6 +220,7 @@ sub pandoc_json($) {
     use JSON ();
     use Scalar::Util qw(reftype);
     use Pandoc::Walker ();
+    use subs qw(walk query transform); # Silence "only used once" syntax warnings
 
     sub to_json {
         JSON->new->utf8->convert_blessed->encode( $_[0] );
