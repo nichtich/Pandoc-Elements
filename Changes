@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.18  2016-04-06 13:23:35 CEST
     - Fix and extend attributes function (#29/#26/#14)
     - Document and test removal of SoftBreak element
     - fix json serialization to ensure right scalar types (#27)
