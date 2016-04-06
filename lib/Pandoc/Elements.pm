@@ -201,37 +201,6 @@ sub pandoc_json($) {
     return $ast;
 }
 
-# helper method create a tidy AST with correct scalar types for Pandoc
-
-my $TIDY_AST = sub {
-    # There is no easy way in Perl to tell if a scalar value is already a string or number,
-    # so we stringify all scalar values and numify/boolify as needed afterwards.
-    my($ast, $TIDY_AST) = @_;
-    if ( blessed $ast ) {
-        return $ast if $ast->can('TO_JSON'); # JSON.pm will convert
-        # may have overloaded stringification! Should we check?
-        # require overload;
-        # return "$ast" if overload::Method($ast, q/""/) or overload::Method($ast, q/0+/);
-        # carp "Non-stringifiable object $ast";
-        return "$ast";  
-    }
-    elsif ( 'ARRAY' eq ref $ast ) {
-        return [  
-            map { 
-                ref($_) ? $TIDY_AST->($_, $TIDY_AST) : "$_";
-            } @$ast 
-        ];
-    }
-    elsif ( 'HASH' eq ref $ast ) {
-        my %ret = %$ast;
-        while ( my($k, $v) = each %ret ) {
-            $ret{$k} = ref($v) ? $TIDY_AST->($v, $TIDY_AST) : "$v";
-        }
-        return \%ret;
-    }
-    else { return "$ast" }
-};
-
 # document element packages
 
 {
@@ -240,9 +209,6 @@ my $TIDY_AST = sub {
     use strict;
     our $VERSION = '0.04';
     our @ISA     = ('Pandoc::Document::Element');
-    sub TO_JSON {
-        return $TIDY_AST->( [ @{ $_[0] } ], $TIDY_AST );
-    }
     sub name        { 'Document' }
     sub meta        { $_[0]->[0]->{unMeta} }
     sub content     { $_[0]->[1] }
@@ -256,21 +222,47 @@ my $TIDY_AST = sub {
     use warnings;
     our $VERSION = $Pandoc::Document::VERSION;
     use JSON ();
-    use Scalar::Util qw(reftype);
+    use Scalar::Util qw(reftype blessed);
     use Pandoc::Walker ();
-    use subs qw(walk query transform)
-      ;    # Silence "only used once" syntax warnings
+    use subs qw(walk query transform);    # Silence syntax warnings
 
     sub to_json {
         JSON->new->utf8->convert_blessed->encode( $_[0] );
     }
+
     sub TO_JSON {
-        # Run everything thru TIDY_AST so arrays/hashes are cloned
+
+        # Run everything thru this method so arrays/hashes are cloned
         # and objects without TO_JSON methods are stringified.
-        return $TIDY_AST->( { %{ $_[0] } }, $TIDY_AST );
+        # Required to ensure correct scalar types for Pandoc.
+
+# There is no easy way in Perl to tell if a scalar value is already a string or number,
+# so we stringify all scalar values and numify/boolify as needed afterwards.
+
+        my ( $ast, $maybe_blessed ) = @_;
+        if ( $maybe_blessed && blessed $ast ) {
+            return $ast if $ast->can('TO_JSON');    # JSON.pm will convert
+                 # may have overloaded stringification! Should we check?
+                 # require overload;
+              # return "$ast" if overload::Method($ast, q/""/) or overload::Method($ast, q/0+/);
+              # carp "Non-stringifiable object $ast";
+            return "$ast";
+        }
+        elsif ( 'ARRAY' eq reftype $ast ) {
+            return [ map { ref($_) ? TO_JSON( $_, 1 ) : "$_"; } @$ast ];
+        }
+        elsif ( 'HASH' eq reftype $ast ) {
+            my %ret = %$ast;
+            while ( my ( $k, $v ) = each %ret ) {
+                $ret{$k} = ref($v) ? TO_JSON( $v, 1 ) : "$v";
+            }
+            return \%ret;
+        }
+        else { return "$ast" }
     }
-    sub name    { $_[0]->{t} }
-    sub content { $_[0]->{c} }
+
+    sub name        { $_[0]->{t} }
+    sub content     { $_[0]->{c} }
     sub is_document { 0 }
     sub is_block    { 0 }
     sub is_inline   { 0 }
@@ -406,59 +398,64 @@ my $TIDY_AST = sub {
         }
         return bless $ast => $class;
     }
-
-    sub TO_JSON {
-        my $ast = $TIDY_AST->( {%{$_[0]}}, $TIDY_AST );
-        if ( $Pandoc::Elements::PANDOC_VERSION
-            and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) )
-        {
-            # remove attributes from new-style ast
-            $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
-        }
-        return $ast;
-    }
-
 }
 
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
 
+sub Pandoc::Document::LinkageRole::TO_JSON {
+    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+    if ( $Pandoc::Elements::PANDOC_VERSION
+        and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) )
+    {
+        # remove attributes from new-style ast
+        $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
+    }
+    return $ast;
+}
+
 sub Pandoc::Document::Header::TO_JSON {
-    my $data = $TIDY_AST->( { %{ $_[0] } }, $TIDY_AST );
+    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+
     # coerce heading level to int
-    $data->{c}[0] = int( $data->{c}[0] );
-    return $data;
+    $ast->{c}[0] = int( $ast->{c}[0] );
+    return $ast;
 }
 
 sub Pandoc::Document::OrderedList::TO_JSON {
-    my $data = $TIDY_AST->( { %{ $_[0] } }, $TIDY_AST );
+    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+
     # coerce first item number to int
-    $data->{c}[0][0] = int( $data->{c}[0][0] );
-    return $data;
+    $ast->{c}[0][0] = int( $ast->{c}[0][0] );
+    return $ast;
 }
 
 sub Pandoc::Document::Table::TO_JSON {
-    my $data = $TIDY_AST->( { %{ $_[0] } }, $TIDY_AST );
+    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+
     # coerce column widths to numbers (floats)
-    $_ += 0 for @{ $data->{c}[2] }; # faster than map
-    return $data;
+    $_ += 0 for @{ $ast->{c}[2] };    # faster than map
+    return $ast;
 }
 
 sub Pandoc::Document::MetaBool::TO_JSON {
-    my $data = { %{ $_[0] } };
-    # coerce Bool value to JSON Boolean object
-    $data->{c} = $data->{c} ? JSON::true() : JSON::false();
-    return $data;
+    return {
+        t => 'MetaBool',
+
+        # coerce Bool value to JSON Boolean object
+        c => $_[0]->{c} ? JSON::true() : JSON::false(),
+    };
 }
 
 sub Pandoc::Document::Cite::TO_JSON {
-    my $data = $TIDY_AST->( { %{ $_[0] } }, $TIDY_AST );
-    for my $citation ( @{ $data->{c}[0] } ) {
-        for my $key ( qw[ citationHash citationNoteNum ] ) {
+    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+    for my $citation ( @{ $ast->{c}[0] } ) {
+        for my $key (qw[ citationHash citationNoteNum ]) {
+
             # coerce to int
             $citation->{$key} = int( $citation->{$key} );
         }
     }
-    return $data;
+    return $ast;
 }
 
 1;
