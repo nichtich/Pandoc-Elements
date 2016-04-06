@@ -1,1 +1,9 @@
+/Pandoc-Elements-*
+/.build
+/_build*
+/Build
+MYMETA.*
+!META.json
+/.prove
+*.pdf
 *.bak

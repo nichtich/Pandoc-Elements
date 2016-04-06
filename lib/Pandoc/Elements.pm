@@ -136,7 +136,7 @@ sub attributes($) {
         defined $attrs->{id}      ? $attrs->{id}      : '',
         defined $attrs->{classes} ? $attrs->{classes} : [],
         [
-            map { $_ => $attrs->{$_} }
+            map { [ $_ => $attrs->{$_} ] }
               grep { $_ ne 'id' and $_ ne 'classes' }
               keys %$attrs
         ]
@@ -469,7 +469,7 @@ key-value pairs. The special keys C<id> and C<classes> are recognized but
 setting multi-value attributes or controlled order is not supported with this
 function. You can always manually create an attributes structure:
 
-    [ $id, [ @classes ], [ key => $value, ... ] ]
+    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method C<attr>) also provide the
 accessor method C<id>, C<classes>, and C<class>. See L<Hash::MultiValue> for
