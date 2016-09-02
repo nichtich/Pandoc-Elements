@@ -15,7 +15,7 @@ ok Str('')->match('Foo|Str'), '| match';
 
 ok !Str('')->match('#id'), 'no id match';
 
-my $e = Code attributes { id => 'abc', classes => ['f0.0','bar']} , '';
+my $e = Code attributes { id => 'abc', class => ['f0.0','bar']} , '';
 
 ok $e->match('#abc'), 'id match';
 ok !$e->match('#xyz'), 'id no match';

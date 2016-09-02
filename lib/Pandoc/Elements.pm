@@ -132,19 +132,32 @@ sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 
 sub attributes($) {
     my ($attrs) = @_;
-    my $classes = $attrs->{classes} // [];
-    if ( defined $attrs->{class} ) {
-        unshift @$classes, grep { $_ ne '' } split qr/\s+/, $attrs->{class};
+    
+    my $id      = '';
+    my $classes = [];
+    my $keyvals = [];
+
+    my $build = sub {
+        my ($key, $value) = @_;
+        if ($key eq 'id') {
+            $id = "$value";
+        } elsif ($key eq 'class') {
+            $value = ["$value"] unless (reftype $value // '') eq 'ARRAY';
+            push @$classes, grep { $_ ne '' } map { split qr/\s+/, $_ } @$value;
+        } else {
+            push @$keyvals, [ $key, "$value" ];
+        }
+    };
+
+    if (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
+        $attrs->each($build);
+    } else {
+        while (my ($key,$value) = each %$attrs) {
+            $build->($key, $value);
+        }
     }
-    return [
-        $attrs->{id} // '',
-        $classes,
-        [
-            map { [ $_ => $attrs->{$_} ] }
-              grep { $_ !~ qr/^(id|class(es)?)$/ }
-              keys %$attrs
-        ]
-    ];
+
+    return [ $id, $classes, $keyvals ];
 }
 
 sub citation($) {
@@ -327,15 +340,21 @@ sub pandoc_json($) {
 {
 
     package Pandoc::Document::AttributesRole;
+    use Hash::MultiValue;
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
     sub id      { $_[0]->attr->[0] }
     sub classes { $_[0]->attr->[1] }
     sub class   {
-        if (@_ > 1) { 
+        if (@_ > 1) {
             join ' ', grep { $_ eq $_[1] } @{ $_[0]->classes }
         } else {
             join ' ', @{ $_[0]->classes }
         }
+    }
+    sub keyvals {
+        Hash::MultiValue->new(
+            map { @$_ } @{$_[0]->attr->[2]}
+        )
     }
 
     sub match_attributes {
@@ -500,8 +519,8 @@ The output of this script C<hello.pl>
     use Pandoc::Elements;
     use JSON;
 
-    print Document({ 
-            title => MetaInlines [ Str "Greeting" ] 
+    print Document({
+            title => MetaInlines [ Str "Greeting" ]
         }, [
             Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
             Para [ Str 'Hello, world!' ],
@@ -522,7 +541,7 @@ an equivalent Pandoc Markdown document would be
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of L<Pandoc|http://pandoc.org/> documents. Pandoc can convert the
 resulting data structure to many other document formats, such as HTML, LaTeX,
-ODT, and ePUB. 
+ODT, and ePUB.
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
@@ -536,13 +555,13 @@ The following functions and keywords are exported by default:
 
 =over
 
-=item 
+=item
 
 Constructors for all Pandoc document element (L<block elements|/BLOCK ELEMENTS>
 such as C<Para> and L<inline elements|/INLINE ELEMENTS> such as C<Emph>,
 L<metadata elements|/METADATA ELEMENTS> and the L<DOCUMENT ELEMENT/Document>).
 
-=item 
+=item
 
 L<Type keywords|/TYPE KEYWORDS> such as C<Decimal> and C<LowerAlpha> to be used
 as types in other document elements.
@@ -562,24 +581,22 @@ format.
 
 =head3 attributes { key => $value, ... }
 
-Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs. The special keys C<id> (string), C<classes> (array reference
-of class names), and C<class> (string with space-separated class names) are
-recognized but setting multi-value attributes or controlled order is not
-supported with this function. You can always manually create an attributes
-structure:
+Maps a hash reference or instance of L<Hash::MultiValue> into an attributes
+list with id, classes, and ordered key-value pairs. The special keys C<id>
+(string), and C<class> (string or array reference with space-separated class
+names) are recognized. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, and C<class>. The latter can also be used
-to check whether an element has a given class:
+accessor method C<id>, C<classes>, C<class>, and C<keyvals>. The C<class>
+accessor can also be used to check whether an element has a given class:
 
     $e->class;         # returns a space-separated list of classes
-    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise  
+    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise 
 
-See L<Hash::MultiValue> for
-easy access to key-value-pairs.
+The C<keyvals> accessor returns an instance of L<Hash::MultiValue> (but
+key-value pairs cannot be modified through this interface).
 
 =head3 citation { ... }
 
@@ -592,9 +609,9 @@ C<citationHash> (integer). The helper method C<citation> can be used to
 construct such hash by filling in default values and using shorter field names
 (C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>):
 
-    citation { 
-        id => 'foo', 
-        prefix => [ Str "see" ], 
+    citation {
+        id => 'foo',
+        prefix => [ Str "see" ],
         suffix => [ Str "p.", Space, Str "42" ]
     }
 
@@ -607,7 +624,7 @@ construct such hash by filling in default values and using shorter field names
 Create a Pandoc document element of arbitrary name. This function is only
 exported on request.
 
-=head1 ELEMENTS 
+=head1 ELEMENTS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format C<json>. All elements are blessed
@@ -637,8 +654,8 @@ Return the name of the element, e.g. "Para" for a L<paragraph element|/Para>.
 Return the element content. For most elements (L<Para|/Para>, L<Emph|/Emph>,
 L<Str|/Str>...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the L<Link|/Link> element has
-attributes (C<attr>, C<id>, C<class>, C<classes>) a link text (C<content>) and
-a link target (C<target>) with C<url> and C<title>.
+attributes (C<attr>, C<id>, C<class>, C<classes>, C<keyvals>) a link text
+(C<content>) and a link target (C<target>) with C<url> and C<title>.
 
 =head3 is_block
 
@@ -690,7 +707,7 @@ L<blocks|/BLOCK ELEMENTS>
 =head3 CodeBlock
 
 Code block (literal string C<content>) with attributes (C<attr>, C<id>,
-C<class>, C<classes>)
+C<class>, C<classes>, C<keyvals>)
 
     CodeBlock $attributes, $content
 
@@ -709,14 +726,14 @@ or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
 =head3 Div
 
 Generic container of L<blocks|/BLOCK ELEMENTS> (C<content>) with attributes
-(C<attr>, C<id>, C<class>, C<classes>).
+(C<attr>, C<id>, C<class>, C<classes>, C<keyvals>).
 
     Div $attributes, [ @blocks ]
 
 =head3 Header
 
 Header with C<level> (integer), attributes (C<attr>, C<id>, C<class>,
-C<classes>), and text (C<content>, a list of L<inlines|/INLINE ELEMENTS>).
+C<classes>, C<keyvals>), and text (C<content>, a list of L<inlines|/INLINE ELEMENTS>).
 
     Header $level, $attributes, [ @inlines ]
 
@@ -724,7 +741,7 @@ C<classes>), and text (C<content>, a list of L<inlines|/INLINE ELEMENTS>).
 
 Horizontal rule
 
-    HorizontalRule 
+    HorizontalRule
 
 =head3 Null
 
@@ -799,21 +816,21 @@ Citation, a list of C<citations> and a list of L<inlines|/INLINE ELEMENTS>
 =head3 Code
 
 Inline code, a literal string (C<content>) with attributes (C<attr>, C<id>,
-C<class>, C<classes>)
+C<class>, C<classes>, C<keyvals>)
 
     Code attributes { %attr }, $content
 
 =head3 Emph
 
 Emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
- 
+
     Emph [ @inlines ]
 
 =head3 Image
 
 Image with alt text (C<content>, a list of L<inlines|/INLINE ELEMENTS>) and
 C<target> (list of C<url> and C<title>) with attributes (C<attr>, C<id>,
-C<class>, C<classes>).
+C<class>, C<classes>, C<keyvals>).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -829,7 +846,7 @@ Hard line break
 
 Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
 and C<target> (list of C<url> and C<title>) with attributes (C<attr>, C<id>,
-C<class>, C<classes>).
+C<class>, C<classes>, C<keyvals>).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -888,7 +905,7 @@ Inter-word space
 =head3 Span
 
 Generic container of L<inlines|/INLINE ELEMENTS> (C<content>) with attributes
-(C<attr>, C<id>, C<class>, C<classes>).
+(C<attr>, C<id>, C<class>, C<classes>, C<keyvals>).
 
     Span attributes { %attr }, [ @inlines ]
 
@@ -962,11 +979,11 @@ C<DisplayMath>, C<InlineMath>
 
 =item
 
-C<AuthorInText>, C<SuppressAuthor>, C<NormalCitation> 
+C<AuthorInText>, C<SuppressAuthor>, C<NormalCitation>
 
 =item
 
-C<AlignLeft>, C<AlignRight>, C<AlignCenter>, C<AlignDefault> 
+C<AlignLeft>, C<AlignRight>, C<AlignCenter>, C<AlignDefault>
 
 =item
 

@@ -6,7 +6,9 @@ requires 'List::Util';
 requires 'Scalar::Util';
 requires 'Pod::Usage';
 
+# additional modules
 requires 'JSON';
+requires 'Hash::MultiValue', '0.06';
 
 on test => sub {
     requires 'Test::More', '0.96';

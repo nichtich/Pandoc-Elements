@@ -37,6 +37,7 @@
       },
       "runtime" : {
          "requires" : {
+            "Hash::MultiValue" : "0.06",
             "JSON" : "0",
             "List::Util" : "0",
             "Pod::Simple" : "3.08",

@@ -15,8 +15,8 @@ The output of this script `hello.pl`
     use Pandoc::Elements;
     use JSON;
 
-    print Document({ 
-            title => MetaInlines [ Str "Greeting" ] 
+    print Document({
+            title => MetaInlines [ Str "Greeting" ]
         }, [
             Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
             Para [ Str 'Hello, world!' ],
@@ -37,7 +37,7 @@ an equivalent Pandoc Markdown document would be
 Pandoc::Elements provides utility functions to create abstract syntax trees
 (AST) of [Pandoc](http://pandoc.org/) documents. Pandoc can convert the
 resulting data structure to many other document formats, such as HTML, LaTeX,
-ODT, and ePUB. 
+ODT, and ePUB.
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
@@ -65,24 +65,22 @@ format.
 
 ### attributes { key => $value, ... }
 
-Maps a hash reference into an attributes list with id, classes, and ordered
-key-value pairs. The special keys `id` (string), `classes` (array reference
-of class names), and `class` (string with space-separated class names) are
-recognized but setting multi-value attributes or controlled order is not
-supported with this function. You can always manually create an attributes
-structure:
+Maps a hash reference or instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) into an attributes
+list with id, classes, and ordered key-value pairs. The special keys `id`
+(string), and `class` (string or array reference with space-separated class
+names) are recognized. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method `attr`) also provide the
-accessor method `id`, `classes`, and `class`. The latter can also be used
-to check whether an element has a given class:
+accessor method `id`, `classes`, `class`, and `keyvals`. The `class`
+accessor can also be used to check whether an element has a given class:
 
     $e->class;         # returns a space-separated list of classes
-    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise  
+    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise 
 
-See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
-easy access to key-value-pairs.
+The `keyvals` accessor returns an instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) (but
+key-value pairs cannot be modified through this interface).
 
 ### citation { ... }
 
@@ -95,9 +93,9 @@ elements](#inline-elements)), `citationMode` (one of `NormalCitation`,
 construct such hash by filling in default values and using shorter field names
 (`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`):
 
-    citation { 
-        id => 'foo', 
-        prefix => [ Str "see" ], 
+    citation {
+        id => 'foo',
+        prefix => [ Str "see" ],
         suffix => [ Str "p.", Space, Str "42" ]
     }
 
@@ -110,7 +108,7 @@ construct such hash by filling in default values and using shorter field names
 Create a Pandoc document element of arbitrary name. This function is only
 exported on request.
 
-# ELEMENTS 
+# ELEMENTS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
@@ -140,8 +138,8 @@ Return the name of the element, e.g. "Para" for a [paragraph element](#para).
 Return the element content. For most elements ([Para](#para), [Emph](#emph),
 [Str](#str)...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the [Link](#link) element has
-attributes (`attr`, `id`, `class`, `classes`) a link text (`content`) and
-a link target (`target`) with `url` and `title`.
+attributes (`attr`, `id`, `class`, `classes`, `keyvals`) a link text
+(`content`) and a link target (`target`) with `url` and `title`.
 
 ### is\_block
 
@@ -193,7 +191,7 @@ Unnumbered list of items (`content`=`items`), each a list of
 ### CodeBlock
 
 Code block (literal string `content`) with attributes (`attr`, `id`,
-`class`, `classes`)
+`class`, `classes`, `keyvals`)
 
     CodeBlock $attributes, $content
 
@@ -212,14 +210,14 @@ or more definitions (`definitions`, a list of [blocks](#block-elements)).
 ### Div
 
 Generic container of [blocks](#block-elements) (`content`) with attributes
-(`attr`, `id`, `class`, `classes`).
+(`attr`, `id`, `class`, `classes`, `keyvals`).
 
     Div $attributes, [ @blocks ]
 
 ### Header
 
 Header with `level` (integer), attributes (`attr`, `id`, `class`,
-`classes`), and text (`content`, a list of [inlines](#inline-elements)).
+`classes`, `keyvals`), and text (`content`, a list of [inlines](#inline-elements)).
 
     Header $level, $attributes, [ @inlines ]
 
@@ -227,7 +225,7 @@ Header with `level` (integer), attributes (`attr`, `id`, `class`,
 
 Horizontal rule
 
-    HorizontalRule 
+    HorizontalRule
 
 ### Null
 
@@ -300,7 +298,7 @@ Citation, a list of `citations` and a list of [inlines](#inline-elements)
 ### Code
 
 Inline code, a literal string (`content`) with attributes (`attr`, `id`,
-`class`, `classes`)
+`class`, `classes`, `keyvals`)
 
     Code attributes { %attr }, $content
 
@@ -314,7 +312,7 @@ Emphasized text, a list of [inlines](#inline-elements) (`content`).
 
 Image with alt text (`content`, a list of [inlines](#inline-elements)) and
 `target` (list of `url` and `title`) with attributes (`attr`, `id`,
-`class`, `classes`).
+`class`, `classes`, `keyvals`).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -330,7 +328,7 @@ Hard line break
 
 Hyperlink with link text (`content`, a list of [inlines](#inline-elements))
 and `target` (list of `url` and `title`) with attributes (`attr`, `id`,
-`class`, `classes`).
+`class`, `classes`, `keyvals`).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -389,7 +387,7 @@ Inter-word space
 ### Span
 
 Generic container of [inlines](#inline-elements) (`content`) with attributes
-(`attr`, `id`, `class`, `classes`).
+(`attr`, `id`, `class`, `classes`, `keyvals`).
 
     Span attributes { %attr }, [ @inlines ]
 
@@ -453,8 +451,8 @@ document elements:
 
 - `SingleQuote`, `DoubleQuote`
 - `DisplayMath`, `InlineMath`
-- `AuthorInText`, `SuppressAuthor`, `NormalCitation` 
-- `AlignLeft`, `AlignRight`, `AlignCenter`, `AlignDefault` 
+- `AuthorInText`, `SuppressAuthor`, `NormalCitation`
+- `AlignLeft`, `AlignRight`, `AlignCenter`, `AlignDefault`
 - `DefaultStyle`, `Example`, `Decimal`, `LowerRoman`, `UpperRoman`,
 `LowerAlpha`, `UpperAlpha`
 - `DefaultDelim`, `Period`, `OneParen`, `TwoParens`

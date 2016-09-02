@@ -2,7 +2,7 @@ use strict;
 use Test::More;
 use Pandoc::Elements;
 
-my $e = CodeBlock attributes { classes => ['perl'], id => 2 }, 'say "Hi";';
+my $e = CodeBlock attributes { class => ['perl'], id => 2 }, 'say "Hi";';
 
 is_deeply $e->attr, $e->{c}->[0], 'CodeBlock->attr';
 is $e->id, '2', 'AttributeRole->id';
