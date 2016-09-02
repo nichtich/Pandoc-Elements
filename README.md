@@ -75,7 +75,13 @@ structure:
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method `attr`) also provide the
-accessor method `id`, `classes`, and `class`. See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
+accessor method `id`, `classes`, and `class`. The latter can also be used
+to check whether an element has a given class:
+
+    $e->class;         # returns a space-separated list of classes
+    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise  
+
+See [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) for
 easy access to key-value-pairs.
 
 ### citation { ... }
@@ -134,8 +140,8 @@ Return the name of the element, e.g. "Para" for a [paragraph element](#para).
 Return the element content. For most elements ([Para](#para), [Emph](#emph),
 [Str](#str)...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the [Link](#link) element has
-attributes (`attr`) a link text (`content`) and a link target (`target`) with `url` and
-`title`.
+attributes (`attr`, `id`, `class`, `classes`) a link text (`content`) and
+a link target (`target`) with `url` and `title`.
 
 ### is\_block
 
@@ -186,7 +192,8 @@ Unnumbered list of items (`content`=`items`), each a list of
 
 ### CodeBlock
 
-Code block (literal string `content`) with attributes (`attr`)
+Code block (literal string `content`) with attributes (`attr`, `id`,
+`class`, `classes`)
 
     CodeBlock $attributes, $content
 
@@ -205,14 +212,14 @@ or more definitions (`definitions`, a list of [blocks](#block-elements)).
 ### Div
 
 Generic container of [blocks](#block-elements) (`content`) with attributes
-(`attr`).
+(`attr`, `id`, `class`, `classes`).
 
     Div $attributes, [ @blocks ]
 
 ### Header
 
-Header with `level` (integer), attributes (`attr`), and text (`content`, a
-list of [inlines](#inline-elements)).
+Header with `level` (integer), attributes (`attr`, `id`, `class`,
+`classes`), and text (`content`, a list of [inlines](#inline-elements)).
 
     Header $level, $attributes, [ @inlines ]
 
@@ -292,7 +299,8 @@ Citation, a list of `citations` and a list of [inlines](#inline-elements)
 
 ### Code
 
-Inline code, a literal string (`content`) with attributes (`attr`)
+Inline code, a literal string (`content`) with attributes (`attr`, `id`,
+`class`, `classes`)
 
     Code attributes { %attr }, $content
 
@@ -305,7 +313,8 @@ Emphasized text, a list of [inlines](#inline-elements) (`content`).
 ### Image
 
 Image with alt text (`content`, a list of [inlines](#inline-elements)) and
-`target` (list of `url` and `title`) with attributes (`attr`).
+`target` (list of `url` and `title`) with attributes (`attr`, `id`,
+`class`, `classes`).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -320,7 +329,8 @@ Hard line break
 ### Link
 
 Hyperlink with link text (`content`, a list of [inlines](#inline-elements))
-and `target` (list of `url` and `title`) with attributes (`attr`).
+and `target` (list of `url` and `title`) with attributes (`attr`, `id`,
+`class`, `classes`).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -379,7 +389,7 @@ Inter-word space
 ### Span
 
 Generic container of [inlines](#inline-elements) (`content`) with attributes
-(`attr`).
+(`attr`, `id`, `class`, `classes`).
 
     Span attributes { %attr }, [ @inlines ]
 

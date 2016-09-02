@@ -16,10 +16,16 @@ my @class_hashes = (
     { classes => ['doz'], class => " foo\t bar " },
 );
 
+my $e;
 foreach (@class_hashes) {
-    my $e = CodeBlock attributes $_, '';
-    note explain $e->classes;
+    $e = CodeBlock attributes $_, '';
     is_deeply $e->classes, [qw(foo bar doz)], 'class(es) attributes';
 }
+
+foreach (qw(foo bar doz)) {
+    is $e->class($_), $_, 'class selector';
+}
+
+is $e->class('baz'), '', 'class selector';
 
 done_testing;

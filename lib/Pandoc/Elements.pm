@@ -330,7 +330,13 @@ sub pandoc_json($) {
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
     sub id      { $_[0]->attr->[0] }
     sub classes { $_[0]->attr->[1] }
-    sub class   { join ' ', @{ $_[0]->classes } }
+    sub class   {
+        if (@_ > 1) { 
+            join ' ', grep { $_ eq $_[1] } @{ $_[0]->classes }
+        } else {
+            join ' ', @{ $_[0]->classes }
+        }
+    }
 
     sub match_attributes {
         my ( $self, $selector ) = @_;
@@ -566,7 +572,13 @@ structure:
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, and C<class>. See L<Hash::MultiValue> for
+accessor method C<id>, C<classes>, and C<class>. The latter can also be used
+to check whether an element has a given class:
+
+    $e->class;         # returns a space-separated list of classes
+    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise  
+
+See L<Hash::MultiValue> for
 easy access to key-value-pairs.
 
 =head3 citation { ... }
@@ -625,8 +637,8 @@ Return the name of the element, e.g. "Para" for a L<paragraph element|/Para>.
 Return the element content. For most elements (L<Para|/Para>, L<Emph|/Emph>,
 L<Str|/Str>...) the content is an array reference with child elements. Other
 elements consist of multiple parts; for instance the L<Link|/Link> element has
-attributes (C<attr>) a link text (C<content>) and a link target (C<target>) with C<url> and
-C<title>.
+attributes (C<attr>, C<id>, C<class>, C<classes>) a link text (C<content>) and
+a link target (C<target>) with C<url> and C<title>.
 
 =head3 is_block
 
@@ -677,7 +689,8 @@ L<blocks|/BLOCK ELEMENTS>
 
 =head3 CodeBlock
 
-Code block (literal string C<content>) with attributes (C<attr>)
+Code block (literal string C<content>) with attributes (C<attr>, C<id>,
+C<class>, C<classes>)
 
     CodeBlock $attributes, $content
 
@@ -696,14 +709,14 @@ or more definitions (C<definitions>, a list of L<blocks|/BLOCK ELEMENTS>).
 =head3 Div
 
 Generic container of L<blocks|/BLOCK ELEMENTS> (C<content>) with attributes
-(C<attr>).
+(C<attr>, C<id>, C<class>, C<classes>).
 
     Div $attributes, [ @blocks ]
 
 =head3 Header
 
-Header with C<level> (integer), attributes (C<attr>), and text (C<content>, a
-list of L<inlines|/INLINE ELEMENTS>).
+Header with C<level> (integer), attributes (C<attr>, C<id>, C<class>,
+C<classes>), and text (C<content>, a list of L<inlines|/INLINE ELEMENTS>).
 
     Header $level, $attributes, [ @inlines ]
 
@@ -785,7 +798,8 @@ Citation, a list of C<citations> and a list of L<inlines|/INLINE ELEMENTS>
 
 =head3 Code
 
-Inline code, a literal string (C<content>) with attributes (C<attr>)
+Inline code, a literal string (C<content>) with attributes (C<attr>, C<id>,
+C<class>, C<classes>)
 
     Code attributes { %attr }, $content
 
@@ -798,7 +812,8 @@ Emphasized text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 =head3 Image
 
 Image with alt text (C<content>, a list of L<inlines|/INLINE ELEMENTS>) and
-C<target> (list of C<url> and C<title>) with attributes (C<attr>).
+C<target> (list of C<url> and C<title>) with attributes (C<attr>, C<id>,
+C<class>, C<classes>).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -813,7 +828,8 @@ Hard line break
 =head3 Link
 
 Hyperlink with link text (C<content>, a list of L<inlines|/INLINE ELEMENTS>)
-and C<target> (list of C<url> and C<title>) with attributes (C<attr>).
+and C<target> (list of C<url> and C<title>) with attributes (C<attr>, C<id>,
+C<class>, C<classes>).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
@@ -872,7 +888,7 @@ Inter-word space
 =head3 Span
 
 Generic container of L<inlines|/INLINE ELEMENTS> (C<content>) with attributes
-(C<attr>).
+(C<attr>, C<id>, C<class>, C<classes>).
 
     Span attributes { %attr }, [ @inlines ]
 

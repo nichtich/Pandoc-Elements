@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Extend class selector to test existence of given class
 
 0.18  2016-04-06 13:23:35 CEST
     - Fix and extend attributes function (#29/#26/#14)
