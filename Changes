@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Revert extended class selector, implement setter for id/class/keyvals instead
 
 0.19  2016-09-03 09:42:34 CEST
     - Extend class selector to test existence of given class

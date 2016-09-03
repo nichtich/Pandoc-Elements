@@ -131,33 +131,12 @@ sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 # additional functions
 
 sub attributes($) {
-    my ($attrs) = @_;
     
-    my $id      = '';
-    my $classes = [];
-    my $keyvals = [];
+    my $e = Span(['',[],[]],[]); # to make use of AttributesRole
 
-    my $build = sub {
-        my ($key, $value) = @_;
-        if ($key eq 'id') {
-            $id = "$value";
-        } elsif ($key eq 'class') {
-            $value = ["$value"] unless (reftype $value // '') eq 'ARRAY';
-            push @$classes, grep { $_ ne '' } map { split qr/\s+/, $_ } @$value;
-        } else {
-            push @$keyvals, [ $key, "$value" ];
-        }
-    };
-
-    if (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
-        $attrs->each($build);
-    } else {
-        while (my ($key,$value) = each %$attrs) {
-            $build->($key, $value);
-        }
-    }
-
-    return [ $id, $classes, $keyvals ];
+    $e->keyvals(@_);
+    
+    return $e->attr;
 }
 
 sub citation($) {
@@ -341,22 +320,62 @@ sub pandoc_json($) {
 
     package Pandoc::Document::AttributesRole;
     use Hash::MultiValue;
+    use Scalar::Util qw(reftype blessed);
+    
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
-    sub id      { $_[0]->attr->[0] }
-    sub classes { $_[0]->attr->[1] }
-    sub class   {
-        if (@_ > 1) {
-            join ' ', grep { $_ eq $_[1] } @{ $_[0]->classes }
+
+    sub id {
+        $_[0]->attr->[0] = "$_[1]" if @_ > 1;
+        $_[0]->attr->[0] 
+    }
+
+    sub classes { 
+        my $e = shift;
+        if (@_) {
+            $e->attr->[1] = [];
+            $e->add_keyval('class', $_) for @_;
+        }
+        $e->attr->[1] 
+    }
+    
+    sub class {
+        my $e = shift;
+        $e->classes(@_) if @_;
+        join ' ', @{$e->classes}
+    }
+    
+    # TODO: document this method
+    sub add_keyval {
+        my ($e, $key, $value) = @_;
+        if ($key eq 'id') {
+            $e->id($value);
+        } elsif ($key eq 'class') {
+            $value = ["$value"] unless (reftype $value // '') eq 'ARRAY';
+            push @{$e->attr->[1]}, grep { $_ ne '' } map { split qr/\s+/, $_ } @$value;
         } else {
-            join ' ', @{ $_[0]->classes }
+            push @{$e->attr->[2]}, [ $key, "$value" ];
         }
     }
+
     sub keyvals {
+        my $e = shift;
+        if (@_) {
+            my $attrs = @_ == 1 ? shift : Hash::MultiValue->new(@_);
+            $e->attr->[2] = [];
+            if (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
+                $attrs->each(sub { $e->add_keyval(@_) });
+            } else {
+                while (my ($key,$value) = each %$attrs) {
+                    $e->add_keyval($key, $value);
+                }
+            }
+        }
         Hash::MultiValue->new(
-            map { @$_ } @{$_[0]->attr->[2]}
+            map { @$_ } @{$e->attr->[2]}
         )
     }
 
+    # TODO: rename and/or extend to keyvals check
     sub match_attributes {
         my ( $self, $selector ) = @_;
         $selector =~ s/^\s+|\s+$//g;
@@ -589,14 +608,10 @@ names) are recognized. You can always manually create an attributes structure:
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, C<class>, and C<keyvals>. The C<class>
-accessor can also be used to check whether an element has a given class:
-
-    $e->class;         # returns a space-separated list of classes
-    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise 
-
-The C<keyvals> accessor returns an instance of L<Hash::MultiValue> (but
-key-value pairs cannot be modified through this interface).
+accessor method C<id>, C<classes>, C<class>, and C<keyvals>. The C<keyvals>
+accessor returns an instance of L<Hash::MultiValue> (but key-value pairs cannot
+be modified through this interface). All attribute accessors can also be used
+as setters.
 
 =head3 citation { ... }
 
