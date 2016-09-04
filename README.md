@@ -73,14 +73,10 @@ names) are recognized. You can always manually create an attributes structure:
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method `attr`) also provide the
-accessor method `id`, `classes`, `class`, and `keyvals`. The `class`
-accessor can also be used to check whether an element has a given class:
-
-    $e->class;         # returns a space-separated list of classes
-    $e->class('foo');  # returns 'foo' if $e has class 'foo', or '' otherwise 
-
-The `keyvals` accessor returns an instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) (but
-key-value pairs cannot be modified through this interface).
+accessor method `id`, `classes`, `class`, and `keyvals`. The `keyvals`
+accessor returns an instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) (but key-value pairs cannot
+be modified through this interface). All attribute accessors can also be used
+as setters.
 
 ### citation { ... }
 
