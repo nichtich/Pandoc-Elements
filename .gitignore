@@ -7,3 +7,5 @@ MYMETA.*
 /.prove
 *.pdf
 *.bak
+/examples/*.html
+/examples/*.png
