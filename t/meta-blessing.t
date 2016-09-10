@@ -3,7 +3,10 @@ use Test::More 0.96;
 use Pandoc::Elements;
 use Scalar::Util qw[ blessed reftype ];
 
-my $document = pandoc_json(<DATA>);
+my $document = do {
+    local (@ARGV, $/) = ('t/documents/meta.json');
+    pandoc_json(<>);
+};
 
 isa_ok $document, 'Pandoc::Document', "it's a document" or note ref $document;
 
@@ -55,10 +58,6 @@ sub undef_check_loop {
     return $count;
 }
 
-
-
-
 done_testing;
 
 __DATA__
-[{"unMeta":{"officia":{"t":"MetaInlines","c":[{"t":"Str","c":"molestias"}]},"error":{"t":"MetaMap","c":{"magni":{"t":"MetaInlines","c":[{"t":"Str","c":"repellendus"}]},"minima":{"t":"MetaList","c":[{"t":"MetaInlines","c":[{"t":"Str","c":"nihil"}]},{"t":"MetaMap","c":{"aliquam":{"t":"MetaInlines","c":[{"t":"Str","c":"voluptas"}]},"eos":{"t":"MetaInlines","c":[{"t":"Str","c":"odit"}]}}}]},"perferendis":{"t":"MetaInlines","c":[{"t":"Str","c":"aut"}]}}},"illo":{"t":"MetaList","c":[{"t":"MetaInlines","c":[{"t":"Str","c":"nesciunt"}]}]},"tempora":{"t":"MetaInlines","c":[{"t":"Str","c":"nisi"}]}}},[]]

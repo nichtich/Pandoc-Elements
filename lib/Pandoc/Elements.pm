@@ -92,7 +92,9 @@ foreach my $name ( keys %ELEMENTS ) {
         sub {
             croak "$name expects $numargs arguments, but given " . scalar @_
               if @_ != $numargs;
-            bless { t => $name, c => ( @_ == 1 ? $_[0] : [@_] ) }, $class;
+            my $self = bless { t => $name, c => ( @_ == 1 ? $_[0] : [@_] ) }, $class;
+            $self->set_content(@_);
+            $self;
         },
         '$' x $numargs
     );
@@ -131,11 +133,10 @@ sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
 # additional functions
 
 sub attributes($) {
-    
-    my $e = Span(['',[],[]],[]); # to make use of AttributesRole
 
+    my $e = Span(['',[],[]],[]); # to make use of AttributesRole
     $e->keyvals(@_);
-    
+
     return $e->attr;
 }
 
@@ -205,6 +206,10 @@ sub pandoc_json($) {
     sub meta        { $_[0]->[0]->{unMeta} }
     sub content     { $_[0]->[1] }
     sub is_document { 1 }
+    sub flatten {
+        my $meta = $_[0]->meta;
+        return { map { $_ => $meta->{$_}->flatten } keys %$meta }
+    }
 }
 
 {
@@ -219,7 +224,7 @@ sub pandoc_json($) {
     use subs qw(walk query transform);    # Silence syntax warnings
 
     sub to_json {
-        JSON->new->utf8->convert_blessed->encode( $_[0] );
+        JSON->new->utf8->canonical->convert_blessed->encode( $_[0] );
     }
 
     sub TO_JSON {
@@ -254,7 +259,15 @@ sub pandoc_json($) {
     }
 
     sub name        { $_[0]->{t} }
-    sub content     { $_[0]->{c} }
+    sub content     {
+       my $e = shift;
+       $e->set_content(@_) if @_;
+       $e->{c}
+    }
+    sub set_content { # TODO: document this
+       my $e = shift;
+       $e->{c} = @_ == 1 ? $_[0] : [@_]
+    }
     sub is_document { 0 }
     sub is_block    { 0 }
     sub is_inline   { 0 }
@@ -321,29 +334,29 @@ sub pandoc_json($) {
     package Pandoc::Document::AttributesRole;
     use Hash::MultiValue;
     use Scalar::Util qw(reftype blessed);
-    
+
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
     sub id {
         $_[0]->attr->[0] = "$_[1]" if @_ > 1;
-        $_[0]->attr->[0] 
+        $_[0]->attr->[0]
     }
 
-    sub classes { 
+    sub classes {
         my $e = shift;
         if (@_) {
             $e->attr->[1] = [];
             $e->add_keyval('class', $_) for @_;
         }
-        $e->attr->[1] 
+        $e->attr->[1]
     }
-    
+
     sub class {
         my $e = shift;
         $e->classes(@_) if @_;
         join ' ', @{$e->classes}
     }
-    
+
     # TODO: document this method
     sub add_keyval {
         my ($e, $key, $value) = @_;
@@ -415,6 +428,7 @@ sub pandoc_json($) {
 {
 
     package Pandoc::Document::Meta;
+    use Scalar::Util 'reftype';
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
     sub is_meta { 1 }
@@ -491,6 +505,10 @@ sub Pandoc::Document::Table::TO_JSON {
     return $ast;
 }
 
+sub Pandoc::Document::MetaBool::set_content {
+    $_[0]->{c} = $_[1] && $_[1] ne 'false' && $_[1] ne 'FALSE'
+}
+
 sub Pandoc::Document::MetaBool::TO_JSON {
     return {
         t => 'MetaBool',
@@ -498,6 +516,31 @@ sub Pandoc::Document::MetaBool::TO_JSON {
         # coerce Bool value to JSON Boolean object
         c => $_[0]->{c} ? JSON::true() : JSON::false(),
     };
+}
+
+sub Pandoc::Document::MetaBool::flatten {
+    $_[0]->{c} ? 1 : 0
+}
+
+sub Pandoc::Document::MetaMap::flatten {
+    my $map = $_[0]->{c};
+    return { map { $_ => $map->{$_}->flatten } keys %$map }
+}
+
+sub Pandoc::Document::MetaInlines::flatten {
+    join '', map { $_->string } @{$_[0]->{c}}
+}
+
+sub Pandoc::Document::MetaBlocks::flatten {
+    join "\n", map { $_->string } @{$_[0]}->{c}
+}
+
+sub Pandoc::Document::MetaList::flatten {
+    [ map { $_->flatten } @{$_[0]->{c}} ] 
+}
+
+sub Pandoc::Document::MetaString::flatten {
+    $_[0]->{c}
 }
 
 sub Pandoc::Document::Cite::TO_JSON {
@@ -653,7 +696,7 @@ methods specific to each element.
 Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
-    JSON->new->utf8->convert_blessed->encode($element);
+    JSON->new->utf8->canonical->convert_blessed->encode($element);
 
 Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
 of attributes to L<Link|/Link> and L<Image|/Image> elements. Since Pandoc::Elements
@@ -928,7 +971,7 @@ Generic container of L<inlines|/INLINE ELEMENTS> (C<content>) with attributes
 
 Plain text, a string (C<content>).
 
-    Str $text
+    Str $content
 
 =head3 Strikeout
 
@@ -956,17 +999,59 @@ Superscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
 =head2 METADATA ELEMENTS
 
-=head3 MetaBlocks
+Metadata can be provided in YAML syntax or via command line option C<-M>.  All
+metadata elements return true for C<is_meta>.  Metadata elements can be
+converted to unblessed Perl array references, hash references, and scalars with
+method C<flatten>.  On the document level, metadata (document method C<meta>)
+is a hash reference with values being metadata elements. Document method
+C<flatten> returns a flattened copy of this hash.
+
+=head3 MetaString
+
+A plain text string metadata value (C<content>).
+
+    MetaString $content
+
+MetaString values can also be set via pandoc command line client:
+
+    pandoc -M key=$content
 
 =head3 MetaBool
 
+A Boolean metadata value (C<content>). The special values C<"false"> and
+C<"FALSE"> are recognized as false in addition to normal false values (C<0>,
+C<undef>, C<"">...).
+
+    MetaBool $content
+
+MetaBool values can also be set via pandoc command line client:
+
+    pandoc -M key=true
+    pandoc -M key=false
+
 =head3 MetaInlines
+
+Container for a list of L<inlines|/INLINE ELEMENTS> (C<content>) in metadata.
+
+    MetaInlines [ @inlines ]
+
+=head3 MetaBlocks
+
+Container for a list of L<blocks|/BLOCK ELEMENTS> (C<content>) in metadata.
+
+    MetaInlines [ @blocks ]
 
 =head3 MetaList
 
+A list of other L<metadata elements|/METADATA ELEMENTS> (C<content>).
+
+    MetaList [ @values ]
+
 =head3 MetaMap
 
-=head3 MetaString
+A map of keys to other metadata elements.
+
+    MetaMap { %map }
 
 =head2 DOCUMENT ELEMENT
 
@@ -976,6 +1061,12 @@ Root element, consisting of metadata hash (C<meta>) and document element array
 (C<content>).
 
     Document $meta, [ @blocks ]
+
+Document C<flatten> returns a copy of the metadata hash with all L<metadata
+elements|/METADATA ELEMENTS> flattened to unblessed values:
+
+    $doc->flatten   # equivalent to
+    { map { $_ => $doc->meta->{$_}->flatten } keys %{$doc->meta} }
 
 =head2 TYPE KEYWORDS
 

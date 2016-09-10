@@ -1,6 +1,9 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - document and extend metadata elements by method 'flatten'
+    - make content method an optional setter (not documented yet)
+    - let to_json return canonical JSON
 
 0.20  2016-09-04 14:34:05 CEST
     - Revert extended class selector, implement setter for id/class/keyvals instead
