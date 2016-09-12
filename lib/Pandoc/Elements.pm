@@ -210,6 +210,9 @@ sub pandoc_json($) {
         my $meta = $_[0]->meta;
         return { map { $_ => $meta->{$_}->flatten } keys %$meta }
     }
+    sub string {
+        join '', map { $_->string } @{$_[0]->content}
+    }
 }
 
 {
@@ -284,7 +287,7 @@ sub pandoc_json($) {
         if ( $_[0]->name =~ /^(Str|Code|Math|MetaString)$/ ) {
             return $_[0]->content;
         }
-        elsif ( $_[0]->name =~ /^(LineBreak|SoftBreak|Space|MetaString)$/ ) {
+        elsif ( $_[0]->name =~ /^(LineBreak|SoftBreak|Space)$/ ) {
             return ' ';
         }
         join '', @{
