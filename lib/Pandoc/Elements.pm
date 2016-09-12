@@ -206,9 +206,9 @@ sub pandoc_json($) {
     sub meta        { $_[0]->[0]->{unMeta} }
     sub content     { $_[0]->[1] }
     sub is_document { 1 }
-    sub flatten {
+    sub metavalue {
         my $meta = $_[0]->meta;
-        return { map { $_ => $meta->{$_}->flatten } keys %$meta }
+        return { map { $_ => $meta->{$_}->metavalue } keys %$meta }
     }
     sub string {
         join '', map { $_->string } @{$_[0]->content}
@@ -521,28 +521,28 @@ sub Pandoc::Document::MetaBool::TO_JSON {
     };
 }
 
-sub Pandoc::Document::MetaBool::flatten {
+sub Pandoc::Document::MetaBool::metavalue {
     $_[0]->{c} ? 1 : 0
 }
 
-sub Pandoc::Document::MetaMap::flatten {
+sub Pandoc::Document::MetaMap::metavalue {
     my $map = $_[0]->{c};
-    return { map { $_ => $map->{$_}->flatten } keys %$map }
+    return { map { $_ => $map->{$_}->metavalue } keys %$map }
 }
 
-sub Pandoc::Document::MetaInlines::flatten {
+sub Pandoc::Document::MetaInlines::metavalue {
     join '', map { $_->string } @{$_[0]->{c}}
 }
 
-sub Pandoc::Document::MetaBlocks::flatten {
+sub Pandoc::Document::MetaBlocks::metavalue {
     join "\n", map { $_->string } @{$_[0]}->{c}
 }
 
-sub Pandoc::Document::MetaList::flatten {
-    [ map { $_->flatten } @{$_[0]->{c}} ] 
+sub Pandoc::Document::MetaList::metavalue {
+    [ map { $_->metavalue } @{$_[0]->{c}} ] 
 }
 
-sub Pandoc::Document::MetaString::flatten {
+sub Pandoc::Document::MetaString::metavalue {
     $_[0]->{c}
 }
 
@@ -1005,9 +1005,9 @@ Superscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 Metadata can be provided in YAML syntax or via command line option C<-M>.  All
 metadata elements return true for C<is_meta>.  Metadata elements can be
 converted to unblessed Perl array references, hash references, and scalars with
-method C<flatten>.  On the document level, metadata (document method C<meta>)
+method C<metavalue>.  On the document level, metadata (document method C<meta>)
 is a hash reference with values being metadata elements. Document method
-C<flatten> returns a flattened copy of this hash.
+C<metavalue> returns a flattened copy of this hash.
 
 =head3 MetaString
 
@@ -1065,11 +1065,11 @@ Root element, consisting of metadata hash (C<meta>) and document element array
 
     Document $meta, [ @blocks ]
 
-Document C<flatten> returns a copy of the metadata hash with all L<metadata
+Document C<metavalue> returns a copy of the metadata hash with all L<metadata
 elements|/METADATA ELEMENTS> flattened to unblessed values:
 
-    $doc->flatten   # equivalent to
-    { map { $_ => $doc->meta->{$_}->flatten } keys %{$doc->meta} }
+    $doc->metavalue   # equivalent to
+    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 =head2 TYPE KEYWORDS
 

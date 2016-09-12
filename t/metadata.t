@@ -38,9 +38,9 @@ my $doc = do {
     pandoc_json(<>);
 };
 
-# note explain $doc->flatten;
+# note explain $doc->metavalue;
 
-is_deeply { map { $_ => $doc->meta->{$_}->flatten } keys %{$doc->meta} },
-    $doc->flatten, 'Document->flatten';
+is_deeply { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} },
+    $doc->metavalue, 'Document->metavalue';
 
 done_testing;
