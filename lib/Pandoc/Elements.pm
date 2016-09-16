@@ -349,7 +349,7 @@ sub pandoc_json($) {
         my $e = shift;
         if (@_) {
             $e->attr->[1] = [];
-            $e->add_keyval('class', $_) for @_;
+            $e->add_attribute('class', $_) for @_;
         }
         $e->attr->[1]
     }
@@ -360,8 +360,7 @@ sub pandoc_json($) {
         join ' ', @{$e->classes}
     }
 
-    # TODO: document this method
-    sub add_keyval {
+    sub add_attribute {
         my ($e, $key, $value) = @_;
         if ($key eq 'id') {
             $e->id($value);
@@ -379,10 +378,10 @@ sub pandoc_json($) {
             my $attrs = @_ == 1 ? shift : Hash::MultiValue->new(@_);
             $e->attr->[2] = [];
             if (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
-                $attrs->each(sub { $e->add_keyval(@_) });
+                $attrs->each(sub { $e->add_attribute(@_) });
             } else {
                 while (my ($key,$value) = each %$attrs) {
-                    $e->add_keyval($key, $value);
+                    $e->add_attribute($key, $value);
                 }
             }
         }
@@ -653,12 +652,6 @@ names) are recognized. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
-Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, C<class>, and C<keyvals>. The C<keyvals>
-accessor returns an instance of L<Hash::MultiValue> (but key-value pairs cannot
-be modified through this interface). All attribute accessors can also be used
-as setters.
-
 =head3 citation { ... }
 
 A citation as part of document element L<Cite|/Cite> must be a hash reference
@@ -749,6 +742,13 @@ Transform the element tree with L<Pandoc::Walker>
 =head3 string
 
 Returns a concatenated string of element content, leaving out all formatting.
+
+=head3 ATTRIBUTE METHODS
+
+Elements with attributes (element accessor method C<attr>) also provide the
+getter/setter methods C<id>, C<classes>, C<class>, C<keyvals>, and method
+C<add_attribute>. The C<keyvals> accessor returns a copy of attribute key-value
+pairs as L<Hash::MultiValue>.
 
 =head2 BLOCK ELEMENTS
 
