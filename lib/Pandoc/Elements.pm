@@ -337,6 +337,7 @@ sub pandoc_json($) {
     package Pandoc::Document::AttributesRole;
     use Hash::MultiValue;
     use Scalar::Util qw(reftype blessed);
+    use Carp qw[ croak ];
 
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
@@ -388,6 +389,17 @@ sub pandoc_json($) {
         Hash::MultiValue->new(
             map { @$_ } @{$e->attr->[2]}
         )
+    }
+
+    sub attr_hash {
+        my $e = shift;
+        if ( @_ ) {
+            croak 'Method attr_hash() is not a setter';
+        }
+        my $h = $e->keyvals;
+        $h->add( id => $e->id );
+        $h->add( class => @{$e->classes} );
+        return $h;
     }
 
     # TODO: rename and/or extend to keyvals check
