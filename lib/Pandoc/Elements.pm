@@ -663,10 +663,11 @@ names) are recognized. You can always manually create an attributes structure:
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
 Elements with attributes (element accessor method C<attr>) also provide the
-accessor method C<id>, C<classes>, C<class>, and C<keyvals>. The C<keyvals>
-accessor returns an instance of L<Hash::MultiValue> (but key-value pairs cannot
-be modified through this interface). All attribute accessors can also be used
-as setters.
+accessor method C<id>, C<classes>, C<class>, C<keyvals> and C<attr_hash>.
+The C<keyvals> accessor returns an instance of L<Hash::MultiValue>
+(but key-value pairs cannot be modified through this interface).
+The C<attr_hash> accessor is similar but also returns the id and classes if any.
+All attribute accessors except C<attr_hash> can also be used as setters.
 
 =head3 citation { ... }
 
