@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - extend method 'keyvals' as setter
     - document and extend metadata elements by method 'metavalue'
     - make content method an optional setter (not documented yet)
     - let to_json return canonical JSON

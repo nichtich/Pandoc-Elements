@@ -8,11 +8,16 @@ my $attr_hash = { class => [qw(x x y)], answer => 42, id => 0 };
 
 is_deeply attributes {}, [ '', [], [] ], 'empty attributes';
 is_deeply attributes(undef), [ '', [], [] ], 'empty attributes (undef)';
+
 is_deeply attributes $attr_hash,
   [ '0', [qw(x x y)], [ [ answer => '42' ] ] ], 'classes and id';
 
-my $e = Code attributes $attr_hash, '';
-is_deeply [ $e->keyvals->flatten ], [ answer => '42' ], 'keyvals';
+my $e = Code attributes {}, '';
+is_deeply [], [ $e->keyvals->flatten ], 'empty attributes';
+
+$e = Code attributes $attr_hash, '';
+is_deeply [ id => '0', class => 'x x y', answer => '42', ],
+          [ $e->keyvals->flatten ], 'keyvals';
 
 $e = Code [ '', [], [ [ foo => '1' ], [ bar => '2' ], [ foo => '3' ] ] ], '';
 is_deeply [ $e->keyvals->flatten ], [ foo => 1, bar => 2, foo => 3 ], 'keyvals';
@@ -20,21 +25,24 @@ is_deeply [ $e->keyvals->flatten ], [ foo => 1, bar => 2, foo => 3 ], 'keyvals';
 $e->keyvals( Hash::MultiValue->new(
     foo => 9, id => 0, bar => 8, foo => 7, class => 'a', class => 'b c',
 ) );
-is_deeply $e->attr,
+is_deeply
     [ '0', [qw(a b c)], [ [ foo => 9 ], [ bar => 8 ], [ foo => 7 ] ] ],
-    'attributes via Hash::MultiValue';
+    $e->attr, 'attributes via Hash::MultiValue';
 
 $e->keyvals({ foo => 3, class => 'x y' });
-is_deeply [ '0', [qw(a b c x y)], [ [ foo => 3 ] ] ], $e->attr, 'keyvals as setter';
+is_deeply [ '0', [qw(x y)], [ [ foo => 3 ] ] ], $e->attr, 'keyvals as setter';
+
+$e->keyvals({ });
+is_deeply [ '0', [qw(x y)], [ ] ], $e->attr, 'keyvals as setter (no class)';
 
 $e->id(2);
 is '2', $e->id, 'id setter';
 
-$e->class('q r');
-is_deeply [qw(q r)], $e->classes, 'classes setter';
+$e->class('q r', 's ', [qw(x y)]);
+is_deeply [qw(q r s x y)], $e->classes, 'classes setter';
 
 $e->keyvals( a => 1, class => ['s'], a => 2 );
-is_deeply [ '2', [qw(q r s)], [ [ a => 1 ], [ a => 2 ] ] ], $e->attr, 'keyvals as setter';
+is_deeply [ '2', ['s'], [ [ a => 1 ], [ a => 2 ] ] ], $e->attr, 'keyvals as setter';
 
 
 my @class_hashes = (

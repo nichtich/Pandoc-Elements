@@ -337,6 +337,7 @@ sub pandoc_json($) {
     package Pandoc::Document::AttributesRole;
     use Hash::MultiValue;
     use Scalar::Util qw(reftype blessed);
+    use Carp qw(croak);
 
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
@@ -347,16 +348,20 @@ sub pandoc_json($) {
 
     sub classes {
         my $e = shift;
-        if (@_) {
-            $e->attr->[1] = [];
-            $e->add_attribute('class', $_) for @_;
-        }
+        croak 'Method classes() is not a setter' if @_;
         $e->attr->[1]
     }
 
     sub class {
         my $e = shift;
-        $e->classes(@_) if @_;
+        if (@_) {
+            $e->attr->[1] = [
+                grep { $_ ne '' }
+                map { split qr/\s+/, $_ }
+                map { (ref $_ and reftype $_ eq 'ARRAY') ? @$_ : $_ }
+                @_
+            ];
+        }
         join ' ', @{$e->classes}
     }
 
@@ -376,18 +381,17 @@ sub pandoc_json($) {
         my $e = shift;
         if (@_) {
             my $attrs = @_ == 1 ? shift : Hash::MultiValue->new(@_);
-            $e->attr->[2] = [];
-            if (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
-                $attrs->each(sub { $e->add_attribute(@_) });
-            } else {
-                while (my ($key,$value) = each %$attrs) {
-                    $e->add_attribute($key, $value);
-                }
+            unless (blessed $attrs and $attrs->isa('Hash::MultiValue')) {
+                $attrs = Hash::MultiValue->new(%$attrs);
             }
+            $e->attr->[1] = [] if exists $attrs->{class};
+            $e->attr->[2] = [];
+            $attrs->each(sub { $e->add_attribute(@_) });
         }
-        Hash::MultiValue->new(
-            map { @$_ } @{$e->attr->[2]}
-        )
+        my @h;
+        push @h, id => $e->id if $e->id ne '';
+        push @h, class => $e->class if @{$e->classes};
+        Hash::MultiValue->new( @h, map { @$_ } @{$e->attr->[2]} );
     }
 
     # TODO: rename and/or extend to keyvals check
@@ -538,7 +542,7 @@ sub Pandoc::Document::MetaBlocks::metavalue {
 }
 
 sub Pandoc::Document::MetaList::metavalue {
-    [ map { $_->metavalue } @{$_[0]->{c}} ] 
+    [ map { $_->metavalue } @{$_[0]->{c}} ]
 }
 
 sub Pandoc::Document::MetaString::metavalue {
@@ -652,6 +656,9 @@ names) are recognized. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
+See also L<attribute methods|/ATTRIBUTE METHODS> to get and set element
+attributes.
+
 =head3 citation { ... }
 
 A citation as part of document element L<Cite|/Cite> must be a hash reference
@@ -746,9 +753,11 @@ Returns a concatenated string of element content, leaving out all formatting.
 =head3 ATTRIBUTE METHODS
 
 Elements with attributes (element accessor method C<attr>) also provide the
-getter/setter methods C<id>, C<classes>, C<class>, C<keyvals>, and method
-C<add_attribute>. The C<keyvals> accessor returns a copy of attribute key-value
-pairs as L<Hash::MultiValue>.
+getter methods C<id>, C<classes>, C<class>, C<keyvals>, and setter methods
+C<id>, C<class>, C<keyvals>, C<add_attribute>. Method C<keyvals> returns a copy
+of id, class, and attribute key-value pairs as L<Hash::MultiValue>.  If used as
+setter, all key-value pairs (and optionally id and class if given) are
+replaced.
 
 =head2 BLOCK ELEMENTS
 
