@@ -389,10 +389,10 @@ sub pandoc_json($) {
         )
     }
 
-    sub attr_as_hash {
+    sub attr_hash {
         my $e = shift;
         if ( @_ ) {
-            croak 'Method attr_as_hash() is not a setter';
+            croak 'Method attr_hash() is not a setter';
         }
         my $h = $e->keyvals;
         $h->add( id => $e->id );
