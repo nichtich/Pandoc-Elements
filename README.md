@@ -72,11 +72,8 @@ names) are recognized. You can always manually create an attributes structure:
 
     [ $id, [ @classes ], [ [ key => $value ], ... ] ]
 
-Elements with attributes (element accessor method `attr`) also provide the
-accessor method `id`, `classes`, `class`, and `keyvals`. The `keyvals`
-accessor returns an instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) (but key-value pairs cannot
-be modified through this interface). All attribute accessors can also be used
-as setters.
+See also [attribute methods](#attribute-methods) to get and set element
+attributes.
 
 ### citation { ... }
 
@@ -118,7 +115,7 @@ methods specific to each element.
 Return the element as JSON encoded string. The following are equivalent:
 
     $element->to_json;
-    JSON->new->utf8->convert_blessed->encode($element);
+    JSON->new->utf8->canonical->convert_blessed->encode($element);
 
 Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
 of attributes to [Link](#link) and [Image](#image) elements. Since Pandoc::Elements
@@ -168,6 +165,15 @@ Transform the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc
 ### string
 
 Returns a concatenated string of element content, leaving out all formatting.
+
+### ATTRIBUTE METHODS
+
+Elements with attributes (element accessor method `attr`) also provide the
+getter methods `id`, `classes`, `class`, `keyvals`, and setter methods
+`id`, `class`, `keyvals`, `add_attribute`. Method `keyvals` returns a copy
+of id, class, and attribute key-value pairs as [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue).  If used as
+setter, all key-value pairs (and optionally id and class if given) are
+replaced.
 
 ## BLOCK ELEMENTS
 
@@ -391,7 +397,7 @@ Generic container of [inlines](#inline-elements) (`content`) with attributes
 
 Plain text, a string (`content`).
 
-    Str $text
+    Str $content
 
 ### Strikeout
 
@@ -419,17 +425,59 @@ Superscripted text, a list of [inlines](#inline-elements) (`content`).
 
 ## METADATA ELEMENTS
 
-### MetaBlocks
+Metadata can be provided in YAML syntax or via command line option `-M`.  All
+metadata elements return true for `is_meta`.  Metadata elements can be
+converted to unblessed Perl array references, hash references, and scalars with
+method `metavalue`.  On the document level, metadata (document method `meta`)
+is a hash reference with values being metadata elements. Document method
+`metavalue` returns a flattened copy of this hash.
+
+### MetaString
+
+A plain text string metadata value (`content`).
+
+    MetaString $content
+
+MetaString values can also be set via pandoc command line client:
+
+    pandoc -M key=$content
 
 ### MetaBool
 
+A Boolean metadata value (`content`). The special values `"false"` and
+`"FALSE"` are recognized as false in addition to normal false values (`0`,
+`undef`, `""`...).
+
+    MetaBool $content
+
+MetaBool values can also be set via pandoc command line client:
+
+    pandoc -M key=true
+    pandoc -M key=false
+
 ### MetaInlines
+
+Container for a list of [inlines](#inline-elements) (`content`) in metadata.
+
+    MetaInlines [ @inlines ]
+
+### MetaBlocks
+
+Container for a list of [blocks](#block-elements) (`content`) in metadata.
+
+    MetaInlines [ @blocks ]
 
 ### MetaList
 
+A list of other [metadata elements](#metadata-elements) (`content`).
+
+    MetaList [ @values ]
+
 ### MetaMap
 
-### MetaString
+A map of keys to other metadata elements.
+
+    MetaMap { %map }
 
 ## DOCUMENT ELEMENT
 
@@ -439,6 +487,12 @@ Root element, consisting of metadata hash (`meta`) and document element array
 (`content`).
 
     Document $meta, [ @blocks ]
+
+Document `metavalue` returns a copy of the metadata hash with all [metadata
+elements](#metadata-elements) flattened to unblessed values:
+
+    $doc->metavalue   # equivalent to
+    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 ## TYPE KEYWORDS
 
