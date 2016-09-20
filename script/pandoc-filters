@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+use strict;
+use v5.10;
+
+=head1 DESCRIPTION
+
+This Pandoc filter executes other filters listed in document metadata field
+C<filters>. Each filter must be an executable either in the current PATH or 
+given by its absolute or relative name.
+
+=head1 SYNOPSIS
+
+  pandoc --filter pandoc-filters -o output.html < input.md
+
+In C<input.md>:
+
+  ---
+  filters:
+    - filter1
+    - ./filter2.pl
+    - /path/filter3
+  ...
+
+=cut
+
+use Pandoc::Elements qw(pandoc_json MetaList);
+use File::Which;
+use IPC::Run3;
+
+my $ast     = pandoc_json(<STDIN>);
+my $filters = $ast->meta->{filters} // MetaList [];
+my $format  = $ARGV[0] // '';
+
+foreach my $filter ( map { $_->metavalue } @{$filters->content} ) {
+    my $script = which($filter) // die "filter not found: $filter\n";
+
+    my $stdin  = $ast->to_json;
+    my $stdout = "";
+    my $stderr = "";
+    say STDERR $filter;
+    run3 [$script, $format], \$stdin, \$stdout, \$stderr;
+    if ($?) {
+        $stderr .= "\n" if $stderr ne '' and $stderr !~ /\n\z/s;
+        die "filter failed: $filter\n$stderr";
+    }
+
+    eval { $ast = pandoc_json($stdout) };
+    if ($@) {
+        die "filter emited no valid JSON: $filter\n";
+    }
+}
+
+say $ast->to_json;

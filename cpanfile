@@ -9,6 +9,8 @@ requires 'Pod::Usage';
 # additional modules
 requires 'JSON';
 requires 'Hash::MultiValue', '0.06';
+requires 'File::Which';
+requires 'IPC::Run3';
 
 on test => sub {
     requires 'Test::More', '0.96';
