@@ -3,26 +3,54 @@ use strict;
 
 =head1 DESCRIPTION
 
-Pandoc filter to remove all unnumbered sections.
+This Pandoc filter removes all unnumbered sections, that is everything from a
+header with class C<unnumbered> until the next normal header of the same level.
+For instance this document:
+
+   # Section
+
+   # Unnumbered Section {.unnumbered}
+   ...
+
+   ## Subsection
+   ...
+
+   # Another Section
+   ... 
+     
+Would be reduced to
+
+   # Section
+    
+   # Another Section
+   ... 
 
 =cut
 
 use Pandoc::Filter;
 
-my $skip;
+my $skiplevel = 0;
+
+# process all elements
 pandoc_filter sub {
-    if ($skip) {
-        if ($_->name eq 'Header' and $_->level <= $skip) {
-            $skip = 0;
+
+    if ($skiplevel > 0) {
+        # end of currently skipped section
+        if ($_->name eq 'Header' and $_->level <= $skiplevel) {
+            $skiplevel = 0;
+        # remove element
         } else {
-            return [];
+            return []; 
         }
     }
 
-    if ($_->name eq 'Header' and $_->match('.unnumbered')) {
-        $skip = $_->level;
+    # new unnumbered section to skip
+    if ($_->match('Header.unnumbered')) {
+        $skiplevel = $_->level;
         return [];
     }
     
-    return # keep
+    # keep element
+    return
 };
+
