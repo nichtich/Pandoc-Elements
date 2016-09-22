@@ -37,7 +37,9 @@
       },
       "runtime" : {
          "requires" : {
+            "File::Which" : "0",
             "Hash::MultiValue" : "0.06",
+            "IPC::Run3" : "0",
             "JSON" : "0",
             "List::Util" : "0",
             "Pod::Simple" : "3.08",
@@ -65,7 +67,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.21",
+   "version" : "0.22",
    "x_contributors" : [
       "Benct Philip Jonsson <bpjonsson@gmail.com>",
       "Jakob Voß <jakob.voss@gbv.de>"
