@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.22  2016-09-22 12:03:38 CEST
     - Add pandoc-filters script to run filters specified in document metadata 
     - Let pandoc_walk/pandoc_filter not filter metadata fields
     - Add metavars example 
