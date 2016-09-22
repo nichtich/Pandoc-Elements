@@ -63,8 +63,11 @@ sub build_image {
 
 sub new {
     my $class = shift;
+    my $action = (@_ < 2 or @_ % 2 or ref $_[0])
+        ? Pandoc::Walker::action(@_)        # @actions
+        : Pandoc::Walker::action({ @_ });   # %actions
     bless {
-        action => Pandoc::Walker::action(@_),
+        action => $action,
         error  => '',
     }, $class;
 }
@@ -77,19 +80,13 @@ sub action {
     $_[0]->{action};
 }
 
-# TODO: refactor with method action
 sub apply {
     my ( $self, $ast, $format, $meta ) = @_;
     $format ||= '';
-    $meta ||= eval { $ast->[0]->{unMeta} } || {};
+    $meta ||= eval { $ast->meta } || {};
 
-    if ( $self->{action} ) {
-        Pandoc::Walker::transform( $ast, $self->{action}, $format, $meta );
-    }
+    Pandoc::Walker::transform( $ast, $self->action, $format, $meta );
 
-    #    foreach my $action (@{$self->{actions}}) {
-    #        Pandoc::Walker::transform( $ast, $action, $format, $meta );
-    #    }
     $ast;
 }
 
