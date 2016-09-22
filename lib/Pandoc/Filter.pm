@@ -19,7 +19,7 @@ our @EXPORT = qw(pandoc_filter pandoc_walk build_image stringify);
 
 sub stringify {
 
-    # warning added in version 0.18
+    # warning added in version 0.18 (04/2016)
     warn "Pandoc::Filter::stringify deprecated => Pandoc::Element::stringify\n";
     $_[0]->string;
 }
@@ -28,7 +28,8 @@ sub pandoc_walk(@) {    ## no critic
     my $filter = Pandoc::Filter->new(@_);
     my $ast    = Pandoc::Elements::pandoc_json(<STDIN>);
     binmode STDOUT, ':encoding(UTF-8)';
-    $filter->apply( $ast, @ARGV ? $ARGV[0] : '' );
+    $filter->apply( $ast->content, @ARGV ? $ARGV[0] : '', $ast->meta );
+    return $ast;
 }
 
 sub pandoc_filter(@) {    ## no critic
@@ -103,9 +104,9 @@ Pandoc::Filter - process Pandoc abstract syntax tree
 
 =head1 SYNOPSIS
 
-The following filter C<flatten.pl>, adopted from L<pandoc scripting
+Filter C<flatten.pl>, adopted from L<pandoc scripting
 documentation|http://pandoc.org/scripting.html>, converts level 2+ headers to
-regular paragraphs.
+regular paragraphs:
 
     use Pandoc::Filter;
     use Pandoc::Elements;
@@ -115,7 +116,7 @@ regular paragraphs.
         return Para [ Emph $_->content ];   # replace
     };
 
-To apply this filter on a Markdown file:
+Apply this filter on a Markdown file like this:
 
     pandoc --filter flatten.pl -t markdown < input.md
 
@@ -124,11 +125,9 @@ examples of filters.
 
 =head1 DESCRIPTION
 
-This module is a port of L<pandocfilters|https://github.com/jgm/pandocfilters>
-from Python to modern Perl.  It provides methods and functions to aid writing
-Perl scripts that process a L<Pandoc|http://pandoc.org/> abstract syntax tree
-(AST) serialized as JSON. See L<Pandoc::Elements> for documentation of AST
-elements.
+Pandoc::Filter provides tools to modify the abstract syntax tree (AST) of
+L<Pandoc|http://pandoc.org/> documents. See L<Pandoc::Elements> for AST
+elements that can be modified by filters.
 
 The function interface (see L</FUNCTIONS>) directly reads AST and format from
 STDIN and ARGV and prints the transformed AST to STDOUT. 
@@ -189,17 +188,18 @@ The following functions are exported by default.
 
 =head2 pandoc_walk( @actions | %actions )
 
-Read a single line of JSON from STDIN and walk down the AST.  Implicitly sets
-binmode UTF-8 for STDOUT.
+Read a single line of JSON from STDIN and walk down the document content AST
+(without metadata elements).  Implicitly sets binmode UTF-8 for STDOUT.
 
 =head2 pandoc_filter( @actions | %actions )
 
-Read a single line of JSON from STDIN, apply actions and print the resulting
-AST as single line of JSON. This function is roughly equivalent to
+Read a single line of JSON from STDIN, apply actions on the document content
+and print the resulting AST as single line of JSON. This function is roughly
+equivalent to
 
     my $ast    = Pandoc::Elements::pandoc_json(<>);
     my $format = $ARGV[0];
-    Pandoc::Filter->new(@actions)->apply($ast, $format);
+    Pandoc::Filter->new(@actions)->apply($ast->content, $format, $ast->meta);
     say $ast->to_json;
 
 =head2 build_image( $element [, $filename ] )
@@ -210,7 +210,12 @@ into image caption. This utility function is useful for filters that transform
 content to images. See graphviz, tikz, lilypond and similar filters in the
 L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
 
+This function is I<experimental> and may be (re)move in a later version!
+
 =head1 SEE ALSO
+
+This module is a port of L<pandocfilters|https://github.com/jgm/pandocfilters>
+from Python to modern Perl.  
 
 Script L<pandocwalk>, installed with this module, facilitates execution of
 C<pandoc_walk> to traverse a document from command line.
