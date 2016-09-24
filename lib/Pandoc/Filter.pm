@@ -33,6 +33,9 @@ sub pandoc_walk(@) {    ## no critic
 }
 
 sub pandoc_filter(@) {    ## no critic
+    require Pandoc::Filter::Usage;
+    Pandoc::Filter::Usage::frompod();
+
     my $ast = pandoc_walk(@_);    # implies binmode STDOUT UTF-8
     my $json = JSON->new->allow_blessed->convert_blessed->encode($ast);
 
@@ -191,13 +194,9 @@ Read a single line of JSON from STDIN and walk down the document content AST
 =head2 pandoc_filter( @actions | %actions )
 
 Read a single line of JSON from STDIN, apply actions on the document content
-and print the resulting AST as single line of JSON. This function is roughly
-equivalent to
-
-    my $ast    = Pandoc::Elements::pandoc_json(<>);
-    my $format = $ARGV[0];
-    Pandoc::Filter->new(@actions)->apply($ast->content, $format, $ast->meta);
-    say $ast->to_json;
+and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
+is used to print filter documentation if called with command line argument
+C<--help>, C<-h>, or C<-?> instead.
 
 =head2 build_image( $element [, $filename ] )
 

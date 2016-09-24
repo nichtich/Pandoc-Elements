@@ -25,7 +25,13 @@ In C<input.md>:
 
 use Pandoc::Elements qw(pandoc_json MetaList);
 use File::Which;
+use Getopt::Long;
+use Pandoc::Filter::Usage;
 use IPC::Run3;
+
+my %opt;
+Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s');
+Pandoc::Filter::Usage::frompod(\%opt);
 
 my $ast     = pandoc_json(<STDIN>);
 my $filters = $ast->meta->{filters} // MetaList [];
