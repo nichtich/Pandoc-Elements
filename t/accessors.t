@@ -10,22 +10,48 @@ is_deeply $e->classes, ['perl'], 'AttributeRole->classes';
 is $e->class, 'perl', 'AttributeRole->class';
 
 is $e->content, 'say "Hi";', 'CodeBlock->content';
+is $e->content('foo'), 'foo', 'setter';
+is $e->content, 'foo', 'setter';
 
 $e = Quoted SingleQuote, 'x';
 is $e->type->name, 'SingleQuote', 'Quoted';
 
-# TODO: OrderedList with ListAttributes, Table etc.
+{
+	my $e = BulletList [];
+	is_deeply $e->items, [], 'BulletList: items';
+	my $items = [ [ Plain Str 'foo' ] ];
+	is_deeply $e->content($items), $items, 'BulletList: content(...)';
+	is_deeply $e->items, $items, 'BulletList: items set';
+}
 
-$e = DefinitionList [
-    [ [ Str 'term 1' ], 
-        [ [ Para Str 'definition 1' ] ] ],
-    [ [ Str 'term 2' ], 
-        [ [ Para Str 'definition 2' ],
-          [ Para Str 'definition 3' ] ] ],
-];
-is scalar @{$e->items}, 2, 'DefinitionList->items';
-is_deeply $e->items->[0]->term, [ Str 'term 1' ], '...->term';
-is_deeply $e->items->[1]->definitions->[1], 
-    [ Para Str 'definition 3' ], '...->definitions';
+{
+	my $content = 'a';
+	my $attr = attributes {};
+	my $e = Span $attr, $content;
+
+	is_deeply $e->attr, $attr, 'Span: attr';
+	$attr = attributes { a => 1 };
+	is_deeply $e->attr($attr), $attr, 'Span: attr(...)';
+	is_deeply $e->attr, $attr, 'Span: attr set';
+
+	is_deeply $e->content, 'a', 'Span: content';
+	is_deeply $e->content('b'), 'b', 'Span: content(...)';
+	is_deeply $e->content, 'b', 'Span: content set';	
+}
+
+{
+	my $e = DefinitionList [
+    	[ [ Str 'term 1' ],
+			[ [ Para Str 'definition 1' ] ] ],
+		[ [ Str 'term 2' ],
+			[ [ Para Str 'definition 2' ],
+			  [ Para Str 'definition 3' ] ] ],
+	];
+	is_deeply $e->items, $e->content, 'DefinitionList: items=content';
+	is scalar @{$e->items}, 2, 'DefinitionList->items';
+	is_deeply $e->items->[0]->term, [ Str 'term 1' ], '...->term';
+	is_deeply $e->items->[1]->definitions->[1],
+		[ Para Str 'definition 3' ], '...->definitions';
+}
 
 done_testing;

@@ -100,12 +100,12 @@ foreach my $name ( keys %ELEMENTS ) {
     );
 
     for ( my $i = 0 ; $i < @accessors ; $i++ ) {
-        my $code = @accessors == 1 ? "\$_[0]->{c}" : "\$_[0]->{c}->[$i]";
-
+        my $member = @accessors == 1 ? "\$e->{c}" : "\$e->{c}->[$i]";
+        my $code = "my \$e = shift; $member = ( 1 == \@_ ? \$_[0] : [\@_] ) if \@_; return";
         # auto-bless on access via accessor (TODO: move to constructor?)
-        if ( $accessors[$i] =~ s/:\[(.+)\]$// ) {
-            $code = "[ map { bless \$_, 'Pandoc::Document::$1' } \@{$code} ]";
-        }
+        $code .= $accessors[$i] =~ s/:\[(.+)\]$//
+        ? " [ map { bless \$_, 'Pandoc::Document::$1' } \@{$member} ];"
+        : " $member;";
         for ( split '/', $accessors[$i] ) {
             *{ $class . "::$_" } = eval "sub { $code }";
         }
