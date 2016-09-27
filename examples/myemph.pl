@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+myemph - use C<\myemp{...}> instead of C<\emph{...}> in LaTeX
+
 =head1 DESCRIPTION
 
 Pandoc filter that causes emphasized text to be rendered using the custom macro
@@ -12,9 +16,9 @@ unaffected.
 use Pandoc::Filter;
 use Pandoc::Elements;
 
-pandoc_filter sub {
-    my ($e,$f,$m) = @_;
-    return unless $e->name eq 'Emph' and $f eq 'latex';
+pandoc_filter Emph => sub {
+    my ($e, $f, $m) = @_;
+    return if $f ne 'latex';
     [ RawInline(latex => '\myemph{'), @{$e->content}, RawInline(latex => '}') ]
 };
 

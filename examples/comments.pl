@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+comments - remove everyting between C<< <!-- BEGIN/END COMMENT --> >>
+
 =head1 DESCRIPTION
 
 Pandoc filter to ignore everything between C<< <!-- BEGIN COMMENT --> >> and

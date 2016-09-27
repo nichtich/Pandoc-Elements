@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+deflist - convert definiton lists to bullet lists
+
 =head1 DESCRIPTION
 
 Pandoc filter to convert definition lists to bullet lists with the defined

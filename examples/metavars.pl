@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+metavars - interpolate metadata C<{{field}} references
+
 =head1 DESCRIPTION
 
 Pandoc filter to allow interpolation of metadata fields into a document.  Field

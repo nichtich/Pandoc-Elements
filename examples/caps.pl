@@ -13,8 +13,8 @@ use Pandoc::Elements qw(Str);
 
 pandoc_filter Str => sub {
     return Str(uc $_->content);
-    # alternative to modify in-place (comment out previous line to enable)
-    $_->{c} = uc($_->content);
+    # alternatively to modify in-place (comment out previous line to enable)
+    $_->content(uc($_->content));
     return
 };
 

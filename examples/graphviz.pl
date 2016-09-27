@@ -1,13 +1,15 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+graphviz - process code blocks with C<.graphviz> into images
+
 =head1 DESCRIPTION
 
 Pandoc filter to process code blocks with class "graphviz" into
 graphviz-generated images. Attribute "graphviz-layout" can be used to select
 layout engine (dot by default).
-
-Needs L<IPC::Run3> perl module.
 
 =cut
 
@@ -17,9 +19,9 @@ use IPC::Run3;
 use Digest::MD5 'md5_hex';
 
 pandoc_filter 'CodeBlock.graphviz' => sub {
-    my ($e, $format, $m) = @_;
+    my ($e, $f, $m) = @_;
 
-    my $ext = $format eq 'latex' ? 'pdf' : 'png';
+    my $ext = $f eq 'latex' ? 'pdf' : 'png';
     
     my $dot = $e->content;
 
@@ -41,6 +43,7 @@ pandoc_filter 'CodeBlock.graphviz' => sub {
     # TODO: skip error if requested
 	die $stderr if $stderr;
 
+    # TODO: refactor this helper function
     my $img = build_image($e, $filename);
 
     return Para [ $img ];

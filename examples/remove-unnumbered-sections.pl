@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+unnumbered-sections - remove all unnumbered sections
+
 =head1 DESCRIPTION
 
 This Pandoc filter removes all unnumbered sections, that is everything from a

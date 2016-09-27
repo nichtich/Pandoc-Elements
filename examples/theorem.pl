@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
 use strict;
 
+=head1 NAME
+
+theorem - handle divs with C<.theorem> as theorems
+
 =head1 DESCRIPTION
 
 Pandoc filter to convert divs with C<class="theorem"> to LaTeX theorem
@@ -16,9 +20,8 @@ my $theoremcount = 0;
 sub latex { RawBlock latex => shift }
 sub html  { RawBlock html  => shift }
 
-pandoc_filter sub {
+pandoc_filter 'Div.theorem' => sub {
     my ($e, $f, $m) = @_;
-    return unless $e->match('Div.theorem');
     
     if ($f eq 'latex') {
         my $label = $e->id ? '\label{'.$e->id.'}' : '';
