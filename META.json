@@ -37,7 +37,6 @@
       },
       "runtime" : {
          "requires" : {
-            "File::Which" : "0",
             "Hash::MultiValue" : "0.06",
             "IPC::Run3" : "0",
             "JSON" : "0",

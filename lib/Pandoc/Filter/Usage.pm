@@ -13,13 +13,33 @@ sub frompod {
 
     if (!@_) {
         require Getopt::Long;
-        Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s');
+        Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s', 'about');
     }
-    return unless $opt{help};
+    return unless $opt{help} or $opt{about};
 
     $opt{exitval} //= 0;
 
-    if ($opt{to}) {
+    if ($opt{about}) {
+        require Pod::Usage;
+        my $podsection = sub {
+            my $text = '';
+            open my $fh, '>', \$text;
+            Pod::Usage::pod2usage(
+                -output => $fh, -exitval => 'NOEXIT',
+                -verbose => 99, -sections => shift,
+            );
+            return $text;
+        };
+        my $about = $podsection->('NAME');
+        $about =~ s/^name:\s+//;
+        $about =~ s/^.+?\s+-\s+//ism;
+        $about =~ s/\s+$//ms;
+        if (!$about) {
+            $about = $podsection->('DESCRIPTION');
+            $about =~ s/^description:\s+([^.]+)\..*$/$1/ism;
+        }
+        say $about;
+    } elsif ($opt{to}) {
         my $doc = Pod::Simple::Pandoc->new->parse_file($0);
         my $json = $doc->to_json;
         run3 [qw(pandoc -f json -t), $opt{to}], \$json, undef, undef;
@@ -59,7 +79,8 @@ get and print documentation of a filter.
 
 Prints filter documentation from its Pod and exits if option C<help> is true.
 If no options are passed, options are read from C<@ARGV> with L<GetOpt::Long>
-to check whether command line option C<--help>, C<-h>, or C<-?> was specified.
+to check whether command line option C<--help>, C<-h>, C<-?>, or C<--about> was
+specified.
 
 If option C<to> or C<write> is given, L<Pod::Simple::Pandoc> is used to parse
 the Pod and Pandoc is used to create output in the selected format.

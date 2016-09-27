@@ -2,11 +2,15 @@
 use strict;
 use v5.10;
 
+=head1 NAME
+
+pandoc-filter - execute Pandoc filters listed on metadata field C<filters>
+
 =head1 DESCRIPTION
 
 This Pandoc filter executes other filters listed in document metadata field
-C<filters>. Each filter must be an executable either in the current PATH or 
-given by its absolute or relative name.
+C<filters>. Each filter must be an executable files, either given by absolute
+or relative path, or given by name in C<~/.pandoc/filters> or PATH.
 
 =head1 SYNOPSIS
 
@@ -16,34 +20,79 @@ In C<input.md>:
 
   ---
   filters:
-    - filter1
-    - ./filter2.pl
-    - /path/filter3
+    - filter1        # in $PATH or ~/.pandoc/filters
+    - ./filter2.pl   # relative path
+    - /path/filter3  # absolute path
   ...
+
+=head1 OPTIONS
+
+=over
+
+=item --help|-h
+
+Print this help.
+
+=item --to|--write|-t|-w <format>
+
+Print help in given Pandoc output format, e.g. C<markdown>.
+
+=item --about
+
+Print purpose of this script in one line.
+
+=item --list|-l
+
+List all filters in C<~/.pandoc/filters>, optionally with purpose (for those
+supporting option C<--about>.
+
+=back
 
 =cut
 
 use Pandoc::Elements qw(pandoc_json MetaList);
-use File::Which;
+use IPC::Cmd qw(can_run);
 use Getopt::Long;
 use Pandoc::Filter::Usage;
 use IPC::Run3;
 
+my $filters_dir = $ENV{HOME} . '/.pandoc/filters';
+
 my %opt;
-Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s');
+Getopt::Long::GetOptions(\%opt, 
+    'help|?', 
+    'to|write:s',
+    'list',
+    'about',
+) or $opt{help} = 1;
 Pandoc::Filter::Usage::frompod(\%opt);
+
+if ($opt{list}) {
+    exit unless -d $filters_dir;
+    opendir DIR, $filters_dir;
+    for my $f ( grep { !-d "$filters_dir/$_" and -x "$filters_dir/$_" } readdir DIR ) {
+      my $out = [];
+      run3 ["$filters_dir/$f",'--about'], sub { undef }, $out, \undef;
+      chomp($out->[0]);
+      say @$out ? "$f: ".$out->[0] : $f;
+    }
+    closedir DIR;
+    exit;
+}
 
 my $ast     = pandoc_json(<STDIN>);
 my $filters = $ast->meta->{filters} // MetaList [];
 my $format  = $ARGV[0] // '';
 
 foreach my $filter ( map { $_->metavalue } @{$filters->content} ) {
-    my $script = which($filter) // die "filter not found: $filter\n";
+    my $script = "$filters_dir/$filter";
+    say STDERR $script;
+    $script = can_run($filter) unless -x $script;    
+    die "filter not found: $filter\n" unless defined $script;
 
     my $stdin  = $ast->to_json;
     my $stdout = "";
     my $stderr = "";
-    say STDERR $filter;
     run3 [$script, $format], \$stdin, \$stdout, \$stderr;
     if ($?) {
         $stderr .= "\n" if $stderr ne '' and $stderr !~ /\n\z/s;
