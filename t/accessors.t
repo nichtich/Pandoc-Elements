@@ -54,4 +54,11 @@ is $e->type->name, 'SingleQuote', 'Quoted';
 		[ Para Str 'definition 3' ], '...->definitions';
 }
 
+{
+    my $e = Document { foo => 1 }, [];
+    is_deeply metadata { foo => 1 }, $e->meta, 'Document: meta';
+    $e->meta({ bar => 0 });
+    is_deeply metadata { bar => 0 }, $e->meta, 'Document: meta(...)';
+}
+
 done_testing;

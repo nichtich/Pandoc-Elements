@@ -72,7 +72,10 @@ use Scalar::Util qw(blessed reftype);
 use Pandoc::Walker qw(walk);
 
 use parent 'Exporter';
-our @EXPORT = ( keys %ELEMENTS, qw(Document attributes citation pandoc_json) );
+our @EXPORT = (
+    keys %ELEMENTS,
+    qw(Document attributes metadata citation pandoc_json)
+);
 our @EXPORT_OK = ( @EXPORT, 'element' );
 
 # create constructor functions
@@ -122,7 +125,8 @@ sub element {
 
 sub Document($$) {
     @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
-    return bless [ { unMeta => $_[0] }, $_[1] ], 'Pandoc::Document';
+    my $meta = metadata(shift);
+    return bless [ { unMeta => $meta }, shift ], 'Pandoc::Document';
 }
 
 # specific accessors
@@ -153,6 +157,10 @@ sub citation($) {
         citationNoteNum => $a->{num}  // 0,
         citationHash    => $a->{hash} // 1,
     };
+}
+
+sub metadata($) {
+    $_[0]; # TODO: issue #10 and #34
 }
 
 sub pandoc_json($) {
@@ -201,10 +209,13 @@ sub pandoc_json($) {
     package Pandoc::Document;
     use strict;
     our $VERSION = '0.04';
-    our @ISA     = ('Pandoc::Document::Element');
-    sub name        { 'Document' }
-    sub meta        { $_[0]->[0]->{unMeta} }
-    sub content     { $_[0]->[1] }
+    our @ISA = ('Pandoc::Document::Element');
+    sub name { 'Document' }
+    sub meta {
+        $_[0]->[0]->{unMeta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
+        $_[0]->[0]->{unMeta}
+    }
+    sub content { $_[0]->[1] }
     sub is_document { 1 }
     sub metavalue {
         my $meta = $_[0]->meta;
