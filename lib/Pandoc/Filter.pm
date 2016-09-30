@@ -43,6 +43,16 @@ sub pandoc_filter(@) {    ## no critic
     say STDOUT $json;
 }
 
+# build_image( $element [, $filename ] )
+#
+# Maps an element to an L<Image|Pandoc::Elements/Image> element with attributes
+# from the given element. The attribute C<caption>, if available, is transformed
+# into image caption. This utility function is useful for filters that transform
+# content to images. See graphviz, tikz, lilypond and similar filters in the
+# L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
+#
+# This function will be (re)moved during further refactoring
+
 sub build_image {
     my $e = shift;
     my $filename = shift // '';
@@ -197,16 +207,6 @@ Read a single line of JSON from STDIN, apply actions on the document content
 and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
 is used to print filter documentation if called with command line argument
 C<--help>, C<-h>, or C<-?> instead.
-
-=head2 build_image( $element [, $filename ] )
-
-Maps an element to an L<Image|Pandoc::Elements/Image> element with attributes
-from the given element. The attribute C<caption>, if available, is transformed
-into image caption. This utility function is useful for filters that transform
-content to images. See graphviz, tikz, lilypond and similar filters in the
-L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
-
-This function is I<experimental> and may be (re)move in a later version!
 
 =head1 SEE ALSO
 
