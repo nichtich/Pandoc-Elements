@@ -1,6 +1,9 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Add Pandoc::Filter::Usage and option --about for filter documentation
+    - Extend pandoc-filters to support future Pandoc filters directory
+    - Make getters also setters
 
 0.22  2016-09-22 12:03:38 CEST
     - Add pandoc-filters script to run filters specified in document metadata 
