@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 use Pod::Simple::Pandoc;
 use IPC::Run3;
