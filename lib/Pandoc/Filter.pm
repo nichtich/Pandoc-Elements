@@ -13,7 +13,7 @@ use Pandoc::Walker;
 use Pandoc::Elements qw(Image Str);
 
 use parent 'Exporter';
-our @EXPORT = qw(pandoc_filter pandoc_walk build_image stringify);
+our @EXPORT = qw(pandoc_filter pandoc_walk stringify);
 
 # FUNCTIONS
 
@@ -42,35 +42,6 @@ sub pandoc_filter(@) {    ## no critic
     #my $json = $ast->to_json;  # does not want binmode STDOUT UTF-8
     say STDOUT $json;
 }
-
-# build_image( $element [, $filename ] )
-#
-# Maps an element to an L<Image|Pandoc::Elements/Image> element with attributes
-# from the given element. The attribute C<caption>, if available, is transformed
-# into image caption. This utility function is useful for filters that transform
-# content to images. See graphviz, tikz, lilypond and similar filters in the
-# L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
-#
-# This function will be (re)moved during further refactoring
-
-sub build_image {
-    my $e = shift;
-    my $filename = shift // '';
-
-    my $img = Image [$e->id, $e->classes, []], [], [$filename, ''];
-    my $keyvals = $e->keyvals;
-
-    my $caption = $keyvals->get('caption');
-    if (defined $caption) {
-        push @{$img->content}, Str($caption);
-        $img->target->[1] = 'fig:';
-        $keyvals->remove('caption');
-    }
-    $img->keyvals($keyvals);
-
-    return $img;
-}
-
 
 # METHODS
 
