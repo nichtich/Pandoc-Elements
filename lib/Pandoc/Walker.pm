@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 use Scalar::Util qw(reftype blessed);
 use Carp;

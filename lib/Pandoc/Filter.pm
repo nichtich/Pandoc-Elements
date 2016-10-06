@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 use JSON;
 use Carp;
@@ -13,7 +13,7 @@ use Pandoc::Walker;
 use Pandoc::Elements qw(Image Str);
 
 use parent 'Exporter';
-our @EXPORT = qw(pandoc_filter pandoc_walk build_image stringify);
+our @EXPORT = qw(pandoc_filter pandoc_filter_document pandoc_walk build_image stringify);
 
 # FUNCTIONS
 
@@ -41,6 +41,17 @@ sub pandoc_filter(@) {    ## no critic
 
     #my $json = $ast->to_json;  # does not want binmode STDOUT UTF-8
     say STDOUT $json;
+}
+
+sub pandoc_filter_document($) {    ## no critic
+    require Pandoc::Filter::Usage;
+    Pandoc::Filter::Usage::frompod();
+
+    my $filter = shift;
+    my $doc = Pandoc::Elements::pandoc_json(<STDIN>);
+    $filter->apply( $doc, $ARGV[0] );
+
+    say $doc->to_json;
 }
 
 # build_image( $element [, $filename ] )
@@ -207,6 +218,10 @@ Read a single line of JSON from STDIN, apply actions on the document content
 and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
 is used to print filter documentation if called with command line argument
 C<--help>, C<-h>, or C<-?> instead.
+
+=head2 pandoc_filter_document( $filter )
+
+Same as C<pandoc_filter> but applies filter to the whole Document.
 
 =head1 SEE ALSO
 

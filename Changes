@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Rewrite and rename pandoc-filters to multifilter
 
 0.23  2016-09-30 22:35:22 CEST
     - Add Pandoc::Filter::Usage and option --about for filter documentation

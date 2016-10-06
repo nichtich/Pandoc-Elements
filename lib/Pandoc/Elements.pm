@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 our $PANDOC_VERSION;    # a string like '1.16'
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
@@ -215,7 +215,10 @@ sub pandoc_json($) {
         $_[0]->[0]->{unMeta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
         $_[0]->[0]->{unMeta}
     }
-    sub content { $_[0]->[1] }
+    sub content { 
+        $_[0]->[1] = $_[1] if @_ > 1; 
+        $_[0]->[1] 
+    }
     sub is_document { 1 }
     sub metavalue {
         my $meta = $_[0]->meta;
