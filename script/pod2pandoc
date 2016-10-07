@@ -2,45 +2,55 @@
 use strict;
 require 5.010;
 
-my $VERSION = '0.15';
+my $VERSION = '0.25';
 
-use Getopt::Long;
+use Getopt::Long qw(:config pass_through);
 use Pod::Usage;
+use Pandoc::Elements;
 use Pod::Simple::Pandoc;
+use IPC::Run3;
 
 my %opt;
-GetOptions( \%opt, 'help|h|?', 'man', 'filter=s' ) or exit 1;
+GetOptions( \%opt, 'help|h|?', 'man' ) or exit 1;
 pod2usage(1) if $opt{help};
 pod2usage( -verbose => 2 ) if $opt{man};
-@ARGV = '-' unless @ARGV;
 
-my $combined;
+my @input = @ARGV ? () : '-';
 
-foreach my $input (@ARGV) {
-    my $doc = Pod::Simple::Pandoc->parse_file($input);
-    if ($combined) {
-        push @{ $combined->content }, @{ $doc->content };
+my ($index) = grep { $ARGV[$_] eq '--' } (0 .. @ARGV-1);
+
+if (defined $index) {
+    push @input, shift @ARGV for 0..$index-1;
+    shift @ARGV; # --
+} else {
+    push(@input, shift @ARGV) while @ARGV and $ARGV[0] !~ /^-./;
+}
+
+my $all;
+my $meta = MetaList [ map { MetaString $_ } @input ];
+
+foreach my $file (@input) {
+    if ($file ne '-' and !-e $file) {
+        run3 ['perldoc','-lm',$file], undef, \$file;
+        exit $? if $?;
+    } 
+    my $doc = Pod::Simple::Pandoc->parse_file($file);
+    if ($all) {
+        push @{ $all->content }, @{ $doc->content };
     }
     else {
-        $combined = $doc;
+        $all = $doc;
     }
 }
 
-if ( $opt{filter} ) {
-    use Pandoc::Filter::Lazy;
-    my $filter = Pandoc::Filter::Lazy->new( $opt{filter} );
-    if ( $filter->error ) {
-        say STDERR "Failed to compile filter code:\n";
-        say STDERR $filter->code( indent => '    ' ) . "\n";
-        say STDERR $filter->error;
-        exit 1;
-    }
-    else {
-        $filter->apply($combined);
-    }
-}
+$all->meta->{pod2pandoc} = $meta;
 
-print $combined->to_json;
+if (@ARGV) {
+    my $json = $all->to_json;
+    run3 ['pandoc', '-f', 'json', @ARGV], \$json;
+} else {
+    print $all->to_json, "\n";
+}
 
 =head1 NAME
 
@@ -48,38 +58,27 @@ pod2pandoc - convert Pod to Pandoc document model
 
 =head1 SYNOPSIS
 
-  pod2pandoc [OPTIONS] [INPUT...] | pandoc -f json ...
+  pod2pandoc [OPTIONS] {INPUT} [ [ -- ] PANDOCOPTIONS ]
+  pod2pandoc [OPTIONS] {INPUT} | pandoc -f json [ PANDOCOPTIONS ]
+
+  pod2pandoc Module.pm -o Module.pdf
+  pod2pandoc script.pl -t markdown
+  pod2pandoc Module::Name -o ModuleName.html
 
 =head1 DESCRIPTION
 
-C<pod2pandoc> converts POD format documentation (L<perlpod>) to the abstract
-document model used by L<Pandoc|http://pandoc.org/> for further processing to
-other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man,
-ICML...). By default or with input C<-> a document is read from STDIN. Multiple
-input files are combined to one document.
+C<pod2pandoc> converts POD format documentation (L<perlpod>) to the
+L<Pandoc|http://pandoc.org/> document model so it can be processed to other
+formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man, ICML...). By default
+or with input C<-> a document is read from STDIN. Multiple input files are
+combined to one document. The result is printed in JSON format or passed to
+Pandoc if additional options such as C<-t> or C<-o> are given.
 
-Conversion is based on L<Pod::Simple::Pandoc> which uses L<Pandoc::Element>.
-
-=head2 Examples
-
-  pod2pandoc Module.pm | pandoc -f json -o Module.pdf
-  pod2pandoc Module.pm | pandoc -f json -o Module.html
-
-Or even shorter (not implemented yet):
-
-  pod2pandoc Module.pm -- -o Module.pdf
-
-With processing:
-
-  pod2pandoc --filter 'Header => Para [ Strong [ Str $_->string ] ]' Module.pm
+The document metadata field C<pod2pandoc> is set to a list of input files.
 
 =head1 OPTIONS
 
 =over 
-
-=item --filter 'SELECTOR => ACTION'
-
-Preprocess the document. See L<Pandoc::Filter::Lazy> for filter syntax.
 
 =item --help|-h|-?
 
@@ -89,9 +88,15 @@ Print out usage information and exit
 
 Print the full manual page and exit
 
+=item ...
+
+All other options are passed through to pandoc.
+
 =back
 
 =head1 SEE ALSO
+
+Conversion is based on L<Pod::Simple::Pandoc> which uses L<Pandoc::Element>.
 
 This script together with Pandoc can be used as customizable replacement for
 specialized Pod converter scripts such as L<pod2html>, L<pod2man>,

@@ -1,6 +1,7 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Improve pod2pandoc script
 
 0.24  2016-10-06 14:17:31 CEST
     - Rewrite and rename pandoc-filters to multifilter
