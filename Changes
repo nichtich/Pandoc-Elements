@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.25  2016-10-11 21:32:00 CEST
     - Improve pod2pandoc script
     - Rename Pandoc::Filter::Usage::frompod to ::pod2usage
     - Add example filter: section
