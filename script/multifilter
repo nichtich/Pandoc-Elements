@@ -19,7 +19,6 @@ C<--filter>. For instance C<input.md>:
     - /path/filter3  # absolute path
   ...
 
-
 converted via
 
   pandoc --filter multifilter input.md
@@ -34,13 +33,9 @@ In addition, filters are searched in C<~/.pandoc/filters>.
 
 =over
 
-=item --help|-h
+=item --help|-h [<format>]
 
-Print this help.
-
-=item --to|--write|-t|-w <format>
-
-Print this help in given Pandoc output format, e.g. C<markdown>.
+Print this help (optinally in a format supported by pandoc).
 
 =back
 

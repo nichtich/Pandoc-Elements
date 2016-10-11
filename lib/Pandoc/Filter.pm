@@ -32,10 +32,17 @@ sub pandoc_walk(@) {    ## no critic
     return $ast;
 }
 
-sub pandoc_filter(@) {    ## no critic
+sub _pod2usage_if_help {
+    require Getopt::Long;
     require Pandoc::Filter::Usage;
-    Pandoc::Filter::Usage::frompod();
+    my %opt;
+    Getopt::Long::GetOptions(\%opt, 'help|?');
+    Pandoc::Filter::Usage::pod2usage( to => $ARGV[0] ) if $opt{help};
+}
 
+sub pandoc_filter(@) {    ## no critic
+    _pod2usage_if_help();
+    
     my $ast = pandoc_walk(@_);    # implies binmode STDOUT UTF-8
     my $json = JSON->new->allow_blessed->convert_blessed->encode($ast);
 
@@ -44,8 +51,7 @@ sub pandoc_filter(@) {    ## no critic
 }
 
 sub pandoc_filter_document($) {    ## no critic
-    require Pandoc::Filter::Usage;
-    Pandoc::Filter::Usage::frompod();
+    _pod2usage_if_help();
 
     my $filter = shift;
     my $doc = Pandoc::Elements::pandoc_json(<STDIN>);
@@ -217,7 +223,7 @@ Read a single line of JSON from STDIN and walk down the document content AST
 Read a single line of JSON from STDIN, apply actions on the document content
 and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
 is used to print filter documentation if called with command line argument
-C<--help>, C<-h>, or C<-?> instead.
+C<--help>, C<-h>, or C<-?>.
 
 =head2 pandoc_filter_document( $filter )
 

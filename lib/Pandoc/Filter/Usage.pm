@@ -6,43 +6,19 @@ use 5.010;
 our $VERSION = '0.24';
 
 use Pod::Simple::Pandoc;
-use IPC::Run3;
+use Pandoc;
 
-sub frompod {
+sub pod2usage {
     my %opt = ref $_[0] ? %{$_[0]} : @_;
-
-    if (!@_) {
-        require Getopt::Long;
-        Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s', 'about');
-    }
-    return unless $opt{help} or $opt{about};
 
     $opt{exitval} //= 0;
 
-    if ($opt{about}) {
-        require Pod::Usage;
-        my $podsection = sub {
-            my $text = '';
-            open my $fh, '>', \$text;
-            Pod::Usage::pod2usage(
-                -output => $fh, -exitval => 'NOEXIT',
-                -verbose => 99, -sections => shift,
-            );
-            return $text;
-        };
-        my $about = $podsection->('NAME');
-        $about =~ s/^name:\s+//;
-        $about =~ s/^.+?\s+-\s+//ism;
-        $about =~ s/\s+$//ms;
-        if (!$about) {
-            $about = $podsection->('DESCRIPTION');
-            $about =~ s/^description:\s+([^.]+)\..*$/$1/ism;
-        }
-        say $about;
-    } elsif ($opt{to}) {
+    if ($opt{to}) {
         my $doc = Pod::Simple::Pandoc->new->parse_file($0);
         my $json = $doc->to_json;
-        run3 [qw(pandoc -f json -t), $opt{to}], \$json, undef, undef;
+        pandoc->require('1.16');
+        pandoc '-f' => 'json', '-t' => $opt{format},
+            { in => \$json, out => undef, err => undef };
     } else {
         ## no critic
         my $module = -t STDOUT ? 'Pod::Text::Termcap' : 'Pod::Text';
@@ -50,41 +26,46 @@ sub frompod {
         $module->new( indent => 2, nourls => 1 )->parse_file($0);
     }
 
-    exit $opt{exitval};
+    exit $opt{exitval} if $opt{exitval} ne 'NOEXIT';
 }
 
 1;
 
 =head1 NAME
 
-Pandoc::Filter::Usage - get filter documentation from Pod
-
-=head1 SYNOPSIS
-
-Called automatically in L<Pandoc::Filter/pandoc_filter>. If a filter does not
-directly use this function, use like this:
-
-  my %opt;
-  Getopt::Long::GetOptions(\%opt, 'help|?', 'to|write:s');
-  Pandoc::Filter::Usage::frompod(\%opt);
+Pandoc::Filter::Usage - print filter documentation from embedded Pod
 
 =head1 DESCRIPTION
 
-This module provides the function C<frompod> as replacement for C<pod2usage> to
-get and print documentation of a filter.
+This module provides the function C<pod2usage> as replacement for C<pod2usage>
+to get and print documentation of a filter script. The function is called
+automatically by L<Pandoc::Filter/pandoc_filter>. If your filter does not use
+this function, execute C<pod2usage> like this:
+
+  my %opt;
+  Getopt::Long::GetOptions(\%opt, 'help|?');
+  Pandoc::Filter::Usage::pod2usage( to => $ARGV[0] ) if $opt{help};
 
 =head1 FUNCTIONS
 
-=head2 frompod [ %options | { %options } ]
+=head2 pod2usage [ %options | { %options } ]
 
-Prints filter documentation from its Pod and exits if option C<help> is true.
-If no options are passed, options are read from C<@ARGV> with L<GetOpt::Long>
-to check whether command line option C<--help>, C<-h>, C<-?>, or C<--about> was
-specified.
+Print filter documentation parsed with L<Pod::Simple::Pandoc> from its 
+script and exit. 
 
-If option C<to> or C<write> is given, L<Pod::Simple::Pandoc> is used to parse
-the Pod and Pandoc is used to create output in the selected format.
-Documentation is printed with L<Pod::Text> otherwise.
+=over
+
+=item to
+
+Output format (C<json>, C<markdown>, C<html>...) to print documentation with
+pandoc. By default the documentation is printed with L<Pod::Text> instead.
+
+=item exitval
+
+The desired exit status to pass to the exit function or the string "NOEXIT" to
+let the function return without calling exit.
+
+=back
 
 =head1 SEE ALSO
 
