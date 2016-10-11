@@ -4,25 +4,9 @@ use Test::Exception;
 use Pandoc::Elements;
 use Pandoc::Filter::Multifilter qw(find_filter apply_filter);
 use IPC::Cmd 'can_run';
+use Pandoc;
 
-{
-    my @tests = (
-        [ Document {}, [] ] 
-            => [], 'empty multifilter',
-        [qw(foo bar)] 
-            => [qw(foo bar)], 'list of filters',
-        [ Document { multifilter => MetaList [
-            MetaInlines [ Str 'hello', Space, Str "world" ],
-            MetaInlines [ Str 'foo' ], ] }, [] ] 
-            => ['hello world', 'foo'], 'multifilter field',
-    );
-
-    while (@tests) {
-        my $multifilter = Pandoc::Filter::Multifilter->new(@{ shift @tests });
-        is_deeply [$multifilter->names], shift @tests, shift @tests;
-    }
-}
-
+# find_filter( ... )
 {
     my @tests = (
         ['script/multifilter'] 
@@ -52,8 +36,7 @@ use IPC::Cmd 'can_run';
     throws_ok { find_filter($notfound) } qr/^filter not found: $notfound/;
 }
 
-if ( $ENV{RELEASE_TESTING} and
-     (`pandoc -v` // '') =~ /^pandoc (\d+)\.(\d+)/ and ($1 > 1 or $2 >= 12) ) {
+if ($ENV{RELEASE_TESTING} and pandoc and pandoc->version('1.12')) {
 
     my $in = Document {}, [ Para [ Str 'hi' ] ];
 
@@ -64,12 +47,10 @@ if ( $ENV{RELEASE_TESTING} and
         apply_filter($in, 'html', find_filter('empty.pl','t/pandoc'));
     } qr{^filter emitted no valid JSON};
 
-    $in->meta({ multifilter => MetaList [ MetaInlines [ Str 'caps' ] ] });
-    my $filter = Pandoc::Filter::Multifilter->new('t/pandoc/filters/caps');
-
     if (-e 't/.pandoc') { # only in git repository
+        $in->meta({ multifilter => MetaList [ MetaInlines [ Str 'caps' ] ] });
         local $ENV{HOME} = 't';
-        $filter->apply($in)->to_json;
+        Pandoc::Filter::Multifilter->new->apply($in)->to_json;
         is $in->string, 'HI', 'apply_filter';
     }
 

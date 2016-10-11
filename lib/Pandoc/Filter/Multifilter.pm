@@ -9,44 +9,33 @@ use parent 'Pandoc::Filter';
 our @EXPORT_OK = (qw(find_filter apply_filter));
 
 use Pandoc::Elements 'pandoc_json';
-use Scalar::Util 'blessed';
 use IPC::Cmd 'can_run';
 use IPC::Run3;
 
 sub new {
-    my ($class, @names) = @_;
-
-    if (blessed $names[0] and $names[0]->isa('Pandoc::Document')) {
-        my $metalist = $names[0]->meta->{multifilter};
-        @names = ();
-        if ( $metalist and $metalist->name eq 'MetaList' ) {
-            @names = map { $_->metavalue } @{$metalist->content};
-        }
-    }
-
-    bless { names => \@names }, $class;
-}
-
-sub names {
-    @{$_[0]->{names}}
+    bless { }, shift;
 }
 
 sub apply {
     my ( $self, $doc, $format, $meta ) = @_;
 	return $doc if $doc->name ne 'Document';
-	
-	my @filters = map { [ find_filter($_) ] }
-		$self->names, 
-		Pandoc::Filter::Multifilter->new( $meta ? Document($meta, []) : $doc )->names;
 
-    foreach my $filter (@filters) {
-    	$doc = apply_filter($doc, $format, @$filter);
+    my $multi = $doc->meta->{multifilter};
+    return $doc if !$multi or $multi->name ne 'MetaList';
+
+    my @filters = map {
+        if ($_->name eq 'MetaMap' and $_->{filter}) {
+            $_->metavalue
+        } elsif ($_->name eq 'MetaString' or $_->name eq 'MetaInlines') {
+            { filter => $_->metavalue }
+        }
+    } @{$multi->content};
+
+    foreach (@filters) {
+        my @filter = find_filter($_->{filter});
+    	apply_filter($doc, $format, @filter);
     }
 
-	# modify original document 
-	$_[1]->meta($doc->meta);
-	$_[1]->content($doc->content);
- 
     $doc;
 }
 
@@ -90,8 +79,12 @@ sub apply_filter {
         die join(' ','filter failed:',@filter)."\n$stderr";
     }
 
-    eval { $doc = pandoc_json($stdout) };
+    my $transformed =  eval { pandoc_json($stdout) };
     die join(' ','filter emitted no valid JSON:',@filter)."\n" if $@;
+
+	# modify original document
+	$doc->meta($transformed->meta);
+	$doc->content($transformed->content);
 
     return $doc;
 }
@@ -100,32 +93,22 @@ __END__
 
 =head1 NAME
 
-Pandoc::Filter::Multifilter - applies filters from metadata field C<multifilter>
+Pandoc::Filter::Multifilter - apply filters from metadata field C<multifilter>
 
-=head1 SYNOPSIS
+=head1 DESCRIPTION
 
-    # as executable
-    pandoc -F multifilter ...
-
-    # as part of other code
-    $filter = Pandoc::Filter::Multifilter->new('foo','./bar/doz');
-    $filter->apply($ast);
+This filter is provided as system-wide executable L<multifilter>, see there for
+additional documentation.
 
 =head1 METHODS
 
-=head2 new( $document | @names )
+=head2 new
 
-Create a new multifilter with filters either listed in document metadata field
-C<multifilter> or given as list of strings.
-
-=head2 names
-
-Return the list of filter names as specified.
+Create a new multifilter.
 
 =head2 apply( $doc [, $format [, $metadata ] ] )
 
-Apply all filters specified on instantiation plus filters in document metadata
-field C<metafilters>.
+Apply all filters specified in document metadata field C<metafilters>.
 
 =head1 FUNCTIONS
 
@@ -135,17 +118,12 @@ Find a filter by its name an an optional Pandoc C<$DATA_DIR> (C<~/.pandoc> by
 default). Returns a list of command line arguments to execute the filter or
 throw an exception.
 
-=head2 apply_filter( $doc, $format, @command )
+=head2 apply_filter( $doc, $format, @filter )
 
 Apply a filter, given by its command line arguments, to a Pandoc
 L<Document|Pandoc::Elements/Document> element and return a transformed
 Document or throw an exception on error. Can be called like this:
 
   apply_filter( $doc, $format, find_filter( $name ) );
-
-=head1 SEE ALSO
-
-This filter is provided as system-wide executable L<multifilter>, see there for
-additional documentation.
 
 =cut
