@@ -9,6 +9,7 @@ use Pod::Usage;
 use Pandoc::Elements;
 use Pod::Simple::Pandoc;
 use IPC::Run3;
+use Pandoc;
 
 my %opt;
 GetOptions( \%opt, 'help|h|?', 'man' ) or exit 1;
@@ -46,8 +47,10 @@ foreach my $file (@input) {
 $all->meta->{pod2pandoc} = $meta;
 
 if (@ARGV) {
+    pandoc->require('1.12');
+    $Pandoc::Elements::PANDOC_VERSION = pandoc->version;
     my $json = $all->to_json;
-    run3 ['pandoc', '-f', 'json', @ARGV], \$json;
+    pandoc '-f' => 'json', @ARGV, { in => \$json };
 } else {
     print $all->to_json, "\n";
 }
