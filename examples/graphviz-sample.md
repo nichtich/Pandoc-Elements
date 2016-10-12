@@ -20,9 +20,9 @@ Image captions are possible with attribute `caption` and additional attributes a
 digraph G {Hello->World [label="ÄÖÜ"]}
 ```
 
-Attribute `graphviz-layout` can be used to select another GraphViz layout engine:
+Attribute `option` (or `options`) can be used to select another GraphViz layout engine:
 
-```{.graphviz graphviz-layout=circo}
+```{.graphviz option="-Kcirco"}
 digraph G {A->B; B->C; C->D; D->A}
 ```
 
