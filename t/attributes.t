@@ -35,11 +35,15 @@ is_deeply [ '0', [qw(x y)], [ [ foo => 3 ] ] ], $e->attr, 'keyvals as setter';
 $e->keyvals({ });
 is_deeply [ '0', [qw(x y)], [ ] ], $e->attr, 'keyvals as setter (no class)';
 
+$e->keyvals( id => undef, class => undef );
+is_deeply [ '', [], [ ] ], $e->attr, 'keyvals to remove id and classes';
+
+
 $e->id(2);
 is '2', $e->id, 'id setter';
 
 $e->class('q r', 's ', [qw(x y)]);
-is_deeply [qw(q r s x y)], $e->classes, 'classes setter';
+is_deeply 'q r s x y', $e->class, 'class setter';
 
 $e->keyvals( a => 1, class => ['s'], a => 2 );
 is_deeply [ '2', ['s'], [ [ a => 1 ], [ a => 2 ] ] ], $e->attr, 'keyvals as setter';
@@ -53,7 +57,7 @@ my @class_hashes = (
 
 foreach (@class_hashes) {
     $e = CodeBlock attributes $_, '';
-    is_deeply $e->classes, [qw(foo bar doz)], 'class(es) attributes';
+    is_deeply $e->class, 'foo bar doz', 'class(es) attributes';
 }
 
 foreach (qw(foo bar doz)) {

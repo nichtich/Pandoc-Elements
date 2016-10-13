@@ -356,13 +356,14 @@ sub pandoc_json($) {
     my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
     sub id {
-        $_[0]->attr->[0] = "$_[1]" if @_ > 1;
+        $_[0]->attr->[0] = defined $_[1] ? "$_[1]" : "" if @_ > 1;
         $_[0]->attr->[0]
     }
 
     sub classes {
         my $e = shift;
         croak 'Method classes() is not a setter' if @_;
+        warn "->classes is deprecated, use ->class instead\n";
         $e->attr->[1]
     }
 
@@ -376,7 +377,7 @@ sub pandoc_json($) {
                 @_
             ];
         }
-        join ' ', @{$e->classes}
+        join ' ', @{$e->attr->[1]}
     }
 
     sub add_attribute {
@@ -384,6 +385,7 @@ sub pandoc_json($) {
         if ($key eq 'id') {
             $e->id($value);
         } elsif ($key eq 'class') {
+            $value //= '';
             $value = ["$value"] unless (reftype $value // '') eq 'ARRAY';
             push @{$e->attr->[1]}, grep { $_ ne '' } map { split qr/\s+/, $_ } @$value;
         } else {
@@ -404,7 +406,7 @@ sub pandoc_json($) {
         }
         my @h;
         push @h, id => $e->id if $e->id ne '';
-        push @h, class => $e->class if @{$e->classes};
+        push @h, class => $e->class if @{$e->attr->[1]};
         Hash::MultiValue->new( @h, map { @$_ } @{$e->attr->[2]} );
     }
 
@@ -418,7 +420,7 @@ sub pandoc_json($) {
                 return 0 unless $self->id eq $1;
             }
             elsif ( $selector =~ s/^\.($IDENTIFIER)\s*// ) {
-                return 0 unless grep { $1 eq $_ } @{ $self->classes };
+                return 0 unless grep { $1 eq $_ } @{ $self->attr->[1] };
             }
             else {
                 return 0;
@@ -631,7 +633,7 @@ See also module L<Pandoc::Filter>, command line scripts L<pandocwalk> and
 L<pod2pandoc>, and the internal modules L<Pandoc::Walker>,
 L<Pandoc::Filter::Lazy>, and L<Pod::Simple::Pandoc>.
 
-=head2 EXPORTED FUNCTIONS
+=head1 FUNCTIONS
 
 The following functions and keywords are exported by default:
 
@@ -641,7 +643,7 @@ The following functions and keywords are exported by default:
 
 Constructors for all Pandoc document element (L<block elements|/BLOCK ELEMENTS>
 such as C<Para> and L<inline elements|/INLINE ELEMENTS> such as C<Emph>,
-L<metadata elements|/METADATA ELEMENTS> and the L<DOCUMENT ELEMENT/Document>).
+L<metadata elements|/METADATA ELEMENTS> and the L<Document|/DOCUMENT ELEMENT>).
 
 =item
 
@@ -655,25 +657,20 @@ C<element>.
 
 =back
 
-=head3 pandoc_json $json
+=head2 pandoc_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
 to method C<to_json> but it can read both old (before Pandoc 1.16) and new
 format.
 
-=head3 attributes { key => $value, ... }
+=head2 attributes { key => $value, ... }
 
-Maps a hash reference or instance of L<Hash::MultiValue> into an attributes
-list with id, classes, and ordered key-value pairs. The special keys C<id>
-(string), and C<class> (string or array reference with space-separated class
-names) are recognized. You can always manually create an attributes structure:
+Maps a hash reference or instance of L<Hash::MultiValue> into the internal
+structure of Pandoc attributes. The special keys C<id> (string), and C<class>
+(string or array reference with space-separated class names) are recognized.
+See L<attribute methods|/ATTRIBUTE METHODS> for details.
 
-    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
-
-See also L<attribute methods|/ATTRIBUTE METHODS> to get and set element
-attributes.
-
-=head3 citation { ... }
+=head2 citation { ... }
 
 A citation as part of document element L<Cite|/Cite> must be a hash reference
 with fields C<citationID> (string), C<citationPrefix> (list of L<inline
@@ -694,19 +691,20 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
-=head3 element( $name => $content )
+=head2 element( $name => $content )
 
 Create a Pandoc document element of arbitrary name. This function is only
 exported on request.
 
-=head1 ELEMENTS
+=head1 ELEMENTS AND METHODS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format C<json>. All elements are blessed
-objects that provide the following element methods and additional accessor
-methods specific to each element.
+objects that provide L<common element methods|/COMMON METHODS> (all elements),
+L<attribute methods|/ATTRIBUTE METHODS> (elements with attributes), and
+additional element-specific methods.
 
-=head2 ELEMENT METHODS
+=head2 COMMON METHODS
 
 =head3 to_json
 
@@ -764,14 +762,62 @@ Transform the element tree with L<Pandoc::Walker>
 
 Returns a concatenated string of element content, leaving out all formatting.
 
-=head3 ATTRIBUTE METHODS
+=head2 ATTRIBUTE METHODS
 
-Elements with attributes (element accessor method C<attr>) also provide the
-getter methods C<id>, C<classes>, C<class>, C<keyvals>, and setter methods
-C<id>, C<class>, C<keyvals>, C<add_attribute>. Method C<keyvals> returns a copy
-of id, class, and attribute key-value pairs as L<Hash::MultiValue>.  If used as
-setter, all key-value pairs (and optionally id and class if given) are
-replaced.
+Some elements have attributes which can be an identifier, ordered class names
+and ordered key-value pairs. Elements with attributes provide the following
+methods:
+
+=head3 attr
+
+Get or set the attributes in Pandoc internal structure:
+
+  [ $id, [ @classes ], [ [ key => $value ], ... ] ]
+
+See helper function L<attributes|/attributes-key-value> to create this
+structure.
+
+=head3 keyvals
+
+Get all attributes (id, class, and key-value pairs) as new L<Hash::MultiValue>
+instance, or replace I<all> key-value pairs plus id and/or class if these are
+included as field names. All class fields are split by whitespaces.
+
+  $e->keyvals                           # return new Hash::MultiValue
+  $e->keyvals( $HashMultiValue )        # update by instance of Hash::MultiValue
+  $e->keyvals( key => $value, ... )     # update by list of key-value pairs
+  $e->keyvals( \%hash )                 # update by hash reference
+  $e->keyvals( { } )                    # remove all key-value pairs
+  $e->keyvals( id => '', class => '' )  # remove all key-value pairs, id, and class
+
+=head3 id
+
+Get or set the identifier.
+
+=head3 class
+
+Get or set the list of classes, separated by whitespace.
+
+=head3 add_attribute( $name => $value )
+
+Append an attribute. The special attribute names C<id> and C<class> set or
+append identifier or class, respectively.
+
+=head2 DOCUMENT ELEMENT
+
+=head3 Document
+
+Root element, consisting of metadata hash (C<meta>) and document element array
+(C<content>).
+
+    Document $meta, [ @blocks ]
+
+Document C<metavalue> returns a copy of the metadata hash with all L<metadata
+elements|/METADATA ELEMENTS> flattened to unblessed values:
+
+    $doc->metavalue   # equivalent to
+    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+
 
 =head2 BLOCK ELEMENTS
 
@@ -893,7 +939,8 @@ An example:
 =head3 Cite
 
 Citation, a list of C<citations> and a list of L<inlines|/INLINE ELEMENTS>
-(C<content>).  See helper function L<citation/citation> to construct citations.
+(C<content>). See helper function L<citation|/citation> to construct
+citations.
 
     Cite [ @citations ], [ @inlines ]
 
@@ -1078,21 +1125,6 @@ A list of other L<metadata elements|/METADATA ELEMENTS> (C<content>).
 A map of keys to other metadata elements.
 
     MetaMap { %map }
-
-=head2 DOCUMENT ELEMENT
-
-=head3 Document
-
-Root element, consisting of metadata hash (C<meta>) and document element array
-(C<content>).
-
-    Document $meta, [ @blocks ]
-
-Document C<metavalue> returns a copy of the metadata hash with all L<metadata
-elements|/METADATA ELEMENTS> flattened to unblessed values:
-
-    $doc->metavalue   # equivalent to
-    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 =head2 TYPE KEYWORDS
 
