@@ -74,7 +74,7 @@ use Pandoc::Walker qw(walk);
 use parent 'Exporter';
 our @EXPORT = (
     keys %ELEMENTS,
-    qw(Document attributes metadata citation pandoc_json)
+    qw(Document attributes metadata citation pandoc_json pandoc_query)
 );
 our @EXPORT_OK = ( @EXPORT, 'element' );
 
@@ -201,6 +201,8 @@ sub pandoc_json($) {
 
     return $ast;
 }
+
+*pandoc_query = *Pandoc::Walker::query;
 
 # document element packages
 
