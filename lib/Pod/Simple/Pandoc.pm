@@ -7,6 +7,8 @@ our $VERSION = '0.25';
 
 use Pod::Simple::SimpleTree;
 use Pandoc::Elements;
+use Pandoc::Filter::HeaderIdentifiers;
+use utf8;
 
 sub new {
     my $class = shift;
@@ -51,7 +53,7 @@ sub parse_string {
 
 sub parse_tree {
     my ( $self, $tree ) = @_;
-    _pod_element($tree);
+    Pandoc::Filter::HeaderIdentifiers->new->apply( _pod_element($tree) );
 }
 
 my %POD_ELEMENT_TYPES = (
@@ -104,6 +106,13 @@ my %POD_ELEMENT_TYPES = (
     'for' => \&_pod_data,
 );
 
+# option --smart
+sub _str {
+    my $s = shift;
+    $s =~ s/\.\.\./…/g;
+    Str $s;
+}
+
 # map a single element or text to a list of Pandoc elements
 sub _pod_element {
     my ($element) = @_;
@@ -114,7 +123,7 @@ sub _pod_element {
     }
     else {
         my $n = 0;
-        map { $n++ ? ( Space, Str $_) : Str $_ } split( /\s+/, $element, -1 );
+        map { $n++ ? ( Space, _str($_)) : _str($_) } split( /\s+/, $element, -1 );
     }
 }
 
@@ -173,10 +182,8 @@ sub _pod_link {
             $url = "https://metacpan.org/pod/$to";
         }
         if ($section) {
-
-            # TODO: further escaping
-            $section =~ s/ /-/g;
-            $url .= "#$section";
+            $section = header_identifier("$section") unless $to; # internal link
+            $url .= "#" . $section;
         }
     }
 
@@ -256,7 +263,7 @@ __END__
 
 =head1 NAME
 
-Pod::Simple::Pandoc - convert Pod to Pandoc document model 
+Pod::Simple::Pandoc - convert Pod to Pandoc document model
 
 =head1 SYNOPSIS
 
@@ -264,7 +271,7 @@ Pod::Simple::Pandoc - convert Pod to Pandoc document model
 
   my $parser = Pod::Simple::Pandoc->new;
   my $doc    = $parser->parse_file( $filename );
-  
+
   # result is a Pandoc::Document
   print $doc->to_json;
 
@@ -385,9 +392,9 @@ An C<=over>...C<=back> region containing no C<=item> is mapped to C<BlockQuote>.
 
 =head2 Verbatim sections
 
-  verbatim sections are mapped 
+  verbatim sections are mapped
     to code blocks
-    
+
 =head2 Data sections
 
 Data sections with target C<html> or C<latex> are passed as C<RawBlock>.
@@ -396,14 +403,14 @@ C<HTML>, C<LaTeX>, C<TeX>, and C<tex> are recognized as alias.
 =begin html
 
 <p>
-  HTML is passed through 
+  HTML is passed through
 
   as <i>you can see here</i>.
 </p>
 
 =end html
 
-=for html HTML is automatically enclosed in 
+=for html HTML is automatically enclosed in
   <code>&ltdiv>...&lt/div></code> if needed.
 
 =for latex \LaTeX\ is passed through as you can see here.

@@ -794,7 +794,8 @@ included as field names. All class fields are split by whitespaces.
 
 =head3 id
 
-Get or set the identifier.
+Get or set the identifier. See also L<Pandoc::Filter::HeaderIdentifiers> for
+utility functions to handle L<Header|/Header> identifiers.
 
 =head3 class
 
