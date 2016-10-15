@@ -71,12 +71,12 @@ sub action {
         my @return = ();
 
         foreach my $action (@matching) {
-            $_      = $_[0];
+            $_      = $_[0];    # FIXME: $doc->walk( Section => sub { $_->id } )
             @return = ( $action->(@_) );
         }
 
         wantarray ? @return : $return[0];
-      }
+    }
 }
 
 sub transform {
@@ -88,15 +88,21 @@ sub transform {
     if ( $reftype eq 'ARRAY' ) {
         for ( my $i = 0 ; $i < @$ast ; ) {
             my $item = $ast->[$i];
+
             if ( ( reftype $item || '' ) eq 'HASH' and $item->{t} ) {
                 my $res = $action->($item);
 
-                # replace current item with result element(s)
                 if ( defined $res ) {
-                    my @elements =    #map { transform($_, $action, @_) }
-                      ( reftype $res || '' ) eq 'ARRAY' ? @$res : $res;
-                    splice @$ast, $i, 1, @elements;
-                    $i += scalar @elements;
+                    # stop traversal
+                    if ( $res eq \undef ) {
+                        $i++;
+                    # replace current item with result element(s)
+                    } else {
+                        my @elements =    #map { transform($_, $action, @_) }
+                          ( reftype $res || '' ) eq 'ARRAY' ? @$res : $res;
+                        splice @$ast, $i, 1, @elements;
+                        $i += scalar @elements;
+                    }
                     next;
                 }
             }
@@ -122,8 +128,11 @@ sub transform {
 sub walk(@) {    ## no critic
     my $ast    = shift;
     my $action = action(@_);
-
-    transform( $ast, sub { $_ = $_[0]; $action->(@_); return } );
+    transform( $ast, sub {
+        $_ = $_[0];
+        my $q = $action->(@_);
+        return (defined $q and $q eq \undef) ? \undef : undef
+    } );
 }
 
 sub query(@) {    ## no critic
@@ -131,7 +140,13 @@ sub query(@) {    ## no critic
     my $action = action(@_);
 
     my $list = [];
-    transform( $ast, sub { $_ = $_[0]; push @$list, $action->(@_); return } );
+    transform( $ast, sub {
+        $_ = $_[0];
+        my $q = $action->(@_);
+        return $q if !defined $q or $q eq \undef;
+        push @$list, $q;
+        return
+    } );
     return $list;
 }
 
@@ -201,27 +216,30 @@ Return an an action function to process document elements.
 Walks an abstract syntax tree and calls an action on every element or every
 element of given name(s). Additional arguments are also passed to the action.
 
+If and only if the action function returns C<\undef> the current element is
+not traversed further.
+
 See also function C<pandoc_walk> exported by L<Pandoc::Filter>.
 
 =head2 query( $ast, ... )
 
 Walks an abstract syntax tree and applies one or multiple query functions to
-extract results.  The query function is expected to return a list. The combined
-query result is returned as array reference. For instance the C<string> method
-of L<Pandoc::Elements> is implemented as following:
+extract results.  The query function is expected to return a list or C<\undef>.
+The combined query result is returned as array reference. For instance the
+C<string> method of L<Pandoc::Elements> is implemented as following:
 
-    join '', @{ 
-        query( $ast, { 
+    join '', @{
+        query( $ast, {
             'Str|Code|Math'   => sub { $_->content },
-            'LineBreak|Space' => sub { ' ' } 
+            'LineBreak|Space' => sub { ' ' }
         } );
 
 =head2 transform( $ast, ... )
 
 Walks an abstract syntax tree and applies an action on every element, or every
-element of given name(s), to either keep it (if the action returns C<undef>),
-remove it (if it returns an empty array reference), or replace it with one or
-more elements (returned by array reference or as single value).
+element of given name(s), to either keep it (if the action returns C<undef> or
+C<\undef>), remove it (if it returns an empty array reference), or replace it
+with one or more elements (returned by array reference or as single value).
 
 See also function C<pandoc_filter> exported by L<Pandoc::Filter>.
 
