@@ -6,7 +6,7 @@ use Pandoc::Filter::ImagesFromCode;
 
 pandoc_filter 'CodeBlock.graphviz' => Pandoc::Filter::ImagesFromCode->new(
     from => 'dot',
-    to   => sub { $_[0] eq 'latex' ? 'pdf' : 'png' },
+    to   => sub { shift eq 'latex' ? 'pdf' : 'png' },
     run  => ['dot', '-T$to$', '-o$outfile$', '$infile$'],
 );
 
@@ -25,6 +25,8 @@ layout engine (C<dot> by default).
   pandoc --filter graphviz.pl -o output.html < input.md
 
 =head1 SEE ALSO
+
+See L<Pandoc::Filter::CodeImage> for implementation.
 
 This is an extended port of
 L<graphviz.py|https://github.com/jgm/pandocfilters/blob/master/examples/graphviz.py>

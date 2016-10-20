@@ -20,5 +20,5 @@ html: ${ALLHTML}
 		pandoc -s -S --filter ./$(subst -sample.md,.pl,$<) $< -o $@
 	
 clean:
-	@rm -f *.pdf *.png *.html
+	@rm -f *.pdf *.png *.html *.log
 

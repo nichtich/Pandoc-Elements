@@ -44,10 +44,15 @@ sub action {
 
     sub {
         my ($e, $f, $m) = @_;
-
         return if $e->name ne 'CodeBlock';
 
+        my $keyvals = $e->keyvals;
+
         my $code = $e->content;
+		if ($filter->{content}) {
+	        $code = $filter->{content}->($e, $f, $m);
+		}
+
         my $dir  = "."; # TODO: configure this
      
         my %args;
@@ -58,9 +63,8 @@ sub action {
         $args{outfile}  = "$dir/".$args{md5}.".".$args{to};
 
         # TODO: document this
-        my $kv = $e->keyvals;
-        my @options = $kv->get_all('option');
-        push @options, map { split /\s+/, $_ } $kv->get_all('options');
+        my @options = $keyvals->get_all('option');
+        push @options, map { split /\s+/, $_ } $keyvals->get_all('options');
         # TODO: expand args in options
 
         # TODO: print args in debug mode?
@@ -109,7 +113,7 @@ sub build_image {
     my $e = shift;
     my $filename = shift // '';
 
-    my $img = Image [$e->id, $e->classes, []], [], [$filename, ''];
+    my $img = Image [$e->id, [ split ' ', $e->class ], []], [], [$filename, ''];
     my $keyvals = $e->keyvals;
 
     my $caption = $keyvals->get('caption');
@@ -130,6 +134,23 @@ __END__
 =head1 NAME
 
 Pandoc::Filter::ImagesFromCode - transform code blocks into images
+
+=head1 DESCRIPTION
+
+This filter provides a class to transform
+L<CodeBlock|Pandoc::Elements/CodeBlock> sections into images.
+
+  ~~~
+  ...
+  ~~~
+
+=head1 CONFIGURATION
+
+  
+
+=head1 SEE ALSO
+
+See examples C<ditaa.pl>, C<graphviz.pl>
 
 =cut
 

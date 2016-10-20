@@ -26,4 +26,3 @@ Attribute `option` (or `options`) can be used to select another GraphViz layout 
 digraph G {A->B; B->C; C->D; D->A}
 ```
 
-
