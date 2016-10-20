@@ -44,9 +44,11 @@ else {
 
 =head1 NAME
 
-pandocwalk - parse document with pandoc and process abstract syntax tree
+pandocwalk - parse document with pandoc and process abstract syntax tree (deprecated)
 
 =head1 SYNOPSIS
+
+I<this script is deprecated and will be removed!> 
 
   pandocwalk [ options ] [ SCRIPT | 'SELECTOR => ACTION' ]
 

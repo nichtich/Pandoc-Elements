@@ -24,6 +24,7 @@ sub stringify {
     $_[0]->string;
 }
 
+# TODO: deprecate this function
 sub pandoc_walk(@) {    ## no critic
     my $filter = Pandoc::Filter->new(@_);
     my $ast    = Pandoc::Elements::pandoc_json(<STDIN>);
@@ -73,6 +74,7 @@ sub new {
     }, $class;
 }
 
+# TODO: remove this method, only used on Pandoc::Filter::Lazy and pandocwalk
 sub error {
     $_[0]->{error};
 }
@@ -176,18 +178,9 @@ Document by default (if the AST is a Document root).
 
 Return a code reference to call all actions.
 
-=head2 size
-
-Return the number of actions in this filter.
-
 =head1 FUNCTIONS
 
 The following functions are exported by default.
-
-=head2 pandoc_walk( @actions | %actions )
-
-Read a single line of JSON from STDIN and walk down the document content AST
-(without metadata elements).  Implicitly sets binmode UTF-8 for STDOUT.
 
 =head2 pandoc_filter( @actions | %actions )
 
@@ -196,18 +189,10 @@ and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
 is used to print filter documentation if called with command line argument
 C<--help>, C<-h>, or C<-?>.
 
-=head2 pandoc_filter_document( $filter )
-
-Same as C<pandoc_filter> but applies filter to the whole Document.  This
-function may be replaced in a future version of this module.
-
 =head1 SEE ALSO
 
 This module is a port of L<pandocfilters|https://github.com/jgm/pandocfilters>
 from Python to modern Perl.  
-
-Script L<pandocwalk>, installed with this module, facilitates execution of
-C<pandoc_walk> to traverse a document from command line.
 
 =head1 COPYRIGHT AND LICENSE
 

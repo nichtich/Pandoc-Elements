@@ -60,7 +60,7 @@ CODE
 
 =head1 NAME
 
-Pandoc::Filter::Lazy - facilitate creation of filters
+Pandoc::Filter::Lazy - facilitate creation of filters (deprecated)
 
 =head1 SYNOPSIS
 
@@ -75,6 +75,8 @@ Pandoc::Filter::Lazy - facilitate creation of filters
   }
  
 =head1 DESCRIPTION
+
+THIS MODULE IS DEPRECATED AND WILL BE REMOVED.
 
 This module helps creation of L<Pandoc::Filter> with arguments given as string.
 The following should result in equivalent filters:
