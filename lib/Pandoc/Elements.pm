@@ -553,18 +553,26 @@ sub pandoc_json($) {
 }
 
 {
-    # We turn the array containing the API version into an overloaded object
-    # which stringifies to something human-readable like '1.17.0.4'.
-    # It also numifies to something like 1.017000004 to allow
+    # We turn the array containing the API version into an object
+    # with methods which return a human-readable string like '1.17.0.4'.
+    # or a number like 1.017000004 to allow
     # comparing such objects with perl numeric comparison operators.
+    # It also has comparison *methods* eq(), ne(), lt(), gt(), le(), ge(),
+    # EQ(), NE(), LT(), GT(), LE(), GE(). The UPPERCASE versions
+    # compare their invocant to another api-version object
+    # or to an API version number string like '1.17.0.4'
+    # while the lowercase versions compare their invocant
+    # to a pandoc executable version number string like '1.18'.
+    # Under the hood all arguments are coerced to api-version objects
+    # and the comparison is done with the number representation.
 
     package Pandoc::Document::ApiVersion;
 
     # our @CARP_NOT = qw(Pandoc::Document::Element Pandoc::Elements);
 
-    use overload q[""] => 'string', q[0+] => 'number', fallback => 1;
+    # use overload q[""] => 'string', q[0+] => 'number', fallback => 1;
     use Carp qw(croak);
-    use Scalar::Util qw(reftype);
+    use Scalar::Util qw(reftype blessed);
 
     sub new {
         my ( $class, @args ) = @_;
@@ -574,7 +582,7 @@ sub pandoc_json($) {
           = grep { length $_ }
           map    { split /\./ }
           # GOTCHA: reftype() returns undef for non-reference
-          map { ( 'ARRAY' eq ( reftype( $_ ) // "" ) ) ? @$_ : $_ }
+          map { ( 'ARRAY' CORE::eq ( reftype( $_ ) // "" ) ) ? @$_ : $_ }
           map { $_ // [] } @args;
         for my $num ( @nums ) {
             $num =~ /^[0-9]+$/ or croak 'Non-digit found in api-version subvalue';
@@ -601,6 +609,33 @@ sub pandoc_json($) {
         my ( $self ) = @_;
         return [ map { 0+ $_ } @$self ];
     }
+
+    sub _to_obj {
+        ## no critic
+        my $arg = $_[1] ? $Pandoc::Elements::PANDOC_API_VERSION_OF{$_[0] // ""} : $_[0];
+        return $arg if blessed($arg) and $arg->isa(__PACKAGE__);    
+        return __PACKAGE__->new($arg); 
+    }
+    
+
+    sub eq { $_[0]->number == _to_obj($_[1], 1)->number }
+    sub EQ { $_[0]->number == _to_obj($_[1])->number }
+
+    sub ne { $_[0]->number != _to_obj($_[1], 1)->number }
+    sub NE { $_[0]->number != _to_obj($_[1])->number }
+
+    sub lt { $_[0]->number <  _to_obj($_[1], 1)->number }
+    sub LT { $_[0]->number <  _to_obj($_[1])->number }
+
+    sub gt { $_[0]->number >  _to_obj($_[1], 1)->number }
+    sub GT { $_[0]->number >  _to_obj($_[1])->number }
+
+    sub le { $_[0]->number <= _to_obj($_[1], 1)->number }
+    sub LE { $_[0]->number <= _to_obj($_[1])->number }
+
+    sub ge { $_[0]->number >= _to_obj($_[1], 1)->number }
+    sub GE { $_[0]->number >= _to_obj($_[1])->number }
+
 }
 
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
@@ -610,7 +645,7 @@ sub Pandoc::Document::TO_JSON {
     my ( $self ) = @_;
     local $PANDOC_API_VERSION = $self->api_version->string;
     return Pandoc::Document::Element::TO_JSON(
-        $self->api_version >= pandoc_api_version_of('1.18')
+        $self->api_version->ge('1.18')
         ? $self
         : [ { unMeta => $self->{meta} }, $self->{blocks} ]
     );
@@ -627,9 +662,7 @@ sub Pandoc::Document::LineBlock::TO_JSON {
         $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
     }
     if ( defined $PANDOC_API_VERSION ) {
-        return $ast
-          if pandoc_api_version( $PANDOC_API_VERSION )
-          >= pandoc_api_version_of( '1.18' );
+        return $ast if pandoc_api_version( $PANDOC_API_VERSION )->ge( '1.18' );
         my $c = [ map { ; @$_, LineBreak() } @{$content} ];
         pop @$c;    # remove trailing line break
         return Para( $c )->TO_JSON;
