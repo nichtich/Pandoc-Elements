@@ -293,7 +293,7 @@ sub pandoc_json($) {
         join '', map { $_->string } @{$_[0]->content}
     }
     sub api_version { $_[0]->{'pandoc-api-version'} }
-    sub new_from_ast { shift;  Pandoc::Element::Document( @_ ); }
+    sub new_from_ast { shift;  Pandoc::Document( @_ ); }
 }
 
 {
