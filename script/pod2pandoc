@@ -12,9 +12,9 @@ use IPC::Run3;
 use Pandoc;
 
 my %opt;
-GetOptions( \%opt, 'help|h|?', 'man' ) or exit 1;
-pod2usage(1) if $opt{help};
-pod2usage( -verbose => 2 ) if $opt{man};
+GetOptions( \%opt, 'help|h|?', 'man', 'data-sections', 'podurl=s' ) or exit 1;
+pod2usage(1) if delete $opt{help};
+pod2usage( -verbose => 2 ) if delete $opt{man};
 
 my @input = @ARGV ? () : '-';
 
@@ -35,7 +35,8 @@ foreach my $file (@input) {
         run3 ['perldoc','-lm',$file], undef, \$file;
         exit $? if $?;
     } 
-    my $doc = Pod::Simple::Pandoc->parse_file($file);
+    my $parser = Pod::Simple::Pandoc->new(%opt);
+    my $doc = $parser->parse_file($file);
     if ($all) {
         push @{ $all->content }, @{ $doc->content };
     }
@@ -90,6 +91,14 @@ Print out usage information and exit
 =item --man
 
 Print the full manual page and exit
+
+=item --data-sections
+
+Parse and include data sections in pandoc input formats (e.g. markdown).
+
+=item --podurl URL
+
+Set base URL to link Perl modules (C<https://metacpan.org/pod/> by default).
 
 =item ...
 

@@ -8,11 +8,22 @@ our $VERSION = '0.25';
 use Pod::Simple::SimpleTree;
 use Pandoc::Elements;
 use Pandoc::Filter::HeaderIdentifiers;
+use Pandoc;
 use utf8;
 
 sub new {
-    my $class = shift;
-    bless {}, $class;
+    my ($class, %opt) = @_;
+
+    my @targets = qw(html HTML tex latex TeX LaTeX);
+    if ($opt{'data-sections'}) {
+        Pandoc->require('1.12');
+        push @targets, pandoc->input_formats;
+    }
+    $opt{targets} = \@targets;
+    
+    $opt{podurl} //= 'https://metacpan.org/pod/';
+
+    bless \%opt, $class;
 }
 
 sub _parser {
@@ -24,7 +35,7 @@ sub _parser {
     $parser->merge_text(1);          # emit text nodes combined
     $parser->no_errata_section(1);   # omit errata section
     $parser->complain_stderr(1);     # TODO: configure
-    $parser->accept_targets( 'html', 'HTML', 'tex', 'latex', 'TeX', 'LaTeX' );
+    $parser->accept_targets(@{$self->{targets}});
 
     # remove shortest leading whitespace string from verbatim sections
     $parser->strip_verbatim_indent(
@@ -52,56 +63,55 @@ sub parse_string {
 }
 
 sub parse_tree {
-    my ( $self, $tree ) = @_;
-    Pandoc::Filter::HeaderIdentifiers->new->apply( _pod_element($tree) );
+    Pandoc::Filter::HeaderIdentifiers->new->apply( _pod_element(@_) );
 }
 
 my %POD_ELEMENT_TYPES = (
     Document => sub {
-        Document {}, [ _pod_content( $_[0] ) ];
+        Document {}, [ _pod_content(@_) ];
     },
     Para => sub {
-        Para [ _pod_content( $_[0] ) ];
+        Para [ _pod_content(@_) ];
     },
     I => sub {
-        Emph [ _pod_content( $_[0] ) ];
+        Emph [ _pod_content(@_) ];
     },
     B => sub {
-        Strong [ _pod_content( $_[0] ) ];
+        Strong [ _pod_content(@_) ];
     },
     L => \&_pod_link,
     C => sub {
-        Code attributes {}, _pod_flatten( $_[0] );
+        Code attributes {}, _pod_flatten(@_);
     },
     F => sub {
-        Code attributes { classes => ['filename'] }, _pod_flatten( $_[0] );
+        Code attributes { classes => ['filename'] }, _pod_flatten(@_);
     },
     head1 => sub {
-        Header 1, attributes {}, [ _pod_content( $_[0] ) ];
+        Header 1, attributes {}, [ _pod_content(@_) ];
     },
     head2 => sub {
-        Header 2, attributes {}, [ _pod_content( $_[0] ) ];
+        Header 2, attributes {}, [ _pod_content(@_) ];
     },
     head3 => sub {
-        Header 3, attributes {}, [ _pod_content( $_[0] ) ];
+        Header 3, attributes {}, [ _pod_content(@_) ];
     },
     head4 => sub {
-        Header 4, attributes {}, [ _pod_content( $_[0] ) ];
+        Header 4, attributes {}, [ _pod_content(@_) ];
     },
     Verbatim => sub {
-        CodeBlock attributes {}, _pod_flatten( $_[0] );
+        CodeBlock attributes {}, _pod_flatten(@_);
     },
     'over-bullet' => sub {
-        BulletList [ _pod_list( $_[0] ) ];
+        BulletList [ _pod_list(@_) ];
     },
     'over-number' => sub {
-        OrderedList [ 1, DefaultStyle, DefaultDelim ], [ _pod_list( $_[0] ) ];
+        OrderedList [ 1, DefaultStyle, DefaultDelim ], [ _pod_list(@_) ];
     },
     'over-text' => sub {
-        DefinitionList [ _pod_list( $_[0] ) ];
+        DefinitionList [ _pod_list(@_) ];
     },
     'over-block' => sub {
-        BlockQuote [ _pod_content( $_[0] ) ];
+        BlockQuote [ _pod_content(@_) ];
     },
     'for' => \&_pod_data,
 );
@@ -115,11 +125,11 @@ sub _str {
 
 # map a single element or text to a list of Pandoc elements
 sub _pod_element {
-    my ($element) = @_;
+    my ($self, $element) = @_;
 
     if ( ref $element ) {
         my $type = $POD_ELEMENT_TYPES{ $element->[0] } or return;
-        $type->($element);
+        $type->($self, $element);
     }
     else {
         my $n = 0;
@@ -129,9 +139,9 @@ sub _pod_element {
 
 # map the content of a Pod element to a list of Pandoc elements
 sub _pod_content {
-    my ($element) = @_;
+    my ($self, $element) = @_;
     my $length = scalar @$element;
-    map { _pod_element($_) } @$element[ 2 .. ( $length - 1 ) ];
+    map { _pod_element($self, $_) } @$element[ 2 .. ( $length - 1 ) ];
 }
 
 # stringify the content of an element
@@ -150,16 +160,17 @@ sub _pod_flatten {
             }
         }
     };
-    $walk->( $_[0] );
+    $walk->($_[1]);
 
     return $string;
 }
 
 # map link
 sub _pod_link {
-    my $type    = $_[0][1]{type};
-    my $to      = $_[0][1]{to};
-    my $section = $_[0][1]{section};
+    my ($self, $link) = @_;
+    my $type    = $link->[1]{type};
+    my $to      = $link->[1]{to};
+    my $section = $link->[1]{section};
     my $url     = '';
 
     if ( $type eq 'url' ) {
@@ -177,9 +188,7 @@ sub _pod_link {
     }
     elsif ( $type eq 'pod' ) {
         if ($to) {
-
-            # TODO: configure PERLDOC_URL
-            $url = "https://metacpan.org/pod/$to";
+            $url = $self->{podurl}.$to;
         }
         if ($section) {
             $section = header_identifier("$section") unless $to; # internal link
@@ -187,12 +196,12 @@ sub _pod_link {
         }
     }
 
-    return Link attributes { }, [ _pod_content( $_[0] ) ], [ $url, '' ];
+    return Link attributes { }, [ _pod_content($self, $link) ], [ $url, '' ];
 }
 
 # map data section
 sub _pod_data {
-    my ($element) = @_;
+    my ($self, $element) = @_;
     my $target = lc( $element->[1]{target} );
 
     my $length = scalar @$element;
@@ -209,14 +218,15 @@ sub _pod_data {
         $content = "\\begingroup $content \\endgroup" if $content !~ /^[\\{]/;
         RawBlock 'tex', "$content\n";
     }
-    else {
-        undef;
+    elsif (grep { $target eq $_ } @{$self->{targets}}) {
+        my $doc = pandoc->parse( $target => $content, '--smart' );
+        @{ $doc->content };
     }
 }
 
 # map a list (any kind)
 sub _pod_list {
-    my ($element) = @_;
+    my ($self, $element) = @_;
     my $length = scalar @$element;
 
     my $deflist = $element->[2][0] eq 'item-text';
@@ -238,7 +248,7 @@ sub _pod_list {
         my $type = $e->[0];
         if ( $type =~ /^item-(number|bullet|text)$/ ) {
             $push_item->();
-            $item = [ Plain [ _pod_content($e) ] ];
+            $item = [ Plain [ _pod_content($self, $e) ] ];
         }
         else {
             if ( @$item == 1 and $item->[0]->name eq 'Plain' ) {
@@ -246,7 +256,7 @@ sub _pod_list {
                 # first block element in item should better be Paragraph
                 $item->[0] = Para $item->[0]->content;
             }
-            push @$item, _pod_element($e);
+            push @$item, _pod_element($self, $e);
         }
     }
     $push_item->();
@@ -286,6 +296,22 @@ The command line script L<pod2pandoc> makes use of this module, for instance to
 directly convert to PDF:
 
   pod2pandoc input.pod | pandoc -f json -t output.pdf
+
+=head1 OPTIONS
+
+=over
+
+=item data-sections
+
+Parse L<data sections|/Data sections> of pandoc input formats with L<Pandoc>
+and merge them into the document (disabled by default).
+
+=item podurl
+
+Base URL to link Perl module names to. Set to L<https://metacpan.org/pod/> by
+default.
+
+=back
 
 =head1 METHODS
 
@@ -400,6 +426,16 @@ An C<=over>...C<=back> region containing no C<=item> is mapped to C<BlockQuote>.
 Data sections with target C<html> or C<latex> are passed as C<RawBlock>.
 C<HTML>, C<LaTeX>, C<TeX>, and C<tex> are recognized as alias.
 
+With option C<parse-data-sections> additional targets supported by pandoc as
+input format (C<markdown>, C<markdown_github>, C<rst>...) are parsed with
+L<Pandoc> and merged into the result document.
+
+=begin markdown
+
+### Examples
+
+=end markdown
+
 =begin html
 
 <p>
@@ -420,13 +456,6 @@ C<HTML>, C<LaTeX>, C<TeX>, and C<tex> are recognized as alias.
 \LaTeX\ sections should start and end so Pandoc can recognize them.
 
 =end tex
-
-=head1 LIMITATIONS
-
-Sure there are bugs.
-Please L<send bug reports|https://github.com/nichtich/Pandoc-Elements/issues>!
-
-Configuration will be added in a later version.
 
 =head1 SEE ALSO
 
