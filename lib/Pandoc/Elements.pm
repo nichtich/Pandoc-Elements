@@ -3,10 +3,73 @@ use strict;
 use warnings;
 use 5.010;
 
+use utf8; # because of non-breaking spaces in line blocks
+
 our $VERSION = '0.25';
 
-our $PANDOC_VERSION;    # a string like '1.16'
+use subs qw( PANDOC_VERSION PANDOC_API_VERSION PANDOC_LATEST_API_VERSION );
+
+our $PANDOC_VERSION;            # a string like '1.16'
+our $PANDOC_API_VERSION;        # a string like '1.17.0.4'
+our %PANDOC_API_VERSION_OF;     # maps pandoc versions to api versions
+our $PANDOC_EXE_VERSION_OF;     # a Hash::MultiValue mapping api versions to pandoc executable versions versions
+our $PANDOC_LATEST_API_VERSION; # holds the highest value in %PANDOC_API_VERSION_OF
+
+use Pandoc::Version;
+use Hash::MultiValue 0.16;
+
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
+
+# This must be updated for each pandoc version >= 1.18
+%PANDOC_API_VERSION_OF = (
+    ## Shall give undef for pandoc < 1.18!
+    '1.18' => '1.17.0.4',
+);
+
+{
+    # Even though there is as yet only one version pair our API
+    # should be prepared for the future: the mapping from pandoc-api-
+    # versions to pandoc executable versions will probably be
+    # one-to-many.
+
+    # I wish there were a Hash::MultiValue where the values were
+    # automatically sorted, and which could be made readonly! BPJ
+
+    my $sort_versions = sub {
+        ## XXX: should the values be objects? The keys can't be anyway so probably not.
+        map { $_->string } sort { $a <=> $b } map { Pandoc::Version->new( $_ ) } @_;
+    };
+
+    # Work around Hash::MultiValue's preservation of the order of
+    # existing keys/values by feeding the sorted values to an
+    # instance where the keys/values didn't exist before. We want
+    # them sorted in particular so that the last value is the last
+    # pandoc version (to date) which used each API version.
+
+    my $pvo_temp = Hash::MultiValue->new( reverse %PANDOC_API_VERSION_OF );
+    $PANDOC_EXE_VERSION_OF = Hash::MultiValue->new;
+    for my $key ( $sort_versions->( $pvo_temp->keys ) ) {
+        $PANDOC_EXE_VERSION_OF->set( $key,
+            $sort_versions->( $pvo_temp->get_all( $key ) ) );
+    }
+    $PANDOC_LATEST_API_VERSION = ($PANDOC_EXE_VERSION_OF->keys)[-1];
+}
+
+# This is actually trivalent:
+# * Undefined/env var unset: assume pandoc >= 1.18
+# * Defined but false: assume pandoc < 1.18
+# * True: assume the value is the version to use
+$PANDOC_API_VERSION //= $ENV{PANDOC_API_VERSION}
+  // $PANDOC_API_VERSION_OF{$PANDOC_VERSION // ''};
+
+# Functions which return Pandoc::Version objects from their like-named package variables
+# They are uppercase because the variables are, and because the lowercase
+# pandoc_version() function does something else: wraps Pandoc::Version->new()
+# Declare these early so they can be used as barewords
+
+sub PANDOC_VERSION { Pandoc::Version->new( $PANDOC_VERSION // return ) }
+sub PANDOC_API_VERSION { Pandoc::Version->new( $PANDOC_API_VERSION // return ) }
+sub PANDOC_LATEST_API_VERSION { Pandoc::Version->new( $PANDOC_LATEST_API_VERSION // return ) }
 
 our %ELEMENTS = (
 
@@ -24,6 +87,7 @@ our %ELEMENTS = (
     Table          => [ Block => qw(caption alignment widths headers rows) ],
     Div            => [ Block => qw(attr content) ],
     Null           => ['Block'],
+    LineBlock      => [ Block => qw(content/lines) ],
 
     # INLINE ELEMENTS
     Str         => [ Inline => 'content' ],
@@ -74,7 +138,9 @@ use Pandoc::Walker qw(walk);
 use parent 'Exporter';
 our @EXPORT = (
     keys %ELEMENTS,
-    qw(Document attributes metadata citation pandoc_json pandoc_query)
+    qw(Document attributes metadata citation pandoc_json pandoc_query),
+    qw(pandoc_version pandoc_api_version_of pandoc_exe_version_of),
+    qw(PANDOC_VERSION PANDOC_API_VERSION PANDOC_LATEST_API_VERSION),
 );
 our @EXPORT_OK = ( @EXPORT, 'element' );
 
@@ -123,10 +189,61 @@ sub element {
     &$name(@_);
 }
 
-sub Document($$) {
-    @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
-    my $meta = metadata(shift);
-    return bless [ { unMeta => $meta }, shift ], 'Pandoc::Document';
+sub Document {
+    my $arg
+      # new style: 
+      # { meta => \%, blocks => \@, 'pandoc-api-version'|api_version => (\@|$) | api_version_of => $] }
+      = ( 1 == @_ ) ? shift 
+      # old style: \%meta, \@blocks
+      : ( 3 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => $_[2] }
+      # extended old style: \%meta, \@blocks, $api_version
+      : ( 3 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => $_[2] }
+      # elsif odd number of args: error
+      : ( @_ % 2  ) ? croak( "Document: too many or ambiguous arguments" )
+      # mixed style: \%meta, \@blocks, %params
+      :               { meta => shift, blocks => shift, @_ };
+    if ( 'ARRAY' eq reftype $arg ) {    # old-style internal representation
+        $arg = { meta => $arg->[0]->{unMeta}, blocks => $arg->[1] };
+    }
+    'HASH' eq reftype $arg
+      or croak
+      'Usage: Document({blocks => \@blocks, meta => \%meta, api_version => $api_version})';
+  ## @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
+    return bless {
+        meta   => metadata( $arg->{meta} // {} ),
+        blocks => ( $arg->{blocks}       // [] ),
+        'pandoc-api-version' => pandoc_version(
+            # prefer haskell-style key but accept perl-style key
+            $arg->{'pandoc-api-version'} // $arg->{pandoc_version}
+              // $arg->{api_version}    # accept abbreviated key
+              # api_version_of => $pandoc_executable_version
+              # $PANDOC_API_VERSION_OF{''} = undef
+              // $PANDOC_API_VERSION_OF{ $arg->{api_version_of} // '' }
+              # Fall back on pkg var // env var // undef
+              // PANDOC_API_VERSION() 
+              // croak("Document: you must supply an API version"
+                        # . "\nTry one of:\n"
+                        # . "api_version_of => PANDOC_VERSION()\n"
+                        # . "api_version => PANDOC_API_VERSION()\n"
+                        # . "api_version => PANDOC_LATEST_API_VERSION()\n"
+                ),
+        ),
+      },
+      'Pandoc::Document';
+}
+
+sub pandoc_version    { Pandoc::Version->new( @_ ) }
+sub pandoc_api_version_of { Pandoc::Version->new( $PANDOC_API_VERSION_OF{ $_[0] } ) }
+
+sub pandoc_exe_version_of {
+    my ( $api_version, $get_all ) = @_;
+    if ( $get_all ) {
+        ## return an arrayref with all executable versions which used this API version
+        return [ map { Pandoc::Version->new( $_ ) }
+              $PANDOC_EXE_VERSION_OF->get_all( $api_version ) ];
+    }
+    ## return the last executable version which used this API version
+    return Pandoc::Version->new( $PANDOC_EXE_VERSION_OF->{$api_version} );
 }
 
 # specific accessors
@@ -184,17 +301,25 @@ sub pandoc_json($) {
     }
     return unless reftype $ast;
 
-    if ( reftype $ast eq 'ARRAY' ) {
-        my $meta = $ast->[0]->{unMeta};
-        for my $v ( values %$meta ) {
-            $v = $ast_to_element->( $v, $ast_to_element );
-        }
-        $ast = Document( $meta, $ast->[1] );
+    if ( reftype $ast eq 'ARRAY' ) {    
+        # old style document representation
+        $ast = { meta => $ast->[0]{unMeta}, blocks => $ast->[1], }
+        if reftype $ast->[0] eq 'HASH' and exists $ast->[0]{unMeta};
     }
-    elsif ( reftype $ast eq 'HASH' and $ast->{t} ) {
+
+    if ( reftype $ast eq 'HASH' and $ast->{t} ) {
+        # A document element
 
         # $ast = element( $ast->{t}, $ast->{c} );
         $ast = $ast_to_element->( $ast, $ast_to_element );
+    }
+    elsif ( reftype $ast eq 'HASH' and exists $ast->{blocks} ) {
+        # new-style document representation
+        my $meta = $ast->{meta};
+        for my $v ( values %$meta ) {
+            $v = $ast_to_element->( $v, $ast_to_element );
+        }
+        $ast = Document( $ast ); # handles new/old format
     }
 
     walk $ast, $ast_to_element;
@@ -212,15 +337,17 @@ sub pandoc_json($) {
     use strict;
     our $VERSION = '0.04';
     our @ISA = ('Pandoc::Document::Element');
+    sub blocks;
     sub name { 'Document' }
     sub meta {
-        $_[0]->[0]->{unMeta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
-        $_[0]->[0]->{unMeta}
+        $_[0]->{meta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
+        $_[0]->{meta};
     }
     sub content { 
-        $_[0]->[1] = $_[1] if @_ > 1; 
-        $_[0]->[1] 
+        $_[0]->{blocks} = $_[1] if @_ > 1; 
+        $_[0]->{blocks};
     }
+    *blocks = \&content;
     sub is_document { 1 }
     sub metavalue {
         my $meta = $_[0]->meta;
@@ -229,6 +356,8 @@ sub pandoc_json($) {
     sub string {
         join '', map { $_->string } @{$_[0]->content}
     }
+    sub api_version { $_[0]->{'pandoc-api-version'} }
+    sub new_from_ast { shift;  Pandoc::Document( @_ ); }
 }
 
 {
@@ -257,7 +386,12 @@ sub pandoc_json($) {
 
         my ( $ast, $maybe_blessed ) = @_;
         if ( $maybe_blessed && blessed $ast ) {
-            return $ast if $ast->can('TO_JSON');    # JSON.pm will convert
+            if ( my $TO_JSON = $ast->can('TO_JSON' ) ) {
+                # $PANDOC_API_VERSION may be localized so that
+                # contained objects get the appropriate representation
+                # therefore we call the object's TO_JSON method
+                return $ast->$TO_JSON;  # save a method lookup
+            }
                  # may have overloaded stringification! Should we check?
                  # require overload;
               # return "$ast" if overload::Method($ast, q/""/) or overload::Method($ast, q/0+/);
@@ -482,8 +616,40 @@ sub pandoc_json($) {
     }
 }
 
+
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
-# and to downgrade document model for Pandoc < 1.16
+# and to downgrade document model for older versions of pandoc
+
+sub Pandoc::Document::TO_JSON {
+    my ( $self ) = @_;
+    local $PANDOC_API_VERSION = $self->api_version->string;
+    return Pandoc::Document::Element::TO_JSON(
+        $self->api_version ge '1.17.0.4'
+        ? $self
+        : [ { unMeta => $self->{meta} }, $self->{blocks} ]
+    );
+}
+
+sub Pandoc::Document::LineBlock::TO_JSON {
+    my $ast     = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $content = $ast->{c};
+    for my $line ( @$content ) {
+
+        # Convert spaces at the beginning of each line
+        # to Unicode non-breaking spaces, because pandoc does.
+        next unless $line->[0]->{t} eq 'Str';
+        $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
+    }
+    if ( defined $PANDOC_API_VERSION ) {
+        return $ast if PANDOC_API_VERSION ge '1.17.0.4';
+        my $c = [ map { ; @$_, LineBreak() } @{$content} ];
+        pop @$c;    # remove trailing line break
+        return Para( $c )->TO_JSON;
+    }
+    else {
+        return $ast;
+    }
+}
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
     if ( $Pandoc::Elements::PANDOC_VERSION

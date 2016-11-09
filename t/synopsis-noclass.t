@@ -3,6 +3,11 @@ use Test::More;
 use Pandoc::Elements;
 use JSON;
 
+BEGIN {
+    plan skip_all => 'Test::Deep not available' unless eval 'require Test::Deep; 1;';
+    Test::Deep->import( qw[cmp_deeply noclass] );
+}
+
 my $ast = Document { 
         title => MetaInlines [ Str 'Greeting' ] 
     }, [
@@ -10,8 +15,9 @@ my $ast = Document {
         Para [ Str 'hello, world!' ],
     ], api_version_of => '1.18';
 
-is_deeply $ast, { 
-    'blocks' => [
+# note explain $ast->TO_JSON;
+
+cmp_deeply $ast, noclass {   'blocks' => [
         {   'c' => [ 1, [ 'de', [], [] ], [ { 'c' => 'Gruß', 't' => 'Str' } ] ],
             't' => 'Header'
         },
@@ -25,13 +31,13 @@ is_deeply $ast, {
 };
 
 my $json = JSON->new->utf8->convert_blessed->encode($ast);
-is_deeply decode_json($json), $ast, 'encode/decode JSON';
-is_deeply Pandoc::Elements::pandoc_json($json), $ast, 'pandoc_json';
+cmp_deeply decode_json($json), noclass($ast), 'encode/decode JSON';
+cmp_deeply Pandoc::Elements::pandoc_json($json), noclass($ast), 'pandoc_json';
 $json = $ast->to_json;
-is_deeply decode_json($json), $ast, 'to_json';
+cmp_deeply decode_json($json), noclass($ast), 'to_json';
 
 eval { Pandoc::Elements->pandoc_json(".") };
-like $@, qr{.+at.+synopsis\.t}, 'error in pandoc_json';
+like $@, qr{.+at.+synopsis.*\.t}, 'error in pandoc_json';
 
 done_testing;
 
