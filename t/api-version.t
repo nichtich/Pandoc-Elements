@@ -1,52 +1,38 @@
 use strict;
 use Test::More 0.96; # for subtests
+
 use Pandoc::Elements;
 
-use constant AV => 'Pandoc::Document::ApiVersion';
+use constant PV => 'Pandoc::Version';
 
+note '$Pandoc::Elements::PANDOC_VERSION ',            explain \$Pandoc::Elements::PANDOC_VERSION;
+note '$Pandoc::Elements::PANDOC_API_VERSION ',        explain \$Pandoc::Elements::PANDOC_API_VERSION;
+note '%Pandoc::Elements::PANDOC_API_VERSION_OF ',     explain \%Pandoc::Elements::PANDOC_API_VERSION_OF;
+note '$Pandoc::Elements::PANDOC_EXE_VERSION_OF ',     explain \$Pandoc::Elements::PANDOC_EXE_VERSION_OF;
+note '$Pandoc::Elements::PANDOC_LATEST_API_VERSION ', explain \$Pandoc::Elements::PANDOC_LATEST_API_VERSION;
 
-my %objects = (
-    from_array  => new_ok( AV, [ [ 1, 17, 0, 4 ] ], 'new from array'),
-    from_list   => new_ok( AV, [ ( 1, 17, 0, 4 ) ], 'new from list'),
-    from_string => new_ok( AV, ['1.17.0.4'], 'new from string'),
-);
+local $Pandoc::Elements::PANDOC_VERSION = $Pandoc::Elements::PANDOC_VERSION;
+local $Pandoc::Elements::PANDOC_API_VERSION = $Pandoc::Elements::PANDOC_API_VERSION;
 
-my $standard = bless( [ 1, 17, 0, 4 ], 'Pandoc::Document::ApiVersion' );
+$Pandoc::Elements::PANDOC_VERSION //= '1.18';
+$Pandoc::Elements::PANDOC_API_VERSION //= '1.17.0.4';
 
-for my $name ( sort keys %objects ) {
-    is_deeply $objects{ $name }->TO_JSON, $standard->TO_JSON, "$name structure";
+isa_ok PANDOC_VERSION, PV, 'PANDOC_VERSION'; 
+isa_ok PANDOC_API_VERSION, PV, 'PANDOC_API_VERSION'; 
+isa_ok PANDOC_LATEST_API_VERSION, PV, 'PANDOC_LATEST_API_VERSION';
+isa_ok $Pandoc::Elements::PANDOC_EXE_VERSION_OF, 'Hash::MultiValue', 'PANDOC_EXE_VERSION_OF';
+
+isa_ok pandoc_version('1.16'), PV, 'pandoc_version()';
+isa_ok pandoc_api_version_of('1.18'), PV, 'pandoc_api_version_of()';
+isa_ok pandoc_exe_version_of('1.17.0.4'), PV, 'pandoc_exe_version_of()';
+
+TODO: {
+    todo_skip 'Behavior with out-of-range API versions undecided', 2;
+
+    isa_ok pandoc_api_version_of('1.16'), PV, 'pandoc_api_version_of(PRE-1.18)';
+    isa_ok pandoc_api_version_of('9999.999.999'), PV, "pandoc_api_version_of(INSANELY HIGH)";
 }
 
-my %compared = (
-    empty  => {
-        object => new_ok( AV, [], 'new empty'),
-        api => "",
-        exe => '1.12',
-    },
-    lesser => {
-        object => new_ok( AV, [ [ 1, 16 ] ], 'new lesser'),
-        api => '1.16',
-    },
-    more => {
-        object => $standard,
-        api => '1.17.0.4',
-        exe => '1.18',
-    }
-);
-
-for my $name ( sort keys %compared ) {
-    ok $compared{$name}{object}->EQ($compared{$name}{api}), "$name API";
-    if ( $compared{$name}{exe} ) {
-        ok $compared{$name}{object}->eq($compared{$name}{exe}), "$name executable";
-    }
-    ok $compared{$name}{object}->LE($standard), "$name LE standard";
-
-    ok $standard->GE($compared{$name}{api}), "standard GE $name";
-    ok $standard->ge($compared{$name}{exe}), "standard ge $name";
-
-    # note explain $compared{$name}{object}; 
-}
-
-is_deeply $standard->TO_JSON, [ 1, 17, 0, 4 ], 'TO_JSON';
+is pandoc_api_version_of(pandoc_exe_version_of(PANDOC_LATEST_API_VERSION)), PANDOC_LATEST_API_VERSION, 'latest api/exe version roundtrip';
 
 done_testing;
