@@ -1,25 +1,20 @@
 language: perl
-sudo: false
+
+# Ubuntu 14.04 includes pandoc 1.12.2.1 so better use it
+sudo: required
+dist: trusty
+
 perl:
   - "5.24"
-#  - "5.22"
-#  - "5.20"
-#  - "5.18"
-#  - "5.16"
-#  - "5.14"
+  - "5.22"
+  - "5.20"
+  - "5.18"
+  - "5.16"
+  - "5.14"
   - "5.12"
 
-matrix:
-  allow_failures:
-    - perl: 5.14
-    - perl: 5.12
-
-addons:
-  apt:
-    packages:
-      - pandoc
-
 install:
+  - sudo apt-get install pandoc
   - pandoc --version
   - pandoc --help
   - cpanm --installdeps . || cat /home/travis/.cpanm/*/build.log 
