@@ -20,7 +20,7 @@ addons:
       - pandoc
 
 install:
-  - cpanm --installdeps .
+  - cpanm --installdeps . || cat /home/travis/.cpanm/*/build.log 
   - cpanm --quiet --notest --skip-satisfied Dist::Milla
 
 script:
@@ -29,7 +29,4 @@ script:
 after_success:
   - cpanm --quiet --notest --skip-satisfied Devel::Cover::Report::Coveralls
   - perl Build.PL && ./Build build && cover -test -report coveralls
-
-after_failure:
-  - cat /home/travis/.cpanm/*/build.log 
 
