@@ -20,6 +20,8 @@ addons:
       - pandoc
 
 install:
+  - pandoc --version
+  - pandoc --help
   - cpanm --installdeps . || cat /home/travis/.cpanm/*/build.log 
   - cpanm --quiet --notest --skip-satisfied Dist::Milla
 
