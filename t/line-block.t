@@ -40,19 +40,6 @@ my %expected = (
     },
 );
 
-my %api_versions = (
-    undef          => { api_version => undef, expected => '1.18' },
-    'empty string' => { api_version => "",    expected => '0' },
-    '0'            => { api_version => '0',   expected => '0' },
-    '1.12' => { api_version => pandoc_api_version_of( '1.12' ), expected => '0' },
-    '1.18' => { api_version => pandoc_api_version_of( '1.18' ), expected => '1.18' },
-);
-
-for my $name ( sort keys %api_versions ) {
-    local $Pandoc::Elements::PANDOC_API_VERSION = $api_versions{$name}{api_version};
-    is_deeply $e->TO_JSON, $expected{ $api_versions{$name}{expected} }, "api-version: $name";
-}
-
 {
 
     # Pandoc::Document::TO_JSON() localizes $Pandoc::Elements::PANDOC_API_VERSION

@@ -195,7 +195,7 @@ sub Document {
       # { meta => \%, blocks => \@, 'pandoc-api-version'|api_version => (\@|$) | api_version_of => $] }
       = ( 1 == @_ ) ? shift 
       # old style: \%meta, \@blocks
-      : ( 3 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => $_[2] }
+      : ( 2 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => 0 }
       # extended old style: \%meta, \@blocks, $api_version
       : ( 3 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => $_[2] }
       # elsif odd number of args: error
@@ -233,17 +233,33 @@ sub Document {
 }
 
 sub pandoc_version    { Pandoc::Version->new( @_ ) }
-sub pandoc_api_version_of { Pandoc::Version->new( $PANDOC_API_VERSION_OF{ $_[0] } ) }
+sub pandoc_api_version_of {
+    my $exe_version = Pandoc::Version->new($_[0]);
+    my $api_version 
+        = $exe_version lt '1.12' ? croak( "Versions of pandoc before 1.12 are not supported by Pandoc::Elements" )
+        : $exe_version >= '1.12' and $exe_version < '1.18' ? 0
+        : $PANDOC_API_VERSION_OF{ $_[0] } // croak "Version $exe_version of pandoc is not supported by this version of Pandoc::Elements";
+    return Pandoc::Version->new( $api_version );
+}
 
 sub pandoc_exe_version_of {
     my ( $api_version, $get_all ) = @_;
+    $api_version = Pandoc::Version->new( $api_version );
+    my $exe_version = $api_version < '1.17.0.4'
+      ? do {
+        carp
+          "pandoc_exe_version_of: andoc API versions before 1.17.0.4 (pandoc 1.18) are not detected. Returning undef.";
+        return;
+      }
+      : $PANDOC_EXE_VERSION_OF->{$api_version} // croak
+      "Pandoc API version $api_version is not supported by Pandoc::Elements";
     if ( $get_all ) {
-        ## return an arrayref with all executable versions which used this API version
+      ## return an arrayref with all executable versions which used this API version
         return [ map { Pandoc::Version->new( $_ ) }
               $PANDOC_EXE_VERSION_OF->get_all( $api_version ) ];
     }
-    ## return the last executable version which used this API version
-    return Pandoc::Version->new( $PANDOC_EXE_VERSION_OF->{$api_version} );
+  ## return the last executable version which used this API version
+    return Pandoc::Version->new( $exe_version );
 }
 
 # specific accessors
