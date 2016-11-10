@@ -41,41 +41,35 @@ ODT, and ePUB.
 
 Please make sure to use at least Pandoc 1.12 when processing documents
 
-See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter), command line scripts [pandocwalk](https://metacpan.org/pod/pandocwalk) and
-[pod2pandoc](https://metacpan.org/pod/pod2pandoc), and the internal modules [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker),
-[Pandoc::Filter::Lazy](https://metacpan.org/pod/Pandoc::Filter::Lazy), and [Pod::Simple::Pandoc](https://metacpan.org/pod/Pod::Simple::Pandoc).
+See also module [Pandoc::Filter](https://metacpan.org/pod/Pandoc::Filter), command line script [pod2pandoc](https://metacpan.org/pod/pod2pandoc), and the
+internal modules [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker) and [Pod::Simple::Pandoc](https://metacpan.org/pod/Pod::Simple::Pandoc).
 
-## EXPORTED FUNCTIONS
+# FUNCTIONS
 
 The following functions and keywords are exported by default:
 
 - Constructors for all Pandoc document element ([block elements](#block-elements)
 such as `Para` and [inline elements](#inline-elements) such as `Emph`,
-[metadata elements](#metadata-elements) and the ["Document" in DOCUMENT ELEMENT](https://metacpan.org/pod/DOCUMENT&#x20;ELEMENT#Document)).
+[metadata elements](#metadata-elements) and the [Document](#document-element)).
 - [Type keywords](#type-keywords) such as `Decimal` and `LowerAlpha` to be used
 as types in other document elements.
 - The helper following functions `pandoc_json`, `attributes`, `citation`, and
 `element`.
 
-### pandoc\_json $json
+## pandoc\_json $json
 
 Parse a JSON string, as emitted by pandoc in JSON format. This is the reverse
 to method `to_json` but it can read both old (before Pandoc 1.16) and new
 format.
 
-### attributes { key => $value, ... }
+## attributes { key => $value, ... }
 
-Maps a hash reference or instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) into an attributes
-list with id, classes, and ordered key-value pairs. The special keys `id`
-(string), and `class` (string or array reference with space-separated class
-names) are recognized. You can always manually create an attributes structure:
+Maps a hash reference or instance of [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue) into the internal
+structure of Pandoc attributes. The special keys `id` (string), and `class`
+(string or array reference with space-separated class names) are recognized.
+See [attribute methods](#attribute-methods) for details.
 
-    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
-
-See also [attribute methods](#attribute-methods) to get and set element
-attributes.
-
-### citation { ... }
+## citation { ... }
 
 A citation as part of document element [Cite](#cite) must be a hash reference
 with fields `citationID` (string), `citationPrefix` (list of [inline
@@ -96,19 +90,20 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
-### element( $name => $content )
+## element( $name => $content )
 
 Create a Pandoc document element of arbitrary name. This function is only
 exported on request.
 
-# ELEMENTS
+# ELEMENTS AND METHODS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
 structure, emitted with pandoc output format `json`. All elements are blessed
-objects that provide the following element methods and additional accessor
-methods specific to each element.
+objects that provide [common element methods](#common-methods) (all elements),
+[attribute methods](#attribute-methods) (elements with attributes), and
+additional element-specific methods.
 
-## ELEMENT METHODS
+## COMMON METHODS
 
 ### to\_json
 
@@ -166,14 +161,62 @@ Transform the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc
 
 Returns a concatenated string of element content, leaving out all formatting.
 
-### ATTRIBUTE METHODS
+## ATTRIBUTE METHODS
 
-Elements with attributes (element accessor method `attr`) also provide the
-getter methods `id`, `classes`, `class`, `keyvals`, and setter methods
-`id`, `class`, `keyvals`, `add_attribute`. Method `keyvals` returns a copy
-of id, class, and attribute key-value pairs as [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue).  If used as
-setter, all key-value pairs (and optionally id and class if given) are
-replaced.
+Some elements have attributes which can be an identifier, ordered class names
+and ordered key-value pairs. Elements with attributes provide the following
+methods:
+
+### attr
+
+Get or set the attributes in Pandoc internal structure:
+
+    [ $id, [ @classes ], [ [ key => $value ], ... ] ]
+
+See helper function [attributes](#attributes-key-value) to create this
+structure.
+
+### keyvals
+
+Get all attributes (id, class, and key-value pairs) as new [Hash::MultiValue](https://metacpan.org/pod/Hash::MultiValue)
+instance, or replace _all_ key-value pairs plus id and/or class if these are
+included as field names. All class fields are split by whitespaces.
+
+    $e->keyvals                           # return new Hash::MultiValue
+    $e->keyvals( $HashMultiValue )        # update by instance of Hash::MultiValue
+    $e->keyvals( key => $value, ... )     # update by list of key-value pairs
+    $e->keyvals( \%hash )                 # update by hash reference
+    $e->keyvals( { } )                    # remove all key-value pairs
+    $e->keyvals( id => '', class => '' )  # remove all key-value pairs, id, class
+
+### id
+
+Get or set the identifier. See also [Pandoc::Filter::HeaderIdentifiers](https://metacpan.org/pod/Pandoc::Filter::HeaderIdentifiers) for
+utility functions to handle [Header](#header) identifiers.
+
+### class
+
+Get or set the list of classes, separated by whitespace.
+
+### add\_attribute( $name => $value )
+
+Append an attribute. The special attribute names `id` and `class` set or
+append identifier or class, respectively.
+
+## DOCUMENT ELEMENT
+
+### Document
+
+Root element, consisting of metadata hash (`meta`) and document element array
+(`content`).
+
+    Document $meta, [ @blocks ]
+
+Document `metavalue` returns a copy of the metadata hash with all [metadata
+elements](#metadata-elements) flattened to unblessed values:
+
+    $doc->metavalue   # equivalent to
+    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 ## BLOCK ELEMENTS
 
@@ -293,7 +336,8 @@ An example:
 ### Cite
 
 Citation, a list of `citations` and a list of [inlines](#inline-elements)
-(`content`).  See helper function ["citation" in citation](https://metacpan.org/pod/citation#citation) to construct citations.
+(`content`). See helper function [citation](#citation) to construct
+citations.
 
     Cite [ @citations ], [ @inlines ]
 
@@ -478,21 +522,6 @@ A list of other [metadata elements](#metadata-elements) (`content`).
 A map of keys to other metadata elements.
 
     MetaMap { %map }
-
-## DOCUMENT ELEMENT
-
-### Document
-
-Root element, consisting of metadata hash (`meta`) and document element array
-(`content`).
-
-    Document $meta, [ @blocks ]
-
-Document `metavalue` returns a copy of the metadata hash with all [metadata
-elements](#metadata-elements) flattened to unblessed values:
-
-    $doc->metavalue   # equivalent to
-    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 ## TYPE KEYWORDS
 

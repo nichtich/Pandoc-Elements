@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.23';
+our $VERSION = '0.26';
 
 use Digest::MD5 'md5_hex';
 use IPC::Run3;
@@ -131,5 +131,9 @@ __END__
 
 Pandoc::Filter::ImagesFromCode - transform code blocks into images
 
-=cut
+=head1 DESCRIPTION
 
+This L<Pandoc::Filter> transforms L<CodeBlock|Pandoc::Elements/CodeBlock>
+elements into images. The specific interface may change in a future version.
+
+=cut

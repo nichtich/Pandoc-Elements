@@ -10,3 +10,4 @@ MYMETA.*
 /examples/*.*
 !/examples/*.md
 !/examples/*.pl
+pandoc/

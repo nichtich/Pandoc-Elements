@@ -189,6 +189,18 @@ and print the resulting AST as single line of JSON. L<Pandoc::Filter::Usage>
 is used to print filter documentation if called with command line argument
 C<--help>, C<-h>, or C<-?>.
 
+=head1 FILTER MODULES
+
+=over
+
+=item L<Pandoc::Filter::HeaderIdentifiers>
+
+=item L<Pandoc::Filter::Multifilter>
+
+=item L<Pandoc::Filter::ImagesFromCode>
+
+=back
+
 =head1 SEE ALSO
 
 This module is a port of L<pandocfilters|https://github.com/jgm/pandocfilters>

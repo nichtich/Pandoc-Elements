@@ -47,7 +47,7 @@ POD
 }
 
 # data-sections
-if (pandoc and pandoc->version('1.12')) {
+if (pandoc and pandoc->version >= '1.12' and pandoc->version < '1.18') {
     my %opt = ('data-sections' => 1);
     my $doc = Pod::Simple::Pandoc->new(%opt)->parse_file($file);
     is_deeply

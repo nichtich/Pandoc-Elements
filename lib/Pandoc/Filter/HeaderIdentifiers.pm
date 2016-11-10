@@ -98,9 +98,16 @@ Pandoc::Filter::HeaderIdentifiers - Add identifiers to headers
 
 =head1 SYNOPSIS
 
-  my $id = header_identifier( $header->content );
+  my $id = header_identifier( $header->content );       # calculate identifier
 
-  Pandoc::Filter::HeaderIdentifiers->new->apply($doc);
+  Pandoc::Filter::HeaderIdentifiers->new->apply($doc);  # add all identifiers
+
+=head1 DESCRIPTION
+
+This L<Pandoc::Filter> adds identifier attributes (L<id|Pandoc::Elements/id>)
+to all L<Headers|Pandoc::Elements/Header> elements. It uses the same algorithm
+as internally used by pandoc.  The module also exports function
+C<header_identifier> to calculate an identifier from a list of elements.
 
 =head1 FUNCTIONS
 

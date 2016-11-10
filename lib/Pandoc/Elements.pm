@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 our $PANDOC_VERSION;    # a string like '1.16'
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
@@ -789,7 +789,7 @@ included as field names. All class fields are split by whitespaces.
   $e->keyvals( key => $value, ... )     # update by list of key-value pairs
   $e->keyvals( \%hash )                 # update by hash reference
   $e->keyvals( { } )                    # remove all key-value pairs
-  $e->keyvals( id => '', class => '' )  # remove all key-value pairs, id, and class
+  $e->keyvals( id => '', class => '' )  # remove all key-value pairs, id, class
 
 =head3 id
 
