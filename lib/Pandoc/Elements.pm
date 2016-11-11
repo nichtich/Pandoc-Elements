@@ -190,44 +190,70 @@ sub element {
 }
 
 sub Document {
-    my $arg
-      # new style: 
-      # { meta => \%, blocks => \@, 'pandoc-api-version'|api_version => (\@|$) | api_version_of => $] }
-      = ( 1 == @_ ) ? shift 
-      # old style: \%meta, \@blocks
+
+    # input interpreted differently based on number of arguments
+
+    # TODO: deprecate all but AST REPRESENTATION and MIXED STYLE?
+
+    # 1 argument: AST REPRESENTATION
+    #
+    # hashref = NEW STYLE (1.18):
+    #     {
+    #         meta => \%meta,
+    #         blocks => \@content,
+    #         'pandoc-api-version'|api_version => (\@array|$api_version_num)
+    #         | api_version_of => $exe_version_num
+    #     }
+    #
+    # or arrayref = OLD-STYLE:
+    #     [ { unMeta => \%meta }, \@blocks ]
+
+    my $arg = ( 1 == @_ ) ? shift
+
+      # 2 arguments: OLD STYLE: \%meta, \@blocks
       : ( 2 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => 0 }
-      # extended old style: \%meta, \@blocks, $api_version
+
+      # 3 arguments: EXTENDED OLD STYLE for easy upgrade: \%meta, \@blocks, $api_version
       : ( 3 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => $_[2] }
-      # elsif odd number of args: error
-      : ( @_ % 2  ) ? croak( "Document: too many or ambiguous arguments" )
-      # mixed style: \%meta, \@blocks, %params
-      :               { meta => shift, blocks => shift, @_ };
-    if ( 'ARRAY' eq reftype $arg ) {    # old-style internal representation
+
+      # elsif odd number of args: ERROR
+      : ( @_ % 2 ) ? croak( "Document: too many or ambiguous arguments" )
+
+      # elsif even number of args:
+      # MIXED STYLE prepared for future extensions: \%meta, \@blocks, %params
+      : { meta => shift, blocks => shift, @_ };
+
+    # old-style AST representation
+    if ( 'ARRAY' eq reftype $arg ) {
         $arg = { meta => $arg->[0]->{unMeta}, blocks => $arg->[1] };
     }
+
     'HASH' eq reftype $arg
       or croak
       'Usage: Document({blocks => \@blocks, meta => \%meta, api_version => $api_version})';
-  ## @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
+
+    my $api_version =
+
+      # prefer haskell-style key but accept perl-style key
+      $arg->{'pandoc-api-version'} // $arg->{pandoc_api_version}
+
+      # accept abbreviated key
+      // $arg->{api_version}
+
+      # Fall back on pkg var // env var // undef (undef for old-style JSON)
+      // $PANDOC_API_VERSION // undef;
+
+    # XXX: undef API version == pre-pandoc-1.18; also signals
+    # * Pandoc::Document::TO_JSON to emit old-style AST
+    # * Pandoc::Document::LineBlock::TO_JSON to downgrade representation
+
+    # We copy values here because $arg may not be a pure AST representation
     return bless {
         meta   => metadata( $arg->{meta} // {} ),
         blocks => ( $arg->{blocks}       // [] ),
-        'pandoc-api-version' => pandoc_version(
-            # prefer haskell-style key but accept perl-style key
-            $arg->{'pandoc-api-version'} // $arg->{pandoc_version}
-              // $arg->{api_version}    # accept abbreviated key
-              # api_version_of => $pandoc_executable_version
-              # $PANDOC_API_VERSION_OF{''} = undef
-              // $PANDOC_API_VERSION_OF{ $arg->{api_version_of} // '' }
-              # Fall back on pkg var // env var // undef
-              // PANDOC_API_VERSION() 
-              // croak("Document: you must supply an API version"
-                        # . "\nTry one of:\n"
-                        # . "api_version_of => PANDOC_VERSION()\n"
-                        # . "api_version => PANDOC_API_VERSION()\n"
-                        # . "api_version => PANDOC_LATEST_API_VERSION()\n"
-                ),
-        ),
+        'pandoc-api-version' =>    # undef for old-style JSON
+                                   # XXX: usage must take care with undef value!
+          ( defined( $api_version ) ? Pandoc::Version->new( $api_version ) : undef ),
       },
       'Pandoc::Document';
 }
@@ -317,20 +343,23 @@ sub pandoc_json($) {
     }
     return unless reftype $ast;
 
-    if ( reftype $ast eq 'ARRAY' ) {    
-        # old style document representation
+    if ( reftype $ast eq 'ARRAY' ) {
+
+        # old style AST representation
         $ast = { meta => $ast->[0]{unMeta}, blocks => $ast->[1], }
         if reftype $ast->[0] eq 'HASH' and exists $ast->[0]{unMeta};
     }
 
     if ( reftype $ast eq 'HASH' and $ast->{t} ) {
+
         # A document element
 
         # $ast = element( $ast->{t}, $ast->{c} );
         $ast = $ast_to_element->( $ast, $ast_to_element );
     }
     elsif ( reftype $ast eq 'HASH' and exists $ast->{blocks} ) {
-        # new-style document representation
+
+        # new-style AST representation
         my $meta = $ast->{meta};
         for my $v ( values %$meta ) {
             $v = $ast_to_element->( $v, $ast_to_element );
@@ -351,7 +380,7 @@ sub pandoc_json($) {
 
     package Pandoc::Document;
     use strict;
-    our $VERSION = '0.04';
+    our $VERSION = '0.04';  # TODO: bump this considerably, assuming it should be == Pandoc::Elements version?
     our @ISA = ('Pandoc::Document::Element');
     sub blocks;
     sub name { 'Document' }
@@ -359,8 +388,8 @@ sub pandoc_json($) {
         $_[0]->{meta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
         $_[0]->{meta};
     }
-    sub content { 
-        $_[0]->{blocks} = $_[1] if @_ > 1; 
+    sub content {
+        $_[0]->{blocks} = $_[1] if @_ > 1;
         $_[0]->{blocks};
     }
     *blocks = \&content;
@@ -372,7 +401,16 @@ sub pandoc_json($) {
     sub string {
         join '', map { $_->string } @{$_[0]->content}
     }
-    sub api_version { $_[0]->{'pandoc-api-version'} }
+    sub api_version {
+        my $self = shift;
+        if ( @_ ) {
+            $self->{'pandoc-api-version'}
+              = defined( $_[0] )
+              ? Pandoc::Version->new( $_[0] )
+              : undef    # undef for old-style JSON
+        }
+        return $self->{'pandoc-api-version'};
+    }
     sub new_from_ast { shift;  Pandoc::Document( @_ ); }
 }
 
@@ -406,7 +444,7 @@ sub pandoc_json($) {
                 # $PANDOC_API_VERSION may be localized so that
                 # contained objects get the appropriate representation
                 # therefore we call the object's TO_JSON method
-                return $ast->$TO_JSON;  # save a method lookup
+                return $TO_JSON->($ast);  # save a method lookup
             }
                  # may have overloaded stringification! Should we check?
                  # require overload;
@@ -632,15 +670,17 @@ sub pandoc_json($) {
     }
 }
 
-
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
 # and to downgrade document model for older versions of pandoc
 
 sub Pandoc::Document::TO_JSON {
+    # fatal uninitialized warning so eval catches it
+    # eval because ->api_version value may be undef instead of object!
+    use warnings FATAL => 'uninitialized';
     my ( $self ) = @_;
-    local $PANDOC_API_VERSION = $self->api_version->string;
+    local $PANDOC_API_VERSION = eval { $self->api_version->string };
     return Pandoc::Document::Element::TO_JSON(
-        $self->api_version ge '1.17.0.4'
+        eval { $self->api_version ge '1.17.0.4' }
         ? $self
         : [ { unMeta => $self->{meta} }, $self->{blocks} ]
     );
@@ -657,7 +697,7 @@ sub Pandoc::Document::LineBlock::TO_JSON {
         $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
     }
     if ( defined $PANDOC_API_VERSION ) {
-        return $ast if PANDOC_API_VERSION ge '1.17.0.4';
+        return $ast if $PANDOC_API_VERSION ge '1.17.0.4';
         my $c = [ map { ; @$_, LineBreak() } @{$content} ];
         pop @$c;    # remove trailing line break
         return Para( $c )->TO_JSON;

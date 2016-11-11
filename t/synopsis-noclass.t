@@ -3,6 +3,9 @@ use Test::More;
 use Pandoc::Elements;
 use JSON;
 
+# Use Test::Deep because it handles blessed structures
+# with overloaded stringification correctly.
+
 BEGIN {
     plan skip_all => 'Test::Deep not available' unless eval 'require Test::Deep; 1;';
     Test::Deep->import( qw[cmp_deeply noclass] );
@@ -13,7 +16,7 @@ my $ast = Document {
     }, [
         Header( 1, attributes { id => 'de' }, [ Str 'Gruß' ] ),
         Para [ Str 'hello, world!' ],
-    ], api_version_of => '1.18';
+    ], api_version => '1.17.0.4';
 
 # note explain $ast->TO_JSON;
 
