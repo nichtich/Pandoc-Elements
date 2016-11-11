@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.26  2016-11-11 10:49:22 CET
     - Extend Pod::Simple::Pandoc
     - Add Pandoc::Filter::HeaderIdentifiers
     - Mark pandocwalk and Pandoc::Filter::Lazy as deprecated
