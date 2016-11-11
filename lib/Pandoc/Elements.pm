@@ -40,6 +40,7 @@ our %ELEMENTS = (
     Table          => [ Block => qw(caption alignment widths headers rows) ],
     Div            => [ Block => qw(attr content) ],
     Null           => ['Block'],
+    LineBlock      => [ Block => qw(content) ],
 
     # INLINE ELEMENTS
     Str         => [ Inline => 'content' ],
@@ -587,6 +588,25 @@ sub Pandoc::Document::Cite::TO_JSON {
     return $ast;
 }
 
+sub Pandoc::Document::LineBlock::TO_JSON {
+    my $ast     = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $content = $ast->{c};
+
+    for my $line ( @$content ) {
+
+        # Convert spaces at the beginning of each line
+        # to Unicode non-breaking spaces, because pandoc does.
+        next unless $line->[0]->{t} eq 'Str';
+        $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
+    }
+
+    return $ast if pandoc_version >= 1.18;
+
+    my $c = [ map { ; @$_, LineBreak() } @{$content} ];
+    pop @$c;    # remove trailing line break
+    return Para( $c )->TO_JSON;
+}
+
 1;
 __END__
 
@@ -896,6 +916,12 @@ C<classes>, C<keyvals>), and text (C<content>, a list of L<inlines|/INLINE ELEME
 Horizontal rule
 
     HorizontalRule
+
+=head3 LineBlock
+
+List of lines (C<content>), each a list of L<inlines|/INLINE ELEMENTS>.
+
+    LineBlock [ @lines ]
 
 =head3 Null
 
