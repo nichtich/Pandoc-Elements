@@ -51,7 +51,7 @@ my %expected = (
     local $Pandoc::Elements::PANDOC_API_VERSION = 0;
 
     my $doc = Document { 
-        api_version_of => '1.18',
+        api_version => '1.17.0.4',
         meta => {},
         blocks => [
             Para [ Str 'foo' ],

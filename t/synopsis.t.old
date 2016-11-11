@@ -3,6 +3,9 @@ use Test::More;
 use Pandoc::Elements;
 use JSON;
 
+# is_deeply() tests don't work anymore because 'pandoc-api-version'
+# has overloaded stringification.
+
 my $ast = Document { 
         title => MetaInlines [ Str 'Greeting' ] 
     }, [
