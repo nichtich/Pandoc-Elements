@@ -8,21 +8,25 @@ my $ast = Document {
     }, [
         Header( 1, attributes { id => 'de' }, [ Str 'Gruß' ] ),
         Para [ Str 'hello, world!' ],
-    ], api_version_of => '1.18';
+    ];
 
-is_deeply $ast, { 
-    'blocks' => [
-        {   'c' => [ 1, [ 'de', [], [] ], [ { 'c' => 'Gruß', 't' => 'Str' } ] ],
-            't' => 'Header'
-        },
-        { 'c' => [ { 'c' => 'hello, world!', 't' => 'Str' } ], 't' => 'Para' }
-    ],
-    'meta' => {
-        'title' =>
-          { 'c' => [ { 'c' => 'Greeting', 't' => 'Str' } ], 't' => 'MetaInlines' }
+is_deeply $ast, [ 
+    { 
+        unMeta => { 
+            title => { 
+                t => 'MetaInlines', 
+                c => [{ t => 'Str', c => 'Greeting' }]
+            }
+        } 
     },
-    'pandoc-api-version' => [ 1, 17, 0, 4 ]
-};
+    [ 
+        {
+          t => 'Header', 
+          c => [ 1, ['de',[],[]], [ { t => 'Str', c => 'Gruß' } ] ]
+        },
+        { t => 'Para', c => [ { t => 'Str', c => 'hello, world!' } ] } 
+    ]
+];
 
 my $json = JSON->new->utf8->convert_blessed->encode($ast);
 is_deeply decode_json($json), $ast, 'encode/decode JSON';
