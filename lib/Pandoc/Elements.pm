@@ -7,6 +7,8 @@ use utf8; # because of non-breaking spaces in line blocks
 
 our $VERSION = '0.25';
 
+# Declare these early so they can be used as barewords in this file
+# FIXME: Yet they can't!
 use subs qw( PANDOC_VERSION PANDOC_API_VERSION PANDOC_LATEST_API_VERSION );
 
 our $PANDOC_VERSION;            # a string like '1.16'
@@ -59,13 +61,13 @@ $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
 # * Undefined/env var unset: assume pandoc >= 1.18
 # * Defined but false: assume pandoc < 1.18
 # * True: assume the value is the version to use
-$PANDOC_API_VERSION //= $ENV{PANDOC_API_VERSION}
-  // $PANDOC_API_VERSION_OF{$PANDOC_VERSION // ''};
+$PANDOC_API_VERSION //= $ENV{PANDOC_API_VERSION} // $PANDOC_API_VERSION_OF{$PANDOC_VERSION // ''};
 
 # Functions which return Pandoc::Version objects from their like-named package variables
 # They are uppercase because the variables are, and because the lowercase
 # pandoc_version() function does something else: wraps Pandoc::Version->new()
-# Declare these early so they can be used as barewords
+
+# FIXME: Make Pandoc::Version::cmp() treat empty input as zero?
 
 sub PANDOC_VERSION { Pandoc::Version->new( $PANDOC_VERSION // return ) }
 sub PANDOC_API_VERSION { Pandoc::Version->new( $PANDOC_API_VERSION // return ) }
@@ -261,24 +263,29 @@ sub Document {
 sub pandoc_version    { Pandoc::Version->new( @_ ) }
 sub pandoc_api_version_of {
     my $exe_version = Pandoc::Version->new($_[0]);
-    my $api_version 
-        = $exe_version lt '1.12' ? croak( "Versions of pandoc before 1.12 are not supported by Pandoc::Elements" )
-        : $exe_version >= '1.12' and $exe_version < '1.18' ? 0
-        : $PANDOC_API_VERSION_OF{ $_[0] } // croak "Version $exe_version of pandoc is not supported by this version of Pandoc::Elements";
-    return Pandoc::Version->new( $api_version );
+    return $PANDOC_API_VERSION_OF{ $exe_version } // return; # undef for out-of-range version
+
+    # my $api_version
+    #   = $exe_version lt '1.12' ? croak( "Versions of pandoc before 1.12 are not supported by Pandoc::Elements" )
+    #   : $exe_version >= '1.12' and $exe_version < '1.18' ? 0
+    #   : $PANDOC_API_VERSION_OF{ $exe_version } // croak "Version $exe_version of pandoc is not supported by this version of Pandoc::Elements";
+    # return Pandoc::Version->new( $api_version );
 }
 
 sub pandoc_exe_version_of {
     my ( $api_version, $get_all ) = @_;
-    $api_version = Pandoc::Version->new( $api_version );
-    my $exe_version = $api_version < '1.17.0.4'
-      ? do {
-        carp
-          "pandoc_exe_version_of: andoc API versions before 1.17.0.4 (pandoc 1.18) are not detected. Returning undef.";
-        return;
-      }
-      : $PANDOC_EXE_VERSION_OF->{$api_version} // croak
-      "Pandoc API version $api_version is not supported by Pandoc::Elements";
+    $api_version = Pandoc::Version->new( $api_version // return );
+
+    # my $exe_version = $api_version < '1.17.0.4'
+    #   ? do {
+    #     carp
+    #       "pandoc_exe_version_of: andoc API versions before 1.17.0.4 (pandoc 1.18) are not detected. Returning undef.";
+    #     return;
+    #   }
+    #   : $PANDOC_EXE_VERSION_OF->{$api_version} // croak
+    #   "Pandoc API version $api_version is not supported by Pandoc::Elements";
+
+    my $exe_version = $PANDOC_EXE_VERSION_OF->{$api_version} // return # undef/empty list for out-of-range-version
     if ( $get_all ) {
       ## return an arrayref with all executable versions which used this API version
         return [ map { Pandoc::Version->new( $_ ) }
