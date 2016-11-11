@@ -323,7 +323,7 @@ sub pandoc_json($) {
         }
         return $self->{'pandoc-api-version'};
     }
-    sub new_from_ast { shift;  Pandoc::Document( @_ ); }
+    sub new_from_ast { shift;  Pandoc::Elements::Document( @_ ); }
 }
 
 {
