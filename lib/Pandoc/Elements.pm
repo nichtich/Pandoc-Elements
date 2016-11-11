@@ -5,8 +5,24 @@ use 5.010;
 
 our $VERSION = '0.26';
 
-our $PANDOC_VERSION;    # a string like '1.16'
-$PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
+use Carp;
+use JSON qw(decode_json);
+use Scalar::Util qw(blessed reftype);
+use Pandoc::Walker qw(walk);
+use Pandoc::Version;
+
+our $PANDOC_VERSION; # a string like '1.16'
+$PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
+
+# internal variables
+my $PANDOC_VERSION_MIN = Pandoc::Version->new('1.12.1');
+my $PANDOC_VERSION_MAX = Pandoc::Version->new('1.17.2');
+
+sub pandoc_version() {
+    defined $PANDOC_VERSION
+        ? Pandoc::Version->new($PANDOC_VERSION)
+        : $PANDOC_VERSION_MAX;
+}
 
 our %ELEMENTS = (
 
@@ -66,15 +82,10 @@ foreach (
     $ELEMENTS{$_} = ['Inline'];
 }
 
-use Carp;
-use JSON qw(decode_json);
-use Scalar::Util qw(blessed reftype);
-use Pandoc::Walker qw(walk);
-
 use parent 'Exporter';
 our @EXPORT = (
     keys %ELEMENTS,
-    qw(Document attributes metadata citation pandoc_json pandoc_query)
+    qw(Document attributes metadata citation pandoc_version pandoc_json pandoc_query)
 );
 our @EXPORT_OK = ( @EXPORT, 'element' );
 
@@ -483,11 +494,10 @@ sub pandoc_json($) {
 }
 
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
-# and to downgrade document model for Pandoc < 1.16
+# and to downgrade document model depending on pandoc_version
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
-    if ( $Pandoc::Elements::PANDOC_VERSION
-        and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) ) {
+    if ( pandoc_version < '1.16' ) {
         return { t => 'Space', c => [] };
     } else {
         return { t => 'SoftBreak', c => [] };
@@ -496,10 +506,8 @@ sub Pandoc::Document::SoftBreak::TO_JSON {
 
 sub Pandoc::Document::LinkageRole::TO_JSON {
     my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
-    if ( $Pandoc::Elements::PANDOC_VERSION
-        and ( $Pandoc::Elements::PANDOC_VERSION lt '1.16' ) )
-    {
-        # remove attributes from new-style ast
+    if ( pandoc_version < 1.16 ) {
+        # remove attributes
         $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
     }
     return $ast;
@@ -653,8 +661,8 @@ as types in other document elements.
 
 =item
 
-The helper following functions C<pandoc_json>, C<attributes>, C<citation>, and
-C<element>.
+The helper following functions C<pandoc_json>, C<pandoc_version>,
+C<attributes>, C<citation>, and C<element>.
 
 =back
 
@@ -692,6 +700,21 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
+=head2 pandoc_version
+
+Return expected version number of pandoc executable to be used for serializing
+documents with L<to_json|/to_json>. The abstract syntax tree of Pandoc
+documents, reflected in this module, changes slightly between some releases of
+pandoc (for instance pandoc 1.16 introduced attributes to L<Link|/Link> and
+L<Image|/Image> elements).  Package variable C<PANDOC_VERSION> can be used to
+set the expected version. By default it is set from an environment variable of
+same name. This method returns the current value of the variable or the most
+recent version reliably supported by this module as instance of
+L<Pandoc::Version>.
+
+See also method C<version> of module L<Pandoc> to get the current version of
+pandoc executable on your system.
+
 =head2 element( $name => $content )
 
 Create a Pandoc document element of arbitrary name. This function is only
@@ -700,10 +723,11 @@ exported on request.
 =head1 ELEMENTS AND METHODS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
-structure, emitted with pandoc output format C<json>. All elements are blessed
-objects that provide L<common element methods|/COMMON METHODS> (all elements),
-L<attribute methods|/ATTRIBUTE METHODS> (elements with attributes), and
-additional element-specific methods.
+structure, emitted with pandoc output format C<json>. This JSON structure is
+subject to minor changes between L<versions of pandoc|/pandoc_version>.  All
+elements are blessed objects that provide L<common element methods|/COMMON
+METHODS> (all elements), L<attribute methods|/ATTRIBUTE METHODS> (elements with
+attributes), and additional element-specific methods.
 
 =head2 COMMON METHODS
 
@@ -714,10 +738,8 @@ Return the element as JSON encoded string. The following are equivalent:
     $element->to_json;
     JSON->new->utf8->canonical->convert_blessed->encode($element);
 
-Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
-of attributes to L<Link|/Link> and L<Image|/Image> elements. Since Pandoc::Elements
-0.16 the new format is serialized by default. Set the package variable or
-environment variable C<PANDOC_VERSION> to 1.15 or below to use the old format.
+Note that the suitable JSON format depends on the pandoc executable version.
+See L</PANDOC VERSION> for details.
 
 =head3 name
 
