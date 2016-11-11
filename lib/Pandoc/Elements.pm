@@ -5,8 +5,71 @@ use 5.010;
 
 our $VERSION = '0.26';
 
-our $PANDOC_VERSION;    # a string like '1.16'
+# Declare these early so they can be used as barewords in this file
+# FIXME: Yet they can't!
+use subs qw( PANDOC_VERSION PANDOC_API_VERSION PANDOC_LATEST_API_VERSION );
+
+our $PANDOC_VERSION;            # a string like '1.16'
+our $PANDOC_API_VERSION;        # a string like '1.17.0.4'
+our %PANDOC_API_VERSION_OF;     # maps pandoc versions to api versions
+our $PANDOC_EXE_VERSION_OF;     # a Hash::MultiValue mapping api versions to pandoc executable versions versions
+our $PANDOC_LATEST_API_VERSION; # holds the highest value in %PANDOC_API_VERSION_OF
+
+use Pandoc::Version;
+use Hash::MultiValue 0.16;
+
 $PANDOC_VERSION ||= $ENV{PANDOC_VERSION};
+
+# This must be updated for each pandoc version >= 1.18
+%PANDOC_API_VERSION_OF = (
+    ## Shall give undef for pandoc < 1.18!
+    '1.18' => '1.17.0.4',
+);
+
+{
+    # Even though there is as yet only one version pair our API
+    # should be prepared for the future: the mapping from pandoc-api-
+    # versions to pandoc executable versions will probably be
+    # one-to-many.
+
+    # I wish there were a Hash::MultiValue where the values were
+    # automatically sorted, and which could be made readonly! BPJ
+
+    my $sort_versions = sub {
+        ## XXX: should the values be objects? The keys can't be anyway so probably not.
+        map { $_->string } sort { $a <=> $b } map { Pandoc::Version->new( $_ ) } @_;
+    };
+
+    # Work around Hash::MultiValue's preservation of the order of
+    # existing keys/values by feeding the sorted values to an
+    # instance where the keys/values didn't exist before. We want
+    # them sorted in particular so that the last value is the last
+    # pandoc version (to date) which used each API version.
+
+    my $pvo_temp = Hash::MultiValue->new( reverse %PANDOC_API_VERSION_OF );
+    $PANDOC_EXE_VERSION_OF = Hash::MultiValue->new;
+    for my $key ( $sort_versions->( $pvo_temp->keys ) ) {
+        $PANDOC_EXE_VERSION_OF->set( $key,
+            $sort_versions->( $pvo_temp->get_all( $key ) ) );
+    }
+    $PANDOC_LATEST_API_VERSION = ($PANDOC_EXE_VERSION_OF->keys)[-1];
+}
+
+# This is actually trivalent:
+# * Undefined/env var unset: assume pandoc >= 1.18
+# * Defined but false: assume pandoc < 1.18
+# * True: assume the value is the version to use
+$PANDOC_API_VERSION //= $ENV{PANDOC_API_VERSION} // $PANDOC_API_VERSION_OF{$PANDOC_VERSION // ''};
+
+# Functions which return Pandoc::Version objects from their like-named package variables
+# They are uppercase because the variables are, and because the lowercase
+# pandoc_version() function does something else: wraps Pandoc::Version->new()
+
+# FIXME: Make Pandoc::Version::cmp() treat empty input as zero?
+
+sub PANDOC_VERSION { Pandoc::Version->new( $PANDOC_VERSION // return ) }
+sub PANDOC_API_VERSION { Pandoc::Version->new( $PANDOC_API_VERSION // return ) }
+sub PANDOC_LATEST_API_VERSION { Pandoc::Version->new( $PANDOC_LATEST_API_VERSION // return ) }
 
 our %ELEMENTS = (
 
@@ -74,7 +137,9 @@ use Pandoc::Walker qw(walk);
 use parent 'Exporter';
 our @EXPORT = (
     keys %ELEMENTS,
-    qw(Document attributes metadata citation pandoc_json pandoc_query)
+    qw(Document attributes metadata citation pandoc_json pandoc_query),
+    qw(pandoc_version pandoc_api_version_of pandoc_exe_version_of),
+    qw(PANDOC_VERSION PANDOC_API_VERSION PANDOC_LATEST_API_VERSION),
 );
 our @EXPORT_OK = ( @EXPORT, 'element' );
 
@@ -127,6 +192,41 @@ sub Document($$) {
     @_ == 2 or croak "Document expects 2 arguments, but given " . scalar @_;
     my $meta = metadata(shift);
     return bless [ { unMeta => $meta }, shift ], 'Pandoc::Document';
+}
+
+sub pandoc_version    { Pandoc::Version->new( @_ ) }
+sub pandoc_api_version_of {
+    my $exe_version = Pandoc::Version->new($_[0]);
+    return $PANDOC_API_VERSION_OF{ $exe_version } // return; # undef for out-of-range version
+
+    # my $api_version
+    #   = $exe_version lt '1.12' ? croak( "Versions of pandoc before 1.12 are not supported by Pandoc::Elements" )
+    #   : $exe_version >= '1.12' and $exe_version < '1.18' ? 0
+    #   : $PANDOC_API_VERSION_OF{ $exe_version } // croak "Version $exe_version of pandoc is not supported by this version of Pandoc::Elements";
+    # return Pandoc::Version->new( $api_version );
+}
+
+sub pandoc_exe_version_of {
+    my ( $api_version, $get_all ) = @_;
+    $api_version = Pandoc::Version->new( $api_version // return );
+
+    # my $exe_version = $api_version < '1.17.0.4'
+    #   ? do {
+    #     carp
+    #       "pandoc_exe_version_of: andoc API versions before 1.17.0.4 (pandoc 1.18) are not detected. Returning undef.";
+    #     return;
+    #   }
+    #   : $PANDOC_EXE_VERSION_OF->{$api_version} // croak
+    #   "Pandoc API version $api_version is not supported by Pandoc::Elements";
+
+    my $exe_version = $PANDOC_EXE_VERSION_OF->{$api_version} // return # undef/empty list for out-of-range-version
+    if ( $get_all ) {
+      ## return an arrayref with all executable versions which used this API version
+        return [ map { Pandoc::Version->new( $_ ) }
+              $PANDOC_EXE_VERSION_OF->get_all( $api_version ) ];
+    }
+  ## return the last executable version which used this API version
+    return Pandoc::Version->new( $exe_version );
 }
 
 # specific accessors
@@ -217,9 +317,9 @@ sub pandoc_json($) {
         $_[0]->[0]->{unMeta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
         $_[0]->[0]->{unMeta}
     }
-    sub content { 
-        $_[0]->[1] = $_[1] if @_ > 1; 
-        $_[0]->[1] 
+    sub content {
+        $_[0]->[1] = $_[1] if @_ > 1;
+        $_[0]->[1]
     }
     sub is_document { 1 }
     sub metavalue {
@@ -229,6 +329,7 @@ sub pandoc_json($) {
     sub string {
         join '', map { $_->string } @{$_[0]->content}
     }
+    sub api_version { $_[0]->{'pandoc-api-version'} }
 }
 
 {
@@ -483,7 +584,7 @@ sub pandoc_json($) {
 }
 
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
-# and to downgrade document model for Pandoc < 1.16
+# and to downgrade document model for older versions of pandoc
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
     if ( $Pandoc::Elements::PANDOC_VERSION
