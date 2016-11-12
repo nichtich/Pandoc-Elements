@@ -12,13 +12,13 @@ ok !$doc->is_block, 'is_block';
 ok !$doc->is_inline, 'is_inline';
 ok !$doc->is_meta, 'is_meta';
 
-my $meta = $doc->[0]->{unMeta};
-is $meta, $doc->meta, '->meta';
+my $meta=$doc->meta;
+ok $meta, '->meta';
 
 ok $meta->{title}->is_meta, 'is_meta';
 is $meta->{title}->name, 'MetaInlines', 'name';
 
-my $para = $doc->[1]->[0];
+my $para = $doc->{blocks}->[0];
 is $para->name, 'Para', 'name';
 is_deeply $para->content, [ Str 'test' ];
 ok $para->is_block, 'is_block';
