@@ -10,4 +10,7 @@ MYMETA.*
 /examples/*.*
 !/examples/*.md
 !/examples/*.pl
-pandoc/
+
+xt/bin
+xt/deb
+xt/usr
