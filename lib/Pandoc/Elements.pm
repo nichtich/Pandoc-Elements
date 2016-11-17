@@ -1369,7 +1369,9 @@ C<DefaultDelim>, C<Period>, C<OneParen>, C<TwoParens>
 
 =head1 SEE ALSO
 
-L<Pandoc> implements a wrapper around the pandoc executable.
+Perl module L<Pandoc> implements a wrapper around the pandoc executable.
+
+Similar libraries in other programming languages are listed at L<https://github.com/jgm/pandoc/wiki/Pandoc-wrappers-and-interfaces>.
 
 L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
 contains the original definition of Pandoc document data structure in Haskell.
