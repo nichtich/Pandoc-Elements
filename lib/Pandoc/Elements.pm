@@ -14,14 +14,38 @@ use Pandoc::Version;
 our $PANDOC_VERSION; # a string like '1.16'
 $PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
 
-# internal variables
-my $PANDOC_VERSION_MIN = Pandoc::Version->new('1.12.1');
-my $PANDOC_VERSION_MAX = Pandoc::Version->new('1.17.2');
+# pandoc-types 1.12.3 (required by pandoc 1.12.1) changed JSON serialization
+my $PANDOC_API_MIN = Pandoc::Version->new('1.12.3');
+my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
 
-sub pandoc_version() {
-    defined $PANDOC_VERSION
+# mapping from pandoc-types version numbers to minimum pandoc release
+my @PANDOC_API_MAP = map { Pandoc::Version->new($_) } (
+    '1.16' => '1.16', # api-version 1.16.x requires pandoc >= 1.16
+    '1.17' => '1.18', # api-version 1.17.x requires pandoc >= 1.18
+);
+
+sub pandoc_version {
+    my %args = @_;
+
+    my $api = $args{api};
+    if (defined $api) {
+        $api = Pandoc::Version->new($api);
+        return if $api < $PANDOC_API_MIN;       # too old
+        pop @$api while @$api > 2;              # reduce to major.minor
+        return if $api > $PANDOC_API_MAP[-2];   # too new
+
+        my @apimap = @PANDOC_API_MAP;
+        my $version = $PANDOC_BIN_MIN;
+        while (@apimap) {
+            last if $api < shift @apimap;
+            $version = shift @apimap;
+        }
+        return $version;
+    }
+
+    return $PANDOC_VERSION
         ? Pandoc::Version->new($PANDOC_VERSION)
-        : $PANDOC_VERSION_MAX;
+        : $PANDOC_API_MAP[-1];
 }
 
 our %ELEMENTS = (
@@ -574,7 +598,7 @@ sub Pandoc::Document::TO_JSON {
 }
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
-    if ( pandoc_version < '1.16' ) {
+    if ( pandoc_version() < '1.16' ) {
         return { t => 'Space', c => [] };
     } else {
         return { t => 'SoftBreak', c => [] };
@@ -583,7 +607,7 @@ sub Pandoc::Document::SoftBreak::TO_JSON {
 
 sub Pandoc::Document::LinkageRole::TO_JSON {
     my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
-    if ( pandoc_version < 1.16 ) {
+    if ( pandoc_version() < 1.16 ) {
         # remove attributes
         $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
     }
@@ -676,7 +700,7 @@ sub Pandoc::Document::LineBlock::TO_JSON {
         $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
     }
 
-    return $ast if pandoc_version >= 1.18;
+    return $ast if pandoc_version() >= 1.18;
 
     my $c = [ map { ; @$_, LineBreak() } @{$content} ];
     pop @$c;    # remove trailing line break
@@ -737,7 +761,7 @@ Pandoc::Elements provides utility functions to create abstract syntax trees
 resulting data structure to many other document formats, such as HTML, LaTeX,
 ODT, and ePUB.
 
-Please make sure to use at least Pandoc 1.12 when processing documents
+Please make sure to use at least Pandoc 1.12.1 when processing documents
 
 See also module L<Pandoc::Filter>, command line script L<pod2pandoc>, and the
 internal modules L<Pandoc::Walker> and L<Pod::Simple::Pandoc>.
@@ -800,7 +824,7 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
-=head2 pandoc_version
+=head2 pandoc_version( [ api => $version ] )
 
 Return expected version number of pandoc executable to be used for serializing
 documents with L<to_json|/to_json>. The abstract syntax tree of Pandoc
