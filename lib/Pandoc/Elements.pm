@@ -137,52 +137,45 @@ sub element {
 
 sub Document {
 
-    # input interpreted differently based on number of arguments
-
-    # TODO: deprecate all but AST REPRESENTATION and MIXED STYLE?
-
-    # 1 argument: AST REPRESENTATION
-    #
-    # hashref = NEW STYLE (1.18):
-    #     {
-    #         meta => \%meta,
-    #         blocks => \@content,
-    #         'pandoc-api-version'|api_version => (\@array|$api_version_num)
-    #         | api_version_of => $exe_version_num
-    #     }
-    #
-    # or arrayref = OLD-STYLE:
-    #     [ { unMeta => \%meta }, \@blocks ]
-
-    my $arg = ( 1 == @_ ) ? shift
-
-      # 2 arguments: OLD STYLE: \%meta, \@blocks
-      : ( 2 == @_ ) ? { meta => $_[0], blocks => $_[1], api_version => 0 }
-
-      # elsif odd number of args: ERROR
-      : ( @_ % 2 ) ? croak( "Document: too many or ambiguous arguments" )
-
-      # elsif even number of args: api_version as named parameter
-      : { meta => shift, blocks => shift, @_ };
-
-    # old-style AST representation
-    if ( 'ARRAY' eq reftype $arg ) {
-        $arg = { meta => $arg->[0]->{unMeta}, blocks => $arg->[1] };
-    }
-
-    'HASH' eq reftype $arg
-      or croak
-      'Usage: Document({blocks => \@blocks, meta => \%meta, api_version => $api_version})';
-
+    my $arg = do {
+        if ( @_ == 1 ) {
+            my $reftype = reftype $_[0] // '';
+            if ( $reftype eq 'ARRAY') {
+                # old JSON format
+                {
+                    meta => $_[0]->[0]->{unMeta}, 
+                    blocks => $_[0]->[1], 
+                    api_version => 1.16,
+                }
+            } elsif ( $reftype eq 'HASH' ) {
+                $_[0]
+            } else {
+                croak 'Document: expect array or hash reference'
+            }
+        } elsif ( @_ == 2 ) {
+            # \%meta, \@blocks
+            { meta => $_[0], blocks => $_[1], api_version => 1.17 }
+        } elsif ( @_ % 2 ) {
+            # odd number of args
+            croak "Document: too many or ambiguous arguments";
+        } else {
+            # even number of args: api_version as named parameter
+            { meta => shift, blocks => shift, @_ }
+        }
+    };
+    
     # prefer haskell-style key but accept perl-style and abbreviated key
     my $api_version = $arg->{'pandoc-api-version'} // $arg->{pandoc_api_version}
-      // $arg->{api_version} // 0; # Fall back on zero for old-style JSON
+      // $arg->{api_version} // 1.17;
+    $api_version = Pandoc::Version->new( $api_version );
+
+    croak 'api_version must be >= 1.12.3' if $api_version < '1.12.3';
 
     # We copy values here because $arg may not be a pure AST representation
     return bless {
         meta   => metadata( $arg->{meta} // {} ),
         blocks => ( $arg->{blocks}       // [] ),
-        'pandoc-api-version' =>     Pandoc::Version->new( $api_version ),
+        'pandoc-api-version' => $api_version,
       },
       'Pandoc::Document';
 }
@@ -242,11 +235,10 @@ sub pandoc_json($) {
     }
     return unless reftype $ast;
 
+    # TODO: move into Document constructor
     if ( reftype $ast eq 'ARRAY' ) {
-
         # old style AST representation
-        $ast = { meta => $ast->[0]{unMeta}, blocks => $ast->[1], }
-        if reftype $ast->[0] eq 'HASH' and exists $ast->[0]{unMeta};
+        $ast = Document $ast;
     }
 
     if ( reftype $ast eq 'HASH' and $ast->{t} ) {
@@ -567,7 +559,7 @@ sub pandoc_json($) {
 sub Pandoc::Document::TO_JSON {
     my ( $self ) = @_;
     return Pandoc::Document::Element::TO_JSON(
-        $self->api_version ge '1.17.0.4'
+        $self->api_version ge '1.17'
         ? $self
         : [ { unMeta => $self->{meta} }, $self->{blocks} ]
     );
@@ -937,8 +929,8 @@ either two arguments and an optional named parameter C<api_version>:
 
     Document { %meta }, [ @blocks ], api_version => $version_string
 
-or a hash with three fields for metadata, document content and pandoc API
-version:
+or a hash with three fields for metadata, document content, and an optional
+pandoc API version:
 
     {
         meta               => { %metadata },
@@ -946,13 +938,18 @@ version:
         pandoc-api-version => [ $major, $minor, $revision ]
     }
 
-or an array with two elements for metadata and document content
-respectively:
+The latter form is used as pandoc JSON format since pandoc release 1.18. If no
+api version is given, it will be set 1.17 which was also introduced with pandoc
+release 1.18.
+
+A third ("old") form is accepted for compatibility with pandoc JSON format
+before release 1.18 and since release 1.12.1: an array with two elements for
+metadata and document content respectively.
 
     [ { unMeta => { %meta } }, [ @blocks ] ]
 
-The second form is used as pandoc JSON format since pandoc release 1.18 and
-the third was before this pandoc release 1.12.1.
+The api version is set to 1.16 in this case, but older versions down to 1.12.3
+used the same format.
 
 Document elements provide the following special methods in addition to
 L<common element methods|/COMMON METHODS>:
