@@ -15,13 +15,16 @@ our $PANDOC_VERSION; # a string like '1.16'
 $PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
 
 # internal variables
-my $PANDOC_VERSION_MIN = Pandoc::Version->new('1.12.1');
-my $PANDOC_VERSION_MAX = Pandoc::Version->new('1.17.2');
+my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
+my $PANDOC_BIN_MAX = Pandoc::Version->new('1.18');
+
+my $PANDOC_API_MIN = Pandoc::Version->new('1.12.3');    # since pandoc 1.12.1
+my $PANDOC_API_DEFAULT = Pandoc::Version->new('1.17');  # since pandoc 1.18
 
 sub pandoc_version() {
     defined $PANDOC_VERSION
         ? Pandoc::Version->new($PANDOC_VERSION)
-        : $PANDOC_VERSION_MAX;
+        : $PANDOC_BIN_MAX;
 }
 
 our %ELEMENTS = (
@@ -154,7 +157,7 @@ sub Document {
             }
         } elsif ( @_ == 2 ) {
             # \%meta, \@blocks
-            { meta => $_[0], blocks => $_[1], api_version => 1.17 }
+            { meta => $_[0], blocks => $_[1] }
         } elsif ( @_ % 2 ) {
             # odd number of args
             croak "Document: too many or ambiguous arguments";
@@ -166,19 +169,43 @@ sub Document {
     
     # prefer haskell-style key but accept perl-style and abbreviated key
     my $api_version = $arg->{'pandoc-api-version'} // $arg->{pandoc_api_version}
-      // $arg->{api_version} // 1.17;
+      // $arg->{api_version} // $PANDOC_API_DEFAULT;
     $api_version = Pandoc::Version->new( $api_version );
 
-    croak 'api_version must be >= 1.12.3' if $api_version < '1.12.3';
+    croak 'api_version must be >= 1.12.3' if $api_version < $PANDOC_API_MIN;
 
     # We copy values here because $arg may not be a pure AST representation
-    return bless {
+    my $doc = bless {
         meta   => metadata( $arg->{meta} // {} ),
         blocks => ( $arg->{blocks}       // [] ),
         'pandoc-api-version' => $api_version,
       },
       'Pandoc::Document';
+
+    walk $doc, \&_bless_pandoc_element;
+
+    return $doc;
+
 }
+
+# internal helper method
+sub _bless_pandoc_element {
+    my $e = shift;
+    return $e unless ref $e;
+    return $e if blessed $e and $e->isa('Pandoc::Document::Element');
+
+    # TODO: run recursively via set_content (don't require 'walk')
+    if ( 'MetaMap' eq $e->{t} ) {
+        for my $v ( values %{ $e->{c} } ) {
+            _bless_pandoc_element( $v );
+        }
+    }
+
+    bless $e, 'Pandoc::Document::' . $e->{t};
+    $e->upgrade($e) if $e->can('upgrade');
+    return $e;
+}
+
 
 # specific accessors
 
@@ -211,20 +238,14 @@ sub citation($) {
 }
 
 sub metadata($) {
-    $_[0]; # TODO: issue #10 and #34
+    my $meta = shift; # TODO: issue #10 and #34
+    for my $v ( values %$meta ) {
+        $v = _bless_pandoc_element( $v );
+    }
+    $meta;
 }
 
 sub pandoc_json($) {
-    state $ast_to_element = sub {   # compile once, use repeatedly, keep private
-        my $class = 'Pandoc::Document::' . $_[0]->{t};
-        if ( 'MetaMap' eq $_[0]->{t} ) {
-            for my $v ( values %{ $_[0]->{c} } ) {
-                $_[1]->( $v, $_[1] );
-            }
-        }
-        return $class->new_from_ast( $_[0] );
-    };
-
     shift if $_[0] =~ /^Pandoc::/;
 
     my $ast = eval { decode_json( $_[0] ) };
@@ -233,34 +254,7 @@ sub pandoc_json($) {
         chomp $@;
         croak $@;
     }
-    return unless reftype $ast;
-
-    # TODO: move into Document constructor
-    if ( reftype $ast eq 'ARRAY' ) {
-        # old style AST representation
-        $ast = Document $ast;
-    }
-
-    if ( reftype $ast eq 'HASH' and $ast->{t} ) {
-
-        # A document element
-
-        # $ast = element( $ast->{t}, $ast->{c} );
-        $ast = $ast_to_element->( $ast, $ast_to_element );
-    }
-    elsif ( reftype $ast eq 'HASH' and exists $ast->{blocks} ) {
-
-        # new-style AST representation
-        my $meta = $ast->{meta};
-        for my $v ( values %$meta ) {
-            $v = $ast_to_element->( $v, $ast_to_element );
-        }
-        $ast = Document( $ast ); # handles new/old format
-    }
-
-    walk $ast, $ast_to_element;
-
-    return $ast;
+    return Document $ast;
 }
 
 *pandoc_query = *Pandoc::Walker::query;
@@ -299,7 +293,6 @@ sub pandoc_json($) {
         }
         return $self->{'pandoc-api-version'};
     }
-    sub new_from_ast { shift;  Pandoc::Elements::Document( @_ ); }
 }
 
 {
@@ -365,8 +358,6 @@ sub pandoc_json($) {
     *walk      = *Pandoc::Walker::walk;
     *query     = *Pandoc::Walker::query;
     *transform = *Pandoc::Walker::transform;
-
-    sub new_from_ast { bless $_[1] => $_[0] }
 
     sub string {
 
@@ -542,14 +533,10 @@ sub pandoc_json($) {
     sub url   { $_[0]->{c}->[-1][0] }
     sub title { $_[0]->{c}->[-1][1] }
 
-    sub new_from_ast {
-        my ( $class, $ast ) = @_;
-        if ( 2 == @{ $ast->{c} } ) {
-
-            # prepend attributes to old-style ast
-            unshift @{ $ast->{c} }, [ "", [], [] ];
-        }
-        return bless $ast => $class;
+    sub upgrade {
+        # prepend attributes to old-style ast
+        unshift @{ $_[0]->{c} }, [ "", [], [] ]
+            if 2 == @{ $_[0]->{c} };
     }
 }
 

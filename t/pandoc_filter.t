@@ -7,7 +7,9 @@ use Test::Output;
 
 # FIXME: don't require decode_utf8 (?)
 
-my $ast = Pandoc::Elements::pandoc_json('{"t":"Str","c":"☃"}');
+my $ast = Pandoc::Elements::pandoc_json(
+    '{"blocks":[{"t":"Para","c":[{"t":"Str","c":"☃"}]}]}'
+)->blocks->[0]->content->[0];
 is_deeply $ast, { t => 'Str', c => decode_utf8("☃") }, 'JSON with Unicode';
 Pandoc::Filter->new()->apply($ast);
 is_deeply $ast, { t => 'Str', c => decode_utf8("☃") }, 'identity filter';
