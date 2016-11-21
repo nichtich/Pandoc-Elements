@@ -13,7 +13,7 @@ sub list2content {
 }
 
 sub doc_meta() {
-    { title => MetaInlines( [Plain [ Str 'A', Space, Str 'message' ] ] ) }
+    { title => MetaInlines( [Plain [ Str 'A', SoftBreak, Str 'message' ] ] ) }
 }
 
 sub doc_blocks() {
@@ -59,8 +59,9 @@ my %data = (
 );
 
 my %json = (
-  '1.17' => '{"blocks":[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}],"meta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"Space"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}},"pandoc-api-version":[1,17]}',
-  '1.16' => '[{"unMeta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"Space"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}}},[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}]]',
+  '1.17' => '{"blocks":[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}],"meta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"SoftBreak"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}},"pandoc-api-version":[1,17]}',
+  '1.16' => '[{"unMeta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"SoftBreak"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}}},[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}]]',
+  '1.12.3' => '[{"unMeta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"Space"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}}},[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}]]',
 );
 
 foreach (keys %json) {
@@ -96,9 +97,8 @@ subtest '1.12.3' => sub {
     my $expect = Document pandoc_json($json{1.16});
     $expect->api_version('1.12.3');
 
-    # TODO: check serialization without attributes
     my $args = [ doc_meta, doc_blocks, api_version => '1.12.3' ];
-    test_document $args, $expect, $json{1.16}, 'api_version = 1.12.3';
+    test_document $args, $expect, $json{'1.12.3'}, 'api_version = 1.12.3';
 };
 
 

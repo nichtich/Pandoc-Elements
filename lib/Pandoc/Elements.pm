@@ -22,9 +22,9 @@ my $PANDOC_API_MIN = Pandoc::Version->new('1.12.3');    # since pandoc 1.12.1
 my $PANDOC_API_DEFAULT = Pandoc::Version->new('1.17');  # since pandoc 1.18
 
 sub pandoc_version() {
-    defined $PANDOC_VERSION
-        ? Pandoc::Version->new($PANDOC_VERSION)
-        : $PANDOC_BIN_MAX;
+    return $PANDOC_BIN_MAX unless defined $PANDOC_VERSION;
+    (blessed $PANDOC_VERSION and $PANDOC_VERSION->isa('Pandoc::Version'))
+        ? $PANDOC_VERSION : Pandoc::Version->new($PANDOC_VERSION)
 }
 
 our %ELEMENTS = (
@@ -543,6 +543,20 @@ sub pandoc_json($) {
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
 # and to downgrade document model depending on pandoc_version
 
+sub Pandoc::Document::to_json {
+    my ($self) = @_;
+
+    local $Pandoc::Elements::PANDOC_VERSION =
+        $Pandoc::Elements::PANDOC_VERSION // do {
+        if ( $self->api_version < 1.17 ) {
+            $self->api_version < 1.16 ? '1.12.1' : '1.16'
+        } else {
+            '1.18'
+        }
+    };
+    Pandoc::Document::Element::to_json($self);
+}
+
 sub Pandoc::Document::TO_JSON {
     my ( $self ) = @_;
     return Pandoc::Document::Element::TO_JSON(
@@ -553,6 +567,7 @@ sub Pandoc::Document::TO_JSON {
 }
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
+    #say STDERR "pandoc_version ".pandoc_version;
     if ( pandoc_version < '1.16' ) {
         return { t => 'Space', c => [] };
     } else {
