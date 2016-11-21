@@ -15,14 +15,18 @@ The output of this script `hello.pl`
     use Pandoc::Elements;
     use JSON;
 
-    print Document({
+    print Document(
+        {
             title => MetaInlines [ Str "Greeting" ]
-        }, [
+        },
+        [
             Header( 1, attributes { id => 'top' }, [ Str 'Hello' ] ),
             Para [ Str 'Hello, world!' ],
-        ])->to_json;
+        ],
+        api_version => '1.17.0.4'
+    )->to_json;
 
-can be converted for instance to HTML with via
+can be converted for instance to HTML via
 
     ./hello.pl | pandoc -f json -t html5 --standalone
 
@@ -53,8 +57,8 @@ such as `Para` and [inline elements](#inline-elements) such as `Emph`,
 [metadata elements](#metadata-elements) and the [Document](#document-element)).
 - [Type keywords](#type-keywords) such as `Decimal` and `LowerAlpha` to be used
 as types in other document elements.
-- The helper following functions `pandoc_json`, `attributes`, `citation`, and
-`element`.
+- The following helper functions `pandoc_json`, `pandoc_version`,
+`attributes`, `citation`, and `element`.
 
 ## pandoc\_json $json
 
@@ -90,6 +94,21 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
+## pandoc\_version
+
+Return expected version number of pandoc executable to be used for serializing
+documents with [to\_json](#to_json). The abstract syntax tree of Pandoc
+documents, reflected in this module, changes slightly between some releases of
+pandoc (for instance pandoc 1.16 introduced attributes to [Link](#link) and
+[Image](#image) elements).  Package variable `$PANDOC_VERSION` can be used to
+set the expected version. By default it is set from an environment variable of
+same name. This method returns the current value of the variable or the most
+recent version reliably supported by this module as instance of
+[Pandoc::Version](https://metacpan.org/pod/Pandoc::Version).
+
+See also method `version` of module [Pandoc](https://metacpan.org/pod/Pandoc) to get the current version of
+pandoc executable on your system.
+
 ## element( $name => $content )
 
 Create a Pandoc document element of arbitrary name. This function is only
@@ -98,10 +117,10 @@ exported on request.
 # ELEMENTS AND METHODS
 
 Document elements are encoded as Perl data structures equivalent to the JSON
-structure, emitted with pandoc output format `json`. All elements are blessed
-objects that provide [common element methods](#common-methods) (all elements),
-[attribute methods](#attribute-methods) (elements with attributes), and
-additional element-specific methods.
+structure, emitted with pandoc output format `json`. This JSON structure is
+subject to minor changes between [versions of pandoc](#pandoc_version).  All
+elements are blessed objects that provide [common element methods](#common-methods) (all elements), [attribute methods](#attribute-methods) (elements with
+attributes), and additional element-specific methods.
 
 ## COMMON METHODS
 
@@ -112,10 +131,8 @@ Return the element as JSON encoded string. The following are equivalent:
     $element->to_json;
     JSON->new->utf8->canonical->convert_blessed->encode($element);
 
-Note that the JSON format changed from Pandoc 1.15 to Pandoc 1.16 by introduction
-of attributes to [Link](#link) and [Image](#image) elements. Since Pandoc::Elements
-0.16 the new format is serialized by default. Set the package variable or
-environment variable `PANDOC_VERSION` to 1.15 or below to use the old format.
+Note that the suitable JSON format depends on the pandoc executable version.
+See ["PANDOC VERSION"](#pandoc-version) for details.
 
 ### name
 
@@ -207,16 +224,89 @@ append identifier or class, respectively.
 
 ### Document
 
-Root element, consisting of metadata hash (`meta`) and document element array
-(`content`).
+Root element, consisting of metadata hash (`meta`), document element array
+(`content`=`blocks`) and optional `api_version`. The constructor accepts
+either two arguments and an optional named parameter `api_version`:
 
-    Document $meta, [ @blocks ]
+    Document { %meta }, [ @blocks ], api_version => $version_string
 
-Document `metavalue` returns a copy of the metadata hash with all [metadata
-elements](#metadata-elements) flattened to unblessed values:
+or a hash with three fields for metadata, document content, and an optional
+pandoc API version:
 
-    $doc->metavalue   # equivalent to
-    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+    {
+        meta               => { %metadata },
+        blocks             => [ @content ],
+        pandoc-api-version => [ $major, $minor, $revision ]
+    }
+
+The latter form is used as pandoc JSON format since pandoc release 1.18. If no
+api version is given, it will be set 1.17 which was also introduced with pandoc
+release 1.18.
+
+A third ("old") form is accepted for compatibility with pandoc JSON format
+before release 1.18 and since release 1.12.1: an array with two elements for
+metadata and document content respectively.
+
+    [ { unMeta => { %meta } }, [ @blocks ] ]
+
+The api version is set to 1.16 in this case, but older versions down to 1.12.3
+used the same format.
+
+Document elements provide the following special methods in addition to
+[common element methods](#common-methods):
+
+- `api_version`
+
+    returns a [Pandoc::Version](https://metacpan.org/pod/Pandoc::Version) object, or takes a string like
+    `'1.17.0.4'` to set the value. Note that the actual number of fields in the
+    version number may be greater than three.
+
+    Beginning with version 1.18 pandoc will not decode a JSON AST
+    representation unless the major and minor version numbers
+    stored in the `pandoc-api-version` field match those
+    built into that version of pandoc.
+
+    To determine the API version required by the version of the pandoc
+    executable you are running run pandoc with the `--version` option
+    and check which version of the `pandoc-types` library pandoc was
+    compiled with. As of pandoc 1.18 this is the same as the API version
+    number required in the JSON AST representation.
+
+    If the API version number of the Document object is less than
+    `1.17.0.4`, the API version required by pandoc 1.18, the
+    Document `to_json` method will emit the old-style (pre-pandoc-
+    1.18) array-based AST representation. When writing filters you
+    should normally just rely on the API version value obtained from
+    pandoc, if any, since pandoc expects to receive the same JSON
+    format as it emits.
+
+    If no API version number is present in the arguments given to the
+    Document constructor the value of the object returned by the
+    `api_version` method will default to the dummy value `0` (zero).
+    Thus the object returned by the `api_version` method is
+    always safe to compare with another Pandoc::Version object or a string
+    with a version number. When checking whether pandoc expects the new
+    or the old AST representation it is however safer to check with
+    `$document->api_version ge '1.17.0.4'`. Since earlier versions
+    of Pandoc::Elements do not support the `$document->api_version`
+    method you should wrap such a check in an `eval` block if
+    your program should be able to run under earlier versions.
+
+- `content` or `blocks`
+
+    Get or set the array of [block elements](#block-elements) of the
+    document.
+
+- `meta`
+
+    Return document [metadata elements](#metadata-elements).
+
+- `metavalue`
+
+    Returns a copy of the metadata hash with all [metadata elements](#metadata-elements) flattened to unblessed values:
+
+        $doc->metavalue   # equivalent to
+        { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
 ## BLOCK ELEMENTS
 
@@ -271,6 +361,17 @@ Header with `level` (integer), attributes (`attr`, `id`, `class`,
 Horizontal rule
 
     HorizontalRule
+
+### LineBlock
+
+List of lines (`content`), each a list of [inlines](#inline-elements).
+
+    LineBlock [ @lines ]
+
+This element was added in pandoc 1.18. Before it was represented [Para](#para)
+elements with embedded [LineBreak](#linebreak) elements. This old serialization
+form can be enabled by setting `$PANDOC_VERSION` package variable to a lower
+version number.
 
 ### Null
 
@@ -418,11 +519,11 @@ Soft line break
 
     SoftBreak
 
-Note that the `SoftBreak` element was added in Pandoc 1.16 to as a matter of
-editing convenience to preserve line breaks (as opposed to paragraph breaks)
-from input source to output. If you are going to feed a document containing
-`SoftBreak` elements to Pandoc < 1.16 you will have to set the package
-variable or environment variable `PANDOC_VERSION` to 1.15 or below.
+This element was added in pandoc 1.16 as a matter of editing convenience to
+preserve line breaks (as opposed to paragraph breaks) from input source to
+output. If you are going to feed a document containing `SoftBreak` elements to
+Pandoc < 1.16 you will have to set the package variable or environment
+variable `PANDOC_VERSION` to 1.15 or below.
 
 ### Space
 
@@ -538,7 +639,9 @@ document elements:
 
 # SEE ALSO
 
-[Pandoc](https://metacpan.org/pod/Pandoc) implements a wrapper around the pandoc executable.
+Perl module [Pandoc](https://metacpan.org/pod/Pandoc) implements a wrapper around the pandoc executable.
+
+Similar libraries in other programming languages are listed at [https://github.com/jgm/pandoc/wiki/Pandoc-wrappers-and-interfaces](https://github.com/jgm/pandoc/wiki/Pandoc-wrappers-and-interfaces).
 
 [Text.Pandoc.Definition](https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html)
 contains the original definition of Pandoc document data structure in Haskell.

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use 5.010;
 
-our $VERSION = '0.25';
+our $VERSION = '0.27';
 
 use JSON;
 use Carp;

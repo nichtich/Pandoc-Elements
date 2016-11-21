@@ -11,5 +11,5 @@ MYMETA.*
 !/examples/*.md
 !/examples/*.pl
 xt/bin
-xt/dev
+xt/deb
 xt/usr

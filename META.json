@@ -68,7 +68,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.26",
+   "version" : "0.27",
    "x_contributors" : [
       "Benct Philip Jonsson <bpjonsson@gmail.com>",
       "Jakob Voß <jakob.voss@gbv.de>"
