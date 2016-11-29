@@ -48,8 +48,11 @@ foreach my $file (@input) {
 $all->meta->{pod2pandoc} = $meta;
 
 if (@ARGV) {
-    pandoc->require('1.12');
-    $Pandoc::Elements::PANDOC_VERSION = pandoc->version;
+    pandoc->require('1.12.1');
+    # FIXME: this does not work
+    # $Pandoc::Elements::PANDOC_VERSION = pandoc->version;
+    # this does work instead:
+    $all->pandoc_version( pandoc->version );
     my $json = $all->to_json;
     pandoc '-f' => 'json', @ARGV, { in => \$json };
 } else {

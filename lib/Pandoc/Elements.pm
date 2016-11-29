@@ -15,16 +15,62 @@ our $PANDOC_VERSION; # a string like '1.16'
 $PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
 
 # internal variables
-my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
-my $PANDOC_BIN_MAX = Pandoc::Version->new('1.18');
 
 my $PANDOC_API_MIN = Pandoc::Version->new('1.12.3');    # since pandoc 1.12.1
-my $PANDOC_API_DEFAULT = Pandoc::Version->new('1.17');  # since pandoc 1.18
+my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
 
-sub pandoc_version() {
-    return $PANDOC_BIN_MAX unless defined $PANDOC_VERSION;
-    (blessed $PANDOC_VERSION and $PANDOC_VERSION->isa('Pandoc::Version'))
-        ? $PANDOC_VERSION : Pandoc::Version->new($PANDOC_VERSION)
+# release version => minimal required api version
+my @REQUIRED_API = map { Pandoc::Version->new($_) }
+    '1.18'   => '1.17',  # pandoc 1.18 has api 1.17.0.4, compatible with api 1.17
+    '1.16'   => '1.16',  # pandoc 1.16 has api 1.16
+    '1.17'   => '1.16',  # pandoc 1.17 has api 1.16
+;
+
+sub _as_pandoc_version {
+    (blessed $_[0] and $_[0]->isa('Pandoc::Version'))
+        ? $_[0] : Pandoc::Version->new($_[0])
+}
+
+sub pandoc_version {
+    if (@_) {
+        my $doc = shift;
+        if (@_) {
+            $doc->api_version(
+                _minimum_pandoc_api_for(@_)
+                    // croak "pandoc version not supported"
+            );
+        }
+        _minimum_api_version_for($doc->api_version);
+    } elsif (defined $PANDOC_VERSION) {
+        _as_pandoc_version($PANDOC_VERSION)
+    } else {
+        $REQUIRED_API[0]
+    }
+}
+
+sub _minimum_api_version_for {
+    my $api_version = shift;
+
+    foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
+        if ($api_version->match($REQUIRED_API[$_]) ) {
+            return $REQUIRED_API[$_-1]
+        }
+    }
+
+    return $api_version >= $PANDOC_API_MIN ? $PANDOC_BIN_MIN : undef;
+}
+
+sub _minimum_pandoc_api_for {
+    my $version = _as_pandoc_version(shift);
+    return if @$version <= 1; # require major.minor
+
+    foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
+        if ($version->match($REQUIRED_API[$_-1]) ) {
+            return $REQUIRED_API[$_]
+        }
+    }
+
+    return $version >= $PANDOC_BIN_MIN ? $PANDOC_API_MIN : undef;
 }
 
 our %ELEMENTS = (
@@ -146,8 +192,8 @@ sub Document {
             if ( $reftype eq 'ARRAY') {
                 # old JSON format
                 {
-                    meta => $_[0]->[0]->{unMeta}, 
-                    blocks => $_[0]->[1], 
+                    meta => $_[0]->[0]->{unMeta},
+                    blocks => $_[0]->[1],
                     api_version => 1.16,
                 }
             } elsif ( $reftype eq 'HASH' ) {
@@ -166,21 +212,24 @@ sub Document {
             { meta => shift, blocks => shift, @_ }
         }
     };
-    
-    # prefer haskell-style key but accept perl-style and abbreviated key
-    my $api_version = $arg->{'pandoc-api-version'} // $arg->{pandoc_api_version}
-      // $arg->{api_version} // $PANDOC_API_DEFAULT;
-    $api_version = Pandoc::Version->new( $api_version );
 
-    croak 'api_version must be >= 1.12.3' if $api_version < $PANDOC_API_MIN;
+    # prefer haskell-style key but accept perl-style and abbreviated key
+    my $api_version = $arg->{'pandoc-api-version'}
+        // $arg->{pandoc_api_version}
+        // $arg->{api_version};
 
     # We copy values here because $arg may not be a pure AST representation
     my $doc = bless {
         meta   => metadata( $arg->{meta} // {} ),
         blocks => ( $arg->{blocks}       // [] ),
-        'pandoc-api-version' => $api_version,
       },
       'Pandoc::Document';
+
+    if (!defined $api_version and defined $arg->{pandoc_version}) {
+        $doc->pandoc_version($arg->{pandoc_version});
+    } else {
+        $doc->api_version($api_version // $REQUIRED_API[1]);
+    }
 
     walk $doc, \&_bless_pandoc_element;
 
@@ -265,6 +314,7 @@ sub pandoc_json($) {
 
     package Pandoc::Document;
     use strict;
+    use Carp 'croak';
     our $VERSION = '0.04';
     our @ISA = ('Pandoc::Document::Element');
     sub blocks;
@@ -289,10 +339,16 @@ sub pandoc_json($) {
     sub api_version {
         my $self = shift;
         if ( @_ ) {
-            $self->{'pandoc-api-version'} = Pandoc::Version->new( $_[0] )
+            my $version = Pandoc::Version->new(shift);
+            croak "api_version must be >= $PANDOC_API_MIN"
+                if $version < $PANDOC_API_MIN;
+            croak "api_version must have major and minor part"
+                if @$version < 2;
+            $self->{'pandoc-api-version'} = $version;
         }
         return $self->{'pandoc-api-version'};
     }
+    *pandoc_version = \&Pandoc::Elements::pandoc_version;
 }
 
 {
@@ -547,28 +603,20 @@ sub Pandoc::Document::to_json {
     my ($self) = @_;
 
     local $Pandoc::Elements::PANDOC_VERSION =
-        $Pandoc::Elements::PANDOC_VERSION // do {
-        if ( $self->api_version < 1.17 ) {
-            $self->api_version < 1.16 ? '1.12.1' : '1.16'
-        } else {
-            '1.18'
-        }
-    };
-    Pandoc::Document::Element::to_json($self);
+        $Pandoc::Elements::PANDOC_VERSION // $self->pandoc_version;
+
+    return Pandoc::Document::Element::to_json( $self->TO_JSON );
 }
 
 sub Pandoc::Document::TO_JSON {
     my ( $self ) = @_;
-    return Pandoc::Document::Element::TO_JSON(
-        $self->api_version ge '1.17'
-        ? $self
+    return $self->api_version >= 1.17
+        ? { %$self }
         : [ { unMeta => $self->{meta} }, $self->{blocks} ]
-    );
 }
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
-    #say STDERR "pandoc_version ".pandoc_version;
-    if ( pandoc_version < '1.16' ) {
+    if ( pandoc_version() < '1.16' ) {
         return { t => 'Space', c => [] };
     } else {
         return { t => 'SoftBreak', c => [] };
@@ -577,7 +625,7 @@ sub Pandoc::Document::SoftBreak::TO_JSON {
 
 sub Pandoc::Document::LinkageRole::TO_JSON {
     my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
-    if ( pandoc_version < 1.16 ) {
+    if ( pandoc_version() < 1.16 ) {
         # remove attributes
         $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
     }
@@ -670,7 +718,7 @@ sub Pandoc::Document::LineBlock::TO_JSON {
         $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
     }
 
-    return $ast if pandoc_version >= 1.18;
+    return $ast if pandoc_version() >= 1.18;
 
     my $c = [ map { ; @$_, LineBreak() } @{$content} ];
     pop @$c;    # remove trailing line break
@@ -726,15 +774,56 @@ an equivalent Pandoc Markdown document would be
 
 =head1 DESCRIPTION
 
-Pandoc::Elements provides utility functions to create abstract syntax trees
-(AST) of L<Pandoc|http://pandoc.org/> documents. Pandoc can convert the
-resulting data structure to many other document formats, such as HTML, LaTeX,
-ODT, and ePUB.
-
-Please make sure to use at least Pandoc 1.12 when processing documents
+Pandoc::Elements provides utility functions to parse, serialize, and modify
+abstract syntax trees (AST) of L<Pandoc|http://pandoc.org/> documents. Pandoc
+can convert this data structure to many other document formats, such as HTML,
+LaTeX, ODT, and ePUB.
 
 See also module L<Pandoc::Filter>, command line script L<pod2pandoc>, and the
 internal modules L<Pandoc::Walker> and L<Pod::Simple::Pandoc>.
+
+=head1 PANDOC VERSIONS
+
+The Pandoc document model is defined in file
+L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
+as part of Haskell package
+L<pandoc-types|https://hackage.haskell.org/package/pandoc-types>.
+
+Pandoc::Elements is compatible with pandoc-types 1.12.3 (released with pandoc
+1.12.1) up to I<at least> pandoc-types-1.17.0.4 (first releases with pandoc
+1.18). JSON output of all pandoc releases since 1.12.1 can be parsed with
+function C<pandoc_json>, the L</Document> constructor or method C<parse> of
+module L<Pandoc>. The AST is always upgraded to pandoc-types 1.17 and
+downgraded to another api version on serialization with C<to_json>.
+
+To determine the api version required by a version of pandoc executable since
+version 1.18 execute pandoc with the C<--version> option and check which
+version of the C<pandoc-types> library pandoc was compiled with.
+
+Beginning with version 1.18 pandoc will not decode a JSON AST representation
+unless the major and minor version numbers (Document method C<api_version>)
+match those built into that version of pandoc. The following changes in pandoc
+document model have been implemented:
+
+=over
+
+=item
+
+pandoc-types 1.17, released for pandoc 1.18, introduced the
+L<LineBlock|/LineBlock> element and modified representation
+of the root L<Document|/Document> element.
+
+=item
+
+pandoc-types 1.16, released with pandoc 1.16, introduced attributes to L<Link|/Link> and L<Image|/Image> elements
+
+=item
+
+pandoc-types 1.12.3, released with pandoc 1.12.1, modified the representation
+of elements to objects with field C<t> and C<c>. This is also the internal
+representation of documents used in this module.
+
+=back
 
 =head1 FUNCTIONS
 
@@ -794,17 +883,19 @@ construct such hash by filling in default values and using shorter field names
 
     [see @foo p. 42]
 
-=head2 pandoc_version
+=head2 pandoc_version( [ $document ] )
 
-Return expected version number of pandoc executable to be used for serializing
-documents with L<to_json|/to_json>. The abstract syntax tree of Pandoc
-documents, reflected in this module, changes slightly between some releases of
-pandoc (for instance pandoc 1.16 introduced attributes to L<Link|/Link> and
-L<Image|/Image> elements).  Package variable C<$PANDOC_VERSION> can be used to
-set the expected version. By default it is set from an environment variable of
-same name. This method returns the current value of the variable or the most
-recent version reliably supported by this module as instance of
-L<Pandoc::Version>.
+Return a L<Pandoc::Version> object with expected version number of pandoc
+executable to be used for serializing documents with L<to_json|/to_json>.
+
+If a L<Document element|/DOCUMENT ELEMENT> is given as argument, the minimal
+pandoc release version compatible with its api version is returned.
+
+Without argument, package variable C<$PANDOC_VERSION> is checked for a
+preferred pandoc release. By default this variable is set from an environment
+variable of same name. If no preferred pandoc release has been specified, the
+function returns version 1.18 because this is the first pandoc release
+compatible with most recent api version supported by this module.
 
 See also method C<version> of module L<Pandoc> to get the current version of
 pandoc executable on your system.
@@ -832,8 +923,13 @@ Return the element as JSON encoded string. The following are equivalent:
     $element->to_json;
     JSON->new->utf8->canonical->convert_blessed->encode($element);
 
-Note that the suitable JSON format depends on the pandoc executable version.
-See L</PANDOC VERSION> for details.
+The serialization format can be adjusted to different L<pandoc versions|/PANDOC
+VERSIONS> with module and environment variable C<PANDOC_VERSION> or with
+Document element properties C<api_version> and C<pandoc_version>.
+
+When writing filters you can normally just rely on the api version value
+obtained from pandoc, since pandoc expects to receive the same JSON format as
+it emits.
 
 =head3 name
 
@@ -958,53 +1054,35 @@ L<common element methods|/COMMON METHODS>:
 
 =over
 
-=item C<api_version>
+=item B<api_version( [ $api_version ] )>
 
-returns a L<Pandoc::Version|Pandoc::Version> object, or takes a string like
-C<'1.17.0.4'> to set the value. Note that the actual number of fields in the
-version number may be greater than three.
+Return the pandoc-types version (aka "pandoc-api-version") of this document as
+L<Pandoc::Version|Pandoc::Version> object or sets it to a new value. This
+version determines how method L<to_json|/to_json> serializes the document.
 
-Beginning with version 1.18 pandoc will not decode a JSON AST
-representation unless the major and minor version numbers
-stored in the C<pandoc-api-version> field match those
-built into that version of pandoc.
+See L</PANDOC VERSIONS> for details.
 
-To determine the API version required by the version of the pandoc
-executable you are running run pandoc with the C<--version> option
-and check which version of the C<pandoc-types> library pandoc was
-compiled with. As of pandoc 1.18 this is the same as the API version
-number required in the JSON AST representation.
+=item B<pandoc_version( [ $pandoc_version ] )>
 
-If the API version number of the Document object is less than
-C<1.17.0.4>, the API version required by pandoc 1.18, the
-Document C<to_json> method will emit the old-style (pre-pandoc-
-1.18) array-based AST representation. When writing filters you
-should normally just rely on the API version value obtained from
-pandoc, if any, since pandoc expects to receive the same JSON
-format as it emits.
+Return the minimum required version of pandoc executable compatible
+with the api_version of this document. The following are equivalent:
 
-If no API version number is present in the arguments given to the
-Document constructor the value of the object returned by the
-C<api_version> method will default to the dummy value C<0> (zero).
-Thus the object returned by the C<api_version> method is
-always safe to compare with another Pandoc::Version object or a string
-with a version number. When checking whether pandoc expects the new
-or the old AST representation it is however safer to check with
-C<< $document->api_version ge '1.17.0.4' >>. Since earlier versions
-of Pandoc::Elements do not support the C<< $document->api_version >>
-method you should wrap such a check in an C<eval> block if
-your program should be able to run under earlier versions.
+  $doc->pandoc_version;
+  pandoc_version( $doc );
 
-=item C<content> or C<blocks>
+If used as setter, sets the api version of this document to be compatible with
+the given pandoc version.
+
+=item B<content> or B<blocks>
 
 Get or set the array of L<block elements|/BLOCK ELEMENTS> of the
 document.
 
-=item C<meta>
+=item B<meta>
 
 Return document L<metadata elements|/METADATA ELEMENTS>.
 
-=item C<metavalue>
+=item B<metavalue>
 
 Returns a copy of the metadata hash with all L<metadata elements|/METADATA
 ELEMENTS> flattened to unblessed values:
@@ -1171,7 +1249,7 @@ C<class>, C<classes>, C<keyvals>).
 
     Image attributes { %attr }, [ @inlines ], [ $url, $title ]
 
-Serializing the attributes in JSON can be disabled with C<PANDOC_VERSION>.
+Serializing the attributes is disabled in api version less then 1.16.
 
 =head3 LineBreak
 
@@ -1187,7 +1265,7 @@ C<class>, C<classes>, C<keyvals>).
 
     Link attributes { %attr }, [ @inlines ], [ $url, $title ]
 
-Serializing the attributes in JSON can be disabled with C<PANDOC_VERSION>.
+Serializing the attributes is disabled in api version less then 1.16.
 
 =head3 Math
 
@@ -1371,10 +1449,6 @@ C<DefaultDelim>, C<Period>, C<OneParen>, C<TwoParens>
 Perl module L<Pandoc> implements a wrapper around the pandoc executable.
 
 Similar libraries in other programming languages are listed at L<https://github.com/jgm/pandoc/wiki/Pandoc-wrappers-and-interfaces>.
-
-L<Text.Pandoc.Definition|https://hackage.haskell.org/package/pandoc-types/docs/Text-Pandoc-Definition.html>
-contains the original definition of Pandoc document data structure in Haskell.
-This module version was last aligned with pandoc-types-1.16.1.
 
 =head1 AUTHOR
 
