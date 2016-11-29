@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.28  2016-11-29 06:49:57 CET
     - Fix pod2pandoc
     - Extend selection of serialization format (pandoc_version/api_version)
 
