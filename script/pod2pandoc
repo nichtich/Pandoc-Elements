@@ -2,7 +2,7 @@
 use strict;
 require 5.010;
 
-my $VERSION = '0.25';
+my $VERSION = '0.28';
 
 use Getopt::Long qw(:config pass_through);
 use Pod::Usage;

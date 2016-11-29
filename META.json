@@ -41,7 +41,7 @@
             "IPC::Run3" : "0",
             "JSON" : "0",
             "List::Util" : "0",
-            "Pandoc" : "v0.4.0",
+            "Pandoc" : "v0.5.0",
             "Pod::Simple" : "3.08",
             "Pod::Usage" : "0",
             "Scalar::Util" : "0",
@@ -68,7 +68,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.27",
+   "version" : "0.28",
    "x_contributors" : [
       "Benct Philip Jonsson <bpjonsson@gmail.com>",
       "Jakob Voß <jakob.voss@gbv.de>"

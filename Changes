@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Fix pod2pandoc
+    - Extend selection of serialization format (pandoc_version/api_version)
 
 0.27  2016-11-21 19:36:29 CET
     - Update internal Document structure and default to Pandoc 1.18
