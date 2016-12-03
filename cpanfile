@@ -1,4 +1,4 @@
-requires 'perl', '5.010';
+requires 'perl', '5.010001';
 
 # core modules
 requires 'Pod::Simple', '3.08';
