@@ -594,6 +594,10 @@ sub pandoc_json($) {
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
     sub is_block { 1 }
+    sub null {
+        %{$_[0]} = (t => 'Null', c => []);
+        bless $_[0], 'Pandoc::Document::Null';
+    }
 }
 
 {

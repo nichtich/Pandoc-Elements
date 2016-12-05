@@ -24,4 +24,7 @@ is_deeply $para->content, [ Str 'test' ];
 ok $para->is_block, 'is_block';
 ok !$para->is_document, '!is_document';
 
+$para->null;
+is $para->name, 'Null', 'null';
+
 done_testing;
