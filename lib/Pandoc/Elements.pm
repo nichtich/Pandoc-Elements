@@ -1,7 +1,7 @@
 package Pandoc::Elements;
 use strict;
 use warnings;
-use 5.010;
+use 5.010001;
 
 our $VERSION = '0.28';
 
@@ -349,6 +349,43 @@ sub pandoc_json($) {
         return $self->{'pandoc-api-version'};
     }
     *pandoc_version = \&Pandoc::Elements::pandoc_version;
+    sub outline {
+        my ($self, $depth) = @_;
+        _sections( [@{$self->blocks}], $depth );
+    }
+    sub _sections {
+        my ($list, $depth) = @_;
+        my (@blocks, @sections);
+
+        # everything up to the first Header
+        while (@$list) {
+            if ($list->[0]->name eq 'Header') {
+                last if !$depth or $depth >= $list->[0]->level;
+            }
+            push @blocks, shift @$list;
+        }
+
+        # divide into sections
+        while (@$list) {
+            my $header = shift @$list;
+            my $level  = $header->level;
+
+            my @content;
+            while (@$list) {
+                if ($list->[0]->name eq 'Header') {
+                    last if $list->[0]->level <= $level;
+                }
+                push @content, shift @$list;
+            }
+
+            my $s = ($depth and $depth < $level)
+                ? { blocks => \@content }
+                : _sections(\@content,$depth);
+            push @sections, { header => $header, %$s };
+        }
+
+        return { blocks => \@blocks, sections => \@sections };
+    }
 }
 
 {
@@ -1089,6 +1126,29 @@ ELEMENTS> flattened to unblessed values:
 
     $doc->metavalue   # equivalent to
     { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+
+=item B<outline( [ $depth ] )>
+
+Returns an outline of the document structure based on L<Header|/Header>
+elements. The outline is a hierarchical hash reference with the following
+fields:
+
+=over
+
+=item header
+
+L<Header|/Header> element (not included at the document root)
+
+=item blocks
+
+List of L<block elements|/Block elements> before the next L<Header|/Header>
+element (of given depth or less if a maximum depth was given)
+
+=item sections
+
+List of subsections, each having the same outline structure.
+
+=back
 
 =back
 

@@ -47,6 +47,12 @@ foreach my $file (@input) {
 
 $all->meta->{pod2pandoc} = $meta;
 
+my $sections = $all->outline(1)->{sections};
+if (my ($name) = grep { $_->{header}->string eq 'NAME' } @$sections) {
+    ($name) = split /\s/, $name->{blocks}->[0]->string;
+    $all->meta->{title} = MetaString $name;
+}
+
 if (@ARGV) {
     pandoc->require('1.12.1');
     # FIXME: this does not work
