@@ -634,8 +634,8 @@ sub pandoc_json($) {
         unshift @{"Pandoc::Document::${Element}::ISA"}, __PACKAGE__; # no critic
     }
 
-    sub url   { $_[0]->{c}->[-1][0] }
-    sub title { $_[0]->{c}->[-1][1] }
+    sub url   { my $e = shift; $e->{c}->[-1][0] = shift if @_; return $e->{c}->[-1][0] //= ""; }
+    sub title { my $e = shift; $e->{c}->[-1][1] = shift if @_; return $e->{c}->[-1][1] //= ""; }
 
     sub upgrade {
         # prepend attributes to old-style ast
