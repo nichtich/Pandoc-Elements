@@ -315,6 +315,7 @@ sub pandoc_json($) {
     package Pandoc::Document;
     use strict;
     use Carp 'croak';
+    use Pandoc;
     our $VERSION = '0.04';
     our @ISA = ('Pandoc::Document::Element');
     sub blocks;
@@ -385,6 +386,12 @@ sub pandoc_json($) {
         }
 
         return { blocks => \@blocks, sections => \@sections };
+    }
+    sub to_pandoc {
+        my ($self, @args) = @_;
+        my $in = $self->to_json;
+        pandoc( [ -f => 'json', @args ], { in => \$in, out => \my $out } );
+        return $out;
     }
 }
 
@@ -1130,6 +1137,13 @@ ELEMENTS> flattened to unblessed values:
 
     $doc->metavalue   # equivalent to
     { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+
+=item B<to_pandoc( [ @arguments ])>
+
+Process the document with L<Pandoc> and return its output:
+
+    $doc->to_pandoc( -o => 'doc.html' );
+    my $markdown = $doc->to_pandoc( -t => 'markdown' );
 
 =item B<outline( [ $depth ] )>
 

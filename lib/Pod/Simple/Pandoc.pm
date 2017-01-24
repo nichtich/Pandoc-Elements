@@ -282,15 +282,18 @@ Pod::Simple::Pandoc - convert Pod to Pandoc document model
   my $parser = Pod::Simple::Pandoc->new;
   my $doc    = $parser->parse_file( $filename );
 
-  # result is a Pandoc::Document
-  print $doc->to_json;
+  # result is a Pandoc::Document object
+  my $json = $doc->to_json;
+  my $markdown = $doc->to_pandoc( -t => 'markdown' );
+  $doc->to_pandoc(qw( -o doc.html --standalone ));
 
 =head1 DESCRIPTION
 
 This module converts POD format documentation (L<perlpod>) to the document
-model used by L<Pandoc|http://pandoc.org/>. The result can be accessed with
-methods of L<Pandoc::Element> and emitted as JSON for further processing to
-other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man...).
+model used by L<Pandoc|http://pandoc.org/>. The result object can be accessed
+with methods of L<Pandoc::Elements> and emitted as JSON for further processing
+to other document formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT,
+man...).
 
 The command line script L<pod2pandoc> makes use of this module, for instance to
 directly convert to PDF:
