@@ -789,6 +789,7 @@ Pandoc::Elements - create and process Pandoc documents
 [![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.svg)](https://travis-ci.org/nichtich/Pandoc-Elements)
 [![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.svg)](https://coveralls.io/r/nichtich/Pandoc-Elements)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
+[![Code Climate Issue Count](https://codeclimate.com/github/nichtich/Pandoc-Elements/badges/issue_count.svg)](https://codeclimate.com/github/nichtich/Pandoc-Elements)
 
 =end markdown
 
