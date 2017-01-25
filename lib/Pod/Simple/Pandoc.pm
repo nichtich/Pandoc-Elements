@@ -63,7 +63,15 @@ sub parse_string {
 }
 
 sub parse_tree {
-    Pandoc::Filter::HeaderIdentifiers->new->apply( _pod_element(@_) );
+    my $doc = Pandoc::Filter::HeaderIdentifiers->new->apply( _pod_element(@_) );
+
+    my $sections = $doc->outline(1)->{sections};
+    if (my ($name) = grep { $_->{header}->string eq 'NAME' } @$sections) {
+        ($name) = split /\s/, $name->{blocks}->[0]->string;
+        $doc->meta->{title} = MetaString $name;
+    }
+
+    $doc;
 }
 
 my %POD_ELEMENT_TYPES = (

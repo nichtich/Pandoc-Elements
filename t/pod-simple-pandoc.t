@@ -21,6 +21,9 @@ my $parser = new_ok 'Pod::Simple::Pandoc';
         $doc->query( Header => sub { $_->level == 1 ? $_->string : () } ),
         [qw(NAME SYNOPSIS DESCRIPTION OPTIONS METHODS MAPPING ),'SEE ALSO'],
         'got headers';
+
+    is $doc->meta->{title}->metavalue, 'Pod::Simple::Pandoc', 'title';
+    is $doc->metavalue('title'), 'Pod::Simple::Pandoc', 'title';
 }
 
 # parse_string
