@@ -22,6 +22,8 @@ is RawBlock('html','<b>hi</hi>')->string,  '', 'RawBlock has no string';
 is RawInline('html','<b>hi</hi>')->string,  '', 'RawInline has no string';
 is Code(attributes {},'#!$')->string,  '#!$', 'Code has string';
 
+is CodeBlock({}, 'Hi')->string, 'Hi', 'CodeBlock has string';
+
 done_testing;
 
 __DATA__

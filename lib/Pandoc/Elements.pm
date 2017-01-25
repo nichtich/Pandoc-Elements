@@ -473,7 +473,7 @@ sub pandoc_json($) {
     sub string {
 
         # TODO: fix issue #4 to avoid this duplication
-        if ( $_[0]->name =~ /^(Str|Code|Math|MetaString)$/ ) {
+        if ( $_[0]->name =~ /^(Str|Code|CodeBlock|Math|MetaString)$/ ) {
             return $_[0]->content;
         }
         elsif ( $_[0]->name =~ /^(LineBreak|SoftBreak|Space)$/ ) {
@@ -482,7 +482,7 @@ sub pandoc_json($) {
         join '', @{
             $_[0]->query(
                 {
-                    'Str|Code|Math|MetaString'  => sub { $_->content },
+                    'Str|Code|CodeBlock|Math|MetaString'  => sub { $_->content },
                     'LineBreak|Space|SoftBreak' => sub { ' ' },
                 }
             );
