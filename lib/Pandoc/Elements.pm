@@ -335,8 +335,12 @@ sub pandoc_json($) {
     *blocks = \&content;
     sub is_document { 1 }
     sub metavalue {
-        my $meta = $_[0]->meta;
-        return { map { $_ => $meta->{$_}->metavalue } keys %$meta }
+        my $meta = shift->meta;
+        if (@_) {
+            return $meta->{$_[0]} ? $meta->{$_[0]}->metavalue : undef;
+        } else {
+            return { map { $_ => $meta->{$_}->metavalue } keys %$meta }
+        }
     }
     sub string {
         join '', map { $_->string } @{$_[0]->content}
@@ -1142,13 +1146,19 @@ document.
 
 Return document L<metadata elements|/METADATA ELEMENTS>.
 
-=item B<metavalue>
+=item B<metavalue( [ $field ] )>
 
-Returns a copy of the metadata hash with all L<metadata elements|/METADATA
-ELEMENTS> flattened to unblessed values:
+Called without an argument this method returns a copy of the metadata hash with
+all L<metadata elements|/METADATA ELEMENTS> flattened to unblessed values:
 
     $doc->metavalue   # equivalent to
     { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+
+Called with a field, this method is a shortcut for
+
+    $doc->meta->{$field}->metavalue
+
+or C<undef> if the given field does not exist.
 
 =item B<to_pandoc( [ @arguments ])>
 

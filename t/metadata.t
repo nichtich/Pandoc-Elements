@@ -61,7 +61,7 @@ my $doc = do {
 
 # note explain $doc->metavalue;
 
-is_deeply { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} },
+is_deeply { map { $_ => $doc->metavalue($_) } keys %{$doc->meta} },
     $doc->metavalue, 'Document->metavalue';
 
 done_testing;
