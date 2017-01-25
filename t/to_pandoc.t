@@ -20,4 +20,8 @@ my $doc = pandoc->file('t/documents/outline.md');
     ok $html =~ qr{^<!DOCTYPE}, 'to_pandoc with options';
 }
 
+{
+    is $doc->to_markdown, $doc->to_pandoc( '-t' => 'markdown' ), 'to_markdown';
+}
+
 done_testing;

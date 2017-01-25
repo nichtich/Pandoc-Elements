@@ -1,5 +1,6 @@
 package Pandoc::Elements;
 use strict;
+## no critic (ProhibitNoStrict, ProhibitSubroutinePrototypes)
 use warnings;
 use 5.010001;
 
@@ -10,6 +11,7 @@ use JSON qw(decode_json);
 use Scalar::Util qw(blessed reftype);
 use Pandoc::Walker qw(walk);
 use Pandoc::Version;
+
 
 our $PANDOC_VERSION; # a string like '1.16'
 $PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
@@ -150,6 +152,7 @@ foreach my $name ( keys %ELEMENTS ) {
     $parent = join ' ', map { "Pandoc::Document::$_" } $parent,
       map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
 
+    ## no critic (ProhibitStringyEval)
     eval "package $class; our \@ISA = qw($parent);";
 
     *{ __PACKAGE__ . "::$name" } = Scalar::Util::set_prototype(
@@ -171,6 +174,7 @@ foreach my $name ( keys %ELEMENTS ) {
         ? " [ map { bless \$_, 'Pandoc::Document::$1' } \@{$member} ];"
         : " $member;";
         for ( split '/', $accessors[$i] ) {
+            ## no critic
             *{ $class . "::$_" } = eval "sub { $code }";
         }
     }
@@ -178,7 +182,7 @@ foreach my $name ( keys %ELEMENTS ) {
 
 sub element {
     my $name = shift;
-    no strict 'refs';
+    no strict 'refs'; #
     croak "undefined element" unless defined $name;
     croak "unknown element $name" unless $ELEMENTS{$name};
     &$name(@_);
@@ -389,9 +393,16 @@ sub pandoc_json($) {
     }
     sub to_pandoc {
         my ($self, @args) = @_;
+        my $pandoc = pandoc;
         my $in = $self->to_json;
-        pandoc( [ -f => 'json', @args ], { in => \$in, out => \my $out } );
+        $pandoc->run( [ -f => 'json', @args ], { in => \$in, out => \my $out } );
         return $out;
+    }
+    foreach my $format (qw(markdown latex html rst plain)) {
+        no strict 'refs';
+        *{ __PACKAGE__ . "::to_$format" } = sub {
+            shift()->to_pandoc( @_, '-t' => $format );
+        }
     }
 }
 
@@ -1141,10 +1152,19 @@ ELEMENTS> flattened to unblessed values:
 
 =item B<to_pandoc( [ @arguments ])>
 
-Process the document with L<Pandoc> and return its output:
+Process the document with L<Pandoc> executable and return its output:
 
     $doc->to_pandoc( -o => 'doc.html' );
     my $markdown = $doc->to_pandoc( -t => 'markdown' );
+
+=item B<to_...( [ @arguments ] )>
+
+Process the document into C<markdown> (pandoc's extended Markdown), C<latex>
+(LaTeX), C<html> (HTML), C<rst> (reStructuredText), or C<plain> (plain text).
+The following are equivalent:
+
+    $doc->to_markdown( @args );
+    $doc->to_pandoc( @args, '-t' => 'markdown' );
 
 =item B<outline( [ $depth ] )>
 
