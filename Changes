@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.29  2017-01-25 12:10:07 CET
     - Add document methods: to_pandoc, to_markdown, ... (#48)
     - Add document methods: outline
     - Make Link/Image methods url/title also setters (#54)
