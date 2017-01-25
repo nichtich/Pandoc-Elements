@@ -101,11 +101,13 @@ subtest '1.12.3' => sub {
     test_document $args, $expect, $json{'1.12.3'}, 'api_version = 1.12.3';
 };
 
-
 throws_ok { Document doc_meta, doc_blocks, api_version => '1.12.1' }
     qr{^api_version must be >= 1\.12\.3}, 'minimum api_version';
 
 throws_ok { Document doc_meta, doc_blocks, '1.17.0.4' }
     qr{Document: too many or ambiguous arguments}, 'invalid arguments';
+
+throws_ok { Document 'hello' }
+    qr{expect array or hash reference}, 'invalid arguments';
 
 done_testing;

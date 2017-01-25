@@ -742,7 +742,7 @@ sub Pandoc::Document::MetaInlines::metavalue {
 }
 
 sub Pandoc::Document::MetaBlocks::metavalue {
-    join "\n", map { $_->string } @{$_[0]->{c}}
+    [ map { $_->string } @{$_[0]->{c}} ]
 }
 
 sub Pandoc::Document::MetaList::metavalue {
