@@ -26,6 +26,8 @@ sub download_debian {
 
     foreach my $r (github_releases("jgm","pandoc")) {
         my ($asset) = grep { $_->{name} =~ /-amd64\.deb$/ } @{$r->{assets}};
+        next if $asset =~ /^pandoc-1\.17-/; # this version had a bug
+
         my $url = $asset->{browser_download_url} or next;
         my $name = $asset->{name};      # could also be parsed from url
         my $version = $r->{tag_name};   # could also be parsed from url or name
