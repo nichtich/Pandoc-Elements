@@ -45,7 +45,7 @@
             "Pod::Simple" : "3.08",
             "Pod::Usage" : "0",
             "Scalar::Util" : "0",
-            "perl" : "5.010"
+            "perl" : "5.010001"
          }
       },
       "test" : {
@@ -68,7 +68,7 @@
          "web" : "https://github.com/nichtich/Pandoc-Elements"
       }
    },
-   "version" : "0.28",
+   "version" : "0.29",
    "x_contributors" : [
       "Benct Philip Jonsson <bpjonsson@gmail.com>",
       "Jakob Voß <jakob.voss@gbv.de>"

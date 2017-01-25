@@ -7,6 +7,7 @@ Pandoc::Elements - create and process Pandoc documents
 [![Build Status](https://travis-ci.org/nichtich/Pandoc-Elements.svg)](https://travis-ci.org/nichtich/Pandoc-Elements)
 [![Coverage Status](https://coveralls.io/repos/nichtich/Pandoc-Elements/badge.svg)](https://coveralls.io/r/nichtich/Pandoc-Elements)
 [![Kwalitee Score](http://cpants.cpanauthors.org/dist/Pandoc-Elements.png)](http://cpants.cpanauthors.org/dist/Pandoc-Elements)
+[![Code Climate Issue Count](https://codeclimate.com/github/nichtich/Pandoc-Elements/badges/issue_count.svg)](https://codeclimate.com/github/nichtich/Pandoc-Elements)
 
 # SYNOPSIS
 
@@ -324,6 +325,41 @@ Document elements provide the following special methods in addition to
 
         $doc->metavalue   # equivalent to
         { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
+
+- **to\_pandoc( \[ @arguments \])**
+
+    Process the document with [Pandoc](https://metacpan.org/pod/Pandoc) executable and return its output:
+
+        $doc->to_pandoc( -o => 'doc.html' );
+        my $markdown = $doc->to_pandoc( -t => 'markdown' );
+
+- **to\_...( \[ @arguments \] )**
+
+    Process the document into `markdown` (pandoc's extended Markdown), `latex`
+    (LaTeX), `html` (HTML), `rst` (reStructuredText), or `plain` (plain text).
+    The following are equivalent:
+
+        $doc->to_markdown( @args );
+        $doc->to_pandoc( @args, '-t' => 'markdown' );
+
+- **outline( \[ $depth \] )**
+
+    Returns an outline of the document structure based on [Header](#header)
+    elements. The outline is a hierarchical hash reference with the following
+    fields:
+
+    - header
+
+        [Header](#header) element (not included at the document root)
+
+    - blocks
+
+        List of [block elements](#block-elements) before the next [Header](#header)
+        element (of given depth or less if a maximum depth was given)
+
+    - sections
+
+        List of subsections, each having the same outline structure.
 
 ## BLOCK ELEMENTS
 

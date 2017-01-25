@@ -1,6 +1,11 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Add document methods: to_pandoc, to_markdown, ... (#48)
+    - Add document methods: outline
+    - Make Link/Image methods url/title also setters (#54)
+    - Let pod2pandoc include package name as title
+    - Fix metavalue for MetaBlocks
 
 0.28  2016-11-29 06:49:57 CET
     - Fix pod2pandoc
