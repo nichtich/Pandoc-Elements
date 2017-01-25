@@ -538,7 +538,7 @@ sub pandoc_json($) {
     sub classes {
         my $e = shift;
         croak 'Method classes() is not a setter' if @_;
-        warn "->classes is deprecated, use ->class instead\n";
+        warn "->classes is deprecated. Use [ split ' ', \$e->class ] instead\n";
         $e->attr->[1]
     }
 
