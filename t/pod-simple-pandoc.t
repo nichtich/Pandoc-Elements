@@ -24,6 +24,13 @@ my $parser = new_ok 'Pod::Simple::Pandoc';
 
     is $doc->meta->{title}->metavalue, 'Pod::Simple::Pandoc', 'title';
     is $doc->metavalue('title'), 'Pod::Simple::Pandoc', 'title';
+
+    # process document
+    if (pandoc and pandoc->version > '1.12.1') {
+        my $api_version = $doc->api_version;
+        ok $doc->to_pandoc( '-t' => 'html' ), 'to_pandoc';
+        is $doc->api_version, $api_version, 'api_version stable';
+    }
 }
 
 # parse_string

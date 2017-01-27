@@ -319,6 +319,7 @@ sub pandoc_json($) {
     package Pandoc::Document;
     use strict;
     use Carp 'croak';
+    use Scalar::Util qw(blessed);
     use Pandoc;
     our $VERSION = '0.04';
     our @ISA = ('Pandoc::Document::Element');
@@ -397,8 +398,14 @@ sub pandoc_json($) {
     }
     sub to_pandoc {
         my ($self, @args) = @_;
-        my $pandoc = pandoc;
+        my $pandoc = (@_ and blessed($_[0]) and $_[0]->isa('Pandoc'))
+                   ? shift : pandoc;
+
+        my $api_version = $self->api_version;   # save
+        $self->pandoc_version( $pandoc->version );
         my $in = $self->to_json;
+        $self->api_version($api_version);       # restore
+
         $pandoc->run( [ -f => 'json', @args ], { in => \$in, out => \my $out } );
         return $out;
     }
@@ -1160,12 +1167,15 @@ Called with a field, this method is a shortcut for
 
 or C<undef> if the given field does not exist.
 
-=item B<to_pandoc( [ @arguments ])>
+=item B<to_pandoc( [ [ $pandoc, ] @arguments ])>
 
 Process the document with L<Pandoc> executable and return its output:
 
     $doc->to_pandoc( -o => 'doc.html' );
     my $markdown = $doc->to_pandoc( -t => 'markdown' );
+
+The first argument can optionally be an instance of L<Pandoc> to use a specific
+executable.
 
 =item B<to_...( [ @arguments ] )>
 
