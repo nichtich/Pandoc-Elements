@@ -20,7 +20,7 @@ sub new {
         push @targets, pandoc->input_formats;
     }
     $opt{targets} = \@targets;
-    
+
     $opt{podurl} //= 'https://metacpan.org/pod/';
 
     bless \%opt, $class;
@@ -54,7 +54,13 @@ sub _parser {
 
 sub parse_file {
     my ( $self, $file ) = @_;
-    $self->parse_tree( $self->_parser->parse_file($file)->root );
+    my $doc = $self->parse_tree( $self->_parser->parse_file($file)->root );
+
+    if (!ref $file and $file ne '-') {
+        $doc->meta->{file} = MetaString($file);
+    }
+
+    $doc;
 }
 
 sub parse_string {
@@ -67,8 +73,11 @@ sub parse_tree {
 
     my $sections = $doc->outline(1)->{sections};
     if (my ($name) = grep { $_->{header}->string eq 'NAME' } @$sections) {
-        ($name) = split /\s/, $name->{blocks}->[0]->string;
-        $doc->meta->{title} = MetaString $name;
+        # TODO: support formatting
+        my $text = $name->{blocks}->[0]->string;
+        my ($title, $subtitle) = $text =~ m{^\s*([^ ]+)\s*[:-]*\s*(.+)};
+        $doc->meta->{title} = MetaString($title) if $title;
+        $doc->meta->{subtitle} = MetaString($subtitle) if $subtitle;
     }
 
     $doc;
@@ -328,11 +337,15 @@ default.
 
 =head2 parse_file( $filename | *INPUT )
 
-Reads Pod from file or filehandle and convert it to a L<Pandoc::Document>.
+Reads Pod from file or filehandle and convert it to a L<Pandoc::Document>. The
+filename is put into document metadata field C<file> and the module name. The
+NAME section, if given, is additionally split into metadata fields C<title> and
+C<subtitle>.
 
 =head2 parse_string( $string )
 
-Reads Pod from string and convert it to a L<Pandoc::Document>.
+Reads Pod from string and convert it to a L<Pandoc::Document>. Also sets
+metadata fields C<title> and C<subtitle>.
 
 =head1 MAPPING
 

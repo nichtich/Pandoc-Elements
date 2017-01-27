@@ -23,6 +23,7 @@ my $parser = new_ok 'Pod::Simple::Pandoc';
         'got headers';
 
     is $doc->meta->{title}->metavalue, 'Pod::Simple::Pandoc', 'title';
+    is $doc->meta->{file}->metavalue, $file, 'file';
     is $doc->metavalue('title'), 'Pod::Simple::Pandoc', 'title';
 
     # process document
