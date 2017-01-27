@@ -23,6 +23,7 @@ my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
 
 # release version => minimal required api version
 my @REQUIRED_API = map { Pandoc::Version->new($_) }
+    '1.19'   => '1.17',  # pandoc 1.19 has api 1.17.0.4, compatible with api 1.17
     '1.18'   => '1.17',  # pandoc 1.18 has api 1.17.0.4, compatible with api 1.17
     '1.16'   => '1.16',  # pandoc 1.16 has api 1.16
     '1.17'   => '1.16',  # pandoc 1.17 has api 1.16
@@ -42,7 +43,7 @@ sub pandoc_version {
                     // croak "pandoc version not supported"
             );
         }
-        _minimum_api_version_for($doc->api_version);
+        _minimum_pandoc_version_for_api($doc->api_version);
     } elsif (defined $PANDOC_VERSION) {
         _as_pandoc_version($PANDOC_VERSION)
     } else {
@@ -50,16 +51,24 @@ sub pandoc_version {
     }
 }
 
-sub _minimum_api_version_for {
-    my $api_version = shift;
+sub _minimum_pandoc_version_for_api {
+    my $api = shift;
+
+    my $version;
 
     foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
-        if ($api_version->match($REQUIRED_API[$_]) ) {
-            return $REQUIRED_API[$_-1]
+        if ($api->match($REQUIRED_API[$_]) ) {
+            if (!$version or $version > $REQUIRED_API[$_-1]) {
+                $version = $REQUIRED_API[$_-1]
+            }
         }
     }
 
-    return $api_version >= $PANDOC_API_MIN ? $PANDOC_BIN_MIN : undef;
+    if (!$version and $api >= $PANDOC_API_MIN) {
+        $PANDOC_BIN_MIN;
+    } else {
+        return $version;
+    }
 }
 
 sub _minimum_pandoc_api_for {
@@ -68,8 +77,14 @@ sub _minimum_pandoc_api_for {
 
     foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
         if ($version->match($REQUIRED_API[$_-1]) ) {
-            return $REQUIRED_API[$_]
+            return $REQUIRED_API[$_];
         }
+    }
+
+    # required version is newer than any known version
+    # return the latest known api version and hope it has not changed
+    if ($version > $REQUIRED_API[0]) {
+        return $REQUIRED_API[1];
     }
 
     return $version >= $PANDOC_BIN_MIN ? $PANDOC_API_MIN : undef;
@@ -403,6 +418,7 @@ sub pandoc_json($) {
 
         my $api_version = $self->api_version;   # save
         $self->pandoc_version( $pandoc->version );
+
         my $in = $self->to_json;
         $self->api_version($api_version);       # restore
 
