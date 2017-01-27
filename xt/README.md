@@ -6,10 +6,9 @@ pandoc (limited to Debian 64bit) and stores them in subdirectory `bin`:
 
     $ perl -Ilib xt/get-pandoc-releases.pl
 
-Run all normal tests (or a selected test) by selecting a binary with `PATH`:
+Then run all or selected tests with all or selected pandoc releases:
 
-    $ PATH=xt/bin/1.15.2:$PATH prove -l
+    $ ./xt/prove
+    $ ./xt/prove '>=1.17'
+    $ ./xt/prove '>=1.17' t/stringify.t
 
-Run all normal tests with all pandoc releases:
-
-    $ perl -Ilib xt/prove-all.t

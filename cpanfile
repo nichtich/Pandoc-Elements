@@ -9,7 +9,7 @@ requires 'Pod::Usage';
 # additional modules
 requires 'JSON';
 requires 'Hash::MultiValue', '0.06';
-requires 'Pandoc', '0.5.0';
+requires 'Pandoc', '0.6.0';
 requires 'IPC::Run3'; # implied by Pandoc
 
 on test => sub {
