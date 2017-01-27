@@ -2,62 +2,11 @@
 use strict;
 require 5.010;
 
-my $VERSION = '0.28';
+my $VERSION = '0.30';
 
-use Getopt::Long qw(:config pass_through);
-use Pod::Usage;
-use Pandoc::Elements;
-use Pod::Simple::Pandoc;
-use IPC::Run3;
-use Pandoc;
+use App::pod2pandoc;
 
-my %opt;
-GetOptions( \%opt, 'help|h|?', 'man', 'data-sections', 'podurl=s' ) or exit 1;
-pod2usage(1) if delete $opt{help};
-pod2usage( -verbose => 2 ) if delete $opt{man};
-
-my @input = @ARGV ? () : '-';
-
-my ($index) = grep { $ARGV[$_] eq '--' } (0 .. @ARGV-1);
-
-if (defined $index) {
-    push @input, shift @ARGV for 0..$index-1;
-    shift @ARGV; # --
-} else {
-    push(@input, shift @ARGV) while @ARGV and $ARGV[0] !~ /^-./;
-}
-
-my $all;
-my $meta = MetaList [ map { MetaString $_ } @input ];
-
-foreach my $file (@input) {
-    if ($file ne '-' and !-e $file) {
-        run3 ['perldoc','-lm',$file], undef, \$file;
-        exit $? if $?;
-    } 
-    my $parser = Pod::Simple::Pandoc->new(%opt);
-    my $doc = $parser->parse_file($file);
-    if ($all) {
-        push @{ $all->content }, @{ $doc->content };
-    }
-    else {
-        $all = $doc;
-    }
-}
-
-$all->meta->{pod2pandoc} = $meta;
-
-if (@ARGV) {
-    pandoc->require('1.12.1');
-    # FIXME: this does not work
-    # $Pandoc::Elements::PANDOC_VERSION = pandoc->version;
-    # this does work instead:
-    $all->pandoc_version( pandoc->version );
-    my $json = $all->to_json;
-    pandoc '-f' => 'json', @ARGV, { in => \$json };
-} else {
-    print $all->to_json, "\n";
-}
+pod2pandoc( App::pod2pandoc::parse_arguments(@ARGV) );
 
 =head1 NAME
 
@@ -65,23 +14,27 @@ pod2pandoc - convert Pod to Pandoc document model
 
 =head1 SYNOPSIS
 
-  pod2pandoc [OPTIONS] {INPUT} [ [ -- ] PANDOCOPTIONS ]
-  pod2pandoc [OPTIONS] {INPUT} | pandoc -f json [ PANDOCOPTIONS ]
+  pod2pandoc [OPTIONS] {INPUT} [ [ -- ] PANDOC_ARGUMENTS ]
+  pod2pandoc [OPTIONS] {INPUT} | pandoc -f json [ PANDOC_ARGUMENTS ]
 
   pod2pandoc Module.pm -o Module.pdf
   pod2pandoc script.pl -t markdown
   pod2pandoc Module::Name -o ModuleName.html
+  pod2pandoc lib/ wiki/ --ext .md --wiki --index Home -t markdown_github
+  pod2pandoc lib/ docs/ --standalone
 
 =head1 DESCRIPTION
 
-C<pod2pandoc> converts POD format documentation (L<perlpod>) to the
+pod2pandoc converts POD format documentation (L<perlpod>) to the
 L<Pandoc|http://pandoc.org/> document model so it can be processed to other
 formats (HTML, Markdown, LaTeX, PDF, EPUB, docx, ODT, man, ICML...). By default
 or with input C<-> a document is read from STDIN. Multiple input files are
-combined to one document. The result is printed in JSON format or passed to
-Pandoc if additional options such as C<-t> or C<-o> are given.
+combined to one document and listed in document metadata field C<file>.  The
+result is printed in JSON format or passed to Pandoc if additional options such
+as C<-t> or C<-o> are given.
 
-The document metadata field C<pod2pandoc> is set to a list of input files.
+To process a whole directory of C<.pm> and/or C<.pod> files, specify an input
+directory as first input and an optional output directory as second.
 
 =head1 OPTIONS
 
@@ -91,30 +44,48 @@ The document metadata field C<pod2pandoc> is set to a list of input files.
 
 Print out usage information and exit
 
-=item --man
-
-Print the full manual page and exit
-
 =item --data-sections
 
-Parse and include data sections in pandoc input formats (e.g. markdown).
+Parse and include data sections (e.g. C<=for markdown>)
 
 =item --podurl URL
 
-Set base URL to link Perl modules (C<https://metacpan.org/pod/> by default).
+Base URL to Perl modules. Default: C<https://metacpan.org/pod/>
+
+=item --ext EXT
+
+Output file extension when processing a directory. Default: C<html>
+
+=item --index NAME
+
+Index file name when processing a directory. Disable with C<0>
+
+=item --wiki
+
+Don't create output subdirectories and create wikilinks.
+
+=item --update
+
+Only process when input file is newer then output file
+
+=item --quiet
+
+Don't emit warnings and status information
 
 =item ...
 
-All other options are passed through to pandoc.
+All other options are passed through to pandoc
 
 =back
 
 =head1 SEE ALSO
 
-Conversion is based on L<Pod::Simple::Pandoc> which uses L<Pandoc::Element>.
+See module L<App::pod2pandoc> for implementation.
 
 This script together with Pandoc can be used as customizable replacement for
 specialized Pod converter scripts such as L<pod2html>, L<pod2man>,
 L<pod2readme>, L<pod2usage>, L<pod2latex>, L<pod2markdown>, and L<pod2text>.
+It also covers batch conversion such as L<pod2projdocs> and
+L<Pod::Simple::HTMLBatch>.
 
 =cut

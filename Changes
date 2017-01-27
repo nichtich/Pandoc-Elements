@@ -1,6 +1,9 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Fix and extend document method: to_pandoc
+    - Extend document method: metavalues
+    - Move creation of title metavalue into Pod::Simple::Pandoc
 
 0.29  2017-01-25 12:10:07 CET
     - Add document methods: to_pandoc, to_markdown, ... (#48)

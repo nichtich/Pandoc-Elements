@@ -8,7 +8,12 @@ our $VERSION = '0.25';
 use Pod::Simple::SimpleTree;
 use Pandoc::Elements;
 use Pandoc::Filter::HeaderIdentifiers;
+use Pod::Simple::Pandoc::Modules;
 use Pandoc;
+use File::Find ();
+use File::Spec;
+use IPC::Run3;
+use Carp;
 use utf8;
 
 sub new {
@@ -54,6 +59,13 @@ sub _parser {
 
 sub parse_file {
     my ( $self, $file ) = @_;
+
+    {
+        # Pod::Simple::parse_file does not detect this
+        no warnings;
+        croak "Can't use directory as a source for parse_file" if -d $file;
+    }
+
     my $doc = $self->parse_tree( $self->_parser->parse_file($file)->root );
 
     if (!ref $file and $file ne '-') {
@@ -82,6 +94,82 @@ sub parse_tree {
 
     $doc;
 }
+
+sub parse_and_merge {
+    my ($self, @input) = @_;
+
+    my $doc;
+
+    foreach my $file (@input) {
+
+        # map module names to files
+        if ($file ne '-' and !-e $file) {
+            run3 ['perldoc','-lm',$file], undef, \$file;
+            exit $? if $?;
+        }
+        my $cur = $self->parse_file($file);
+        if ($doc) {
+            push @{ $doc->content }, @{ $cur->content };
+        }
+        else {
+            $doc = $cur;
+        }
+    }
+
+    return unless $doc;
+
+    $doc->meta->{file} = MetaList [ map { MetaString $_ } @input ];
+
+    return $doc;
+}
+
+
+sub parse_dir {
+    my ($parser, $directory) = @_;
+    my $files = {};
+
+    File::Find::find({
+        no_chdir => 1,
+        wanted => sub {
+            my $file = $_;
+            return if $file !~ /\.(pm|pod)$/;
+            my $doc = $parser->parse_file($file);
+            my $base = File::Spec->abs2rel($directory, $file);
+            $base =~ s/\.\.$//;
+            $doc->meta->{base} = MetaString $base;
+            $files->{$file} = $doc;
+        } }, $directory);
+
+    $files;
+}
+
+sub parse_modules {
+    my $parser = shift;
+    my %opt = @_ % 2 ? (source => @_) : @_;
+    return unless defined $opt{source} and -d $opt{source};
+
+    my $modules = {};
+    foreach my $doc ( values %{$parser->parse_dir($opt{source})} ) {
+        my $file = $doc->metavalue('file');
+        my $module = File::Spec->abs2rel($file, $opt{source});
+        $module =~ s{\.(pm|pod)$}{}g;
+        $module =~ s{/}{::}g;
+        if (($doc->metavalue('title') // $module) eq $module) {
+            if ($modules->{$module}) {
+                # TODO: compare file and prefer .pod over .pm if both given
+                warn "$file skipped for ".$modules->{$module}->metavalue('file')
+                    unless $opt{quiet};
+                next;
+            }
+            $modules->{$module} = $doc;
+        } else {
+            warn "$file NAME does not match module\n" unless $opt{quiet};
+        }
+    }
+
+    bless $modules, 'Pod::Simple::Pandoc::Modules';
+}
+
 
 my %POD_ELEMENT_TYPES = (
     Document => sub {
@@ -315,7 +403,7 @@ man...).
 The command line script L<pod2pandoc> makes use of this module, for instance to
 directly convert to PDF:
 
-  pod2pandoc input.pod | pandoc -f json -t output.pdf
+  pod2pandoc input.pod -o output.pdf
 
 =head1 OPTIONS
 
@@ -342,10 +430,31 @@ filename is put into document metadata field C<file> and the module name. The
 NAME section, if given, is additionally split into metadata fields C<title> and
 C<subtitle>.
 
+=head2 parse_and_merge( @files_or_modules )
+
+Reads Pod from files or modules given by name and merges them into one 
+L<Pandoc::Document>.
+
 =head2 parse_string( $string )
 
 Reads Pod from string and convert it to a L<Pandoc::Document>. Also sets
 metadata fields C<title> and C<subtitle>.
+
+=head2 parse_dir( $directory )
+
+Recursively looks for C<.pm> and C<.pod> files in a given directory and parses
+them. Returns a hash reference with filenames mapped to L<Pandoc::Document>
+objects. Each document is enriched with metadata fields C<base> (relative path
+from each file to the base directory) in addition to C<file>, C<title>, and
+C<subtitle>.
+
+=head2 parse_modules( [ $directory ], %options )
+
+Same as method C<parse_dir> but returns a L<Pod::Simple::Pandoc::Modules>
+instance that maps module names to L<Pandoc::Document> instances. The source
+directory can also be specified with option C<source>. Option C<quiet> disables
+warnings for skipped files. See module L<Pod::Simple::Pandoc::Modules> for
+further usage.
 
 =head1 MAPPING
 

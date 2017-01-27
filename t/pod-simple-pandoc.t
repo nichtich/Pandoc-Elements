@@ -3,6 +3,7 @@ use Test::More;
 use Pandoc::Elements;
 use Pandoc;
 use Pod::Simple::Pandoc;
+use Test::Exception;
 
 my $file = 'lib/Pod/Simple/Pandoc.pm';
 
@@ -23,6 +24,7 @@ my $parser = new_ok 'Pod::Simple::Pandoc';
         'got headers';
 
     is $doc->meta->{title}->metavalue, 'Pod::Simple::Pandoc', 'title';
+    is $doc->meta->{subtitle}->metavalue, 'convert Pod to Pandoc document model', 'subtitle';
     is $doc->meta->{file}->metavalue, $file, 'file';
     is $doc->metavalue('title'), 'Pod::Simple::Pandoc', 'title';
 
@@ -32,6 +34,22 @@ my $parser = new_ok 'Pod::Simple::Pandoc';
         ok $doc->to_pandoc( '-t' => 'html' ), 'to_pandoc';
         is $doc->api_version, $api_version, 'api_version stable';
     }
+
+    dies_ok { $parser->parse_file('') } 'parse_fail dies on invalid file';
+}
+
+
+if ($ENV{RELEASE_TESTING}) {
+    my $files = $parser->parse_dir('lib');
+    is scalar(keys %$files), 11, 'parse_dir';
+    my $doc = $files->{'lib/Pandoc/Elements.pm'};
+    isa_ok $doc, 'Pandoc::Document';
+    is_deeply $doc->metavalue, {
+        file => 'lib/Pandoc/Elements.pm',
+        title => 'Pandoc::Elements',
+        subtitle => 'create and process Pandoc documents',
+        base => '../',
+    }, 'parse_dir document metadata';
 }
 
 # parse_string
@@ -47,6 +65,7 @@ POD
     is_deeply $doc, 
         Document({}, [ BlockQuote [ Para [ Emph [ Str 'hello' ] ] ] ]),
         'parse_string';
+    is $doc->metavalue('title'), undef, 'no title';
 }
 
 # podurl
