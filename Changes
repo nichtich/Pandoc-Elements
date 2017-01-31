@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.30  2017-01-31 21:23:11 CET
     - Fix and extend method to_pandoc
     - Extend document method metavalues
 
