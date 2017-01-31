@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010001;
 
-our $VERSION = '0.29';
+our $VERSION = '0.30';
 
 use Carp;
 use JSON qw(decode_json);

@@ -319,19 +319,29 @@ Document elements provide the following special methods in addition to
 
     Return document [metadata elements](#metadata-elements).
 
-- **metavalue**
+- **metavalue( \[ $field \] )**
 
-    Returns a copy of the metadata hash with all [metadata elements](#metadata-elements) flattened to unblessed values:
+    Called without an argument this method returns a copy of the metadata hash with
+    all [metadata elements](#metadata-elements) flattened to unblessed values:
 
         $doc->metavalue   # equivalent to
         { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
 
-- **to\_pandoc( \[ @arguments \])**
+    Called with a field, this method is a shortcut for
+
+        $doc->meta->{$field}->metavalue
+
+    or `undef` if the given field does not exist.
+
+- **to\_pandoc( \[ \[ $pandoc, \] @arguments \])**
 
     Process the document with [Pandoc](https://metacpan.org/pod/Pandoc) executable and return its output:
 
         $doc->to_pandoc( -o => 'doc.html' );
         my $markdown = $doc->to_pandoc( -t => 'markdown' );
+
+    The first argument can optionally be an instance of [Pandoc](https://metacpan.org/pod/Pandoc) to use a specific
+    executable.
 
 - **to\_...( \[ @arguments \] )**
 
