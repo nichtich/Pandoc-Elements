@@ -38,7 +38,7 @@ sub _pod2usage_if_help {
     require Pandoc::Filter::Usage;
     my %opt;
     Getopt::Long::GetOptions(\%opt, 'help|?');
-    Pandoc::Filter::Usage::pod2usage( to => $ARGV[0] ) if $opt{help};
+    Pandoc::Filter::Usage::pod2usage() if $opt{help};
 }
 
 sub pandoc_filter(@) {    ## no critic

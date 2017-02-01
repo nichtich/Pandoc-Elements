@@ -33,9 +33,9 @@ In addition, filters are searched in C<~/.pandoc/filters>.
 
 =over
 
-=item --help|-h [<format>]
+=item --help|-h
 
-Print this help (optinally in a format supported by pandoc).
+Print this help
 
 =back
 
