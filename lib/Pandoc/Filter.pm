@@ -74,11 +74,6 @@ sub new {
     }, $class;
 }
 
-# TODO: remove this method, only used on Pandoc::Filter::Lazy and pandocwalk
-sub error {
-    $_[0]->{error};
-}
-
 sub action {
     $_[0]->{action};
 }

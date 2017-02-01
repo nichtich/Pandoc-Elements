@@ -42,7 +42,6 @@ my $filter = Pandoc::Filter->new(sub {
     return [ $_, Str " world!" ];
 });
 
-ok !$filter->error, 'no error';
 $filter->apply($doc);
 
 is_deeply $doc->content, [ Str('HELLO'), Str(' world!') ], "don't filter injected elements";
