@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.31  2017-02-01 15:52:47 CET
     - Remove deprecated script pandocwalk
     - Remove module Pandoc::Filter::Lazy
 
