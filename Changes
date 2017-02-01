@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.32  2017-02-01 16:15:21 CET
     - Deprecate Pandoc::Filter::Usage and remove circular dependency
 
 0.31  2017-02-01 15:52:47 CET
