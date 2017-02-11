@@ -413,8 +413,8 @@ sub pandoc_json($) {
     }
     sub to_pandoc {
         my ($self, @args) = @_;
-        my $pandoc = (@_ and blessed($_[0]) and $_[0]->isa('Pandoc'))
-                   ? shift : pandoc;
+        my $pandoc = (@args and blessed($args[0]) and $args[0]->isa('Pandoc'))
+                   ? shift(@args) : pandoc;
 
         my $api_version = $self->api_version;   # save
         $self->pandoc_version( $pandoc->version );
