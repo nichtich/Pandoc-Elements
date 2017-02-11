@@ -24,4 +24,9 @@ my $doc = pandoc->file('t/documents/outline.md');
     is $doc->to_markdown, $doc->to_pandoc( '-t' => 'markdown' ), 'to_markdown';
 }
 
+{
+    my $to_latex = new_ok Pandoc => [ '-t' => 'latex' ], 'to-latex-object';
+    is $doc->to_pandoc( $to_latex ), $doc->to_latex,'to latex with custom Pandoc';
+}
+
 done_testing;
