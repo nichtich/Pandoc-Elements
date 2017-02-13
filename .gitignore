@@ -2,6 +2,7 @@
 /.build
 /_build*
 /Build
+/blib
 MYMETA.*
 !META.json
 /.prove
@@ -15,3 +16,4 @@ xt/deb
 xt/usr
 xt/*.html
 wiki/
+docs/
