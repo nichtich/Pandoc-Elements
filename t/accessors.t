@@ -54,10 +54,11 @@ is $e->type->name, 'SingleQuote', 'Quoted';
 }
 
 {
-    my $e = Document { foo => 1 }, [];
-    is_deeply metadata { foo => 1 }, $e->meta, 'Document: meta';
-    $e->meta({ bar => 0 });
-    is_deeply metadata { bar => 0 }, $e->meta, 'Document: meta(...)';
+    my $doc = Document { foo => 1 }, [];
+    note explain $doc->to_json;
+    is_deeply $doc->meta->value, { foo => 1 }, 'Document: meta';
+    $doc->meta({ bar => 0 });
+    is_deeply $doc->meta->value, { bar => 0 }, 'Document: meta(...)';
 }
 
 done_testing;

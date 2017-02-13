@@ -162,19 +162,21 @@ foreach my $name ( keys %ELEMENTS ) {
 
     my ( $parent, @accessors ) = @{ $ELEMENTS{$name} };
     my $numargs = scalar @accessors;
-    my $class   = "Pandoc::Document::$name";
     my @parents = map { "Pandoc::Document::$_" } ($parent);
     $parent = join ' ', map { "Pandoc::Document::$_" } $parent,
       map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
 
     ## no critic (ProhibitStringyEval)
-    eval "package $class; our \@ISA = qw($parent);";
+    eval "package Pandoc::Document::$name; our \@ISA = qw($parent);";
 
     *{ __PACKAGE__ . "::$name" } = Scalar::Util::set_prototype(
         sub {
             croak "$name expects $numargs arguments, but given " . scalar @_
               if @_ != $numargs;
-            my $self = bless { t => $name, c => ( @_ == 1 ? $_[0] : [@_] ) }, $class;
+            my $self = bless {
+                t => $name,
+                c => ( @_ == 1 ? $_[0] : [@_] )
+            }, "Pandoc::Document::$name";
             $self->set_content(@_);
             $self;
         },
@@ -190,7 +192,7 @@ foreach my $name ( keys %ELEMENTS ) {
         : " $member;";
         for ( split '/', $accessors[$i] ) {
             ## no critic
-            *{ $class . "::$_" } = eval "sub { $code }";
+            *{"Pandoc::Document::${name}::$_"} = eval "sub { $code }";
         }
     }
 }
@@ -205,8 +207,10 @@ sub element {
 
 sub Document {
 
+    my $from_json;
     my $arg = do {
         if ( @_ == 1 ) {
+            $from_json = 1;
             my $reftype = reftype $_[0] // '';
             if ( $reftype eq 'ARRAY') {
                 # old JSON format
@@ -238,11 +242,19 @@ sub Document {
         // $arg->{api_version};
 
     # We copy values here because $arg may not be a pure AST representation
-    my $doc = bless {
-        meta   => metadata( $arg->{meta} // {} ),
-        blocks => ( $arg->{blocks}       // [] ),
-      },
-      'Pandoc::Document';
+    my $doc = bless { blocks => ( $arg->{blocks} // [] ) }, 'Pandoc::Document';
+
+    # unblessed metadata in internal format can only come from JSON 
+    my $meta = $arg->{meta} // {};
+    if ($from_json) {
+        croak "Document metadata must be a hash" unless 'HASH' eq reftype $meta;
+        $doc->{meta} = bless {
+            map { $_ => _bless_pandoc_element( $meta->{$_} ) } keys %$meta
+        }, 'Pandoc::Document::Metadata';
+    } else {
+        # otherwise allow user-friendly upgrade via 'metadata' function
+        $doc->meta($meta)
+    }
 
     if (!defined $api_version and defined $arg->{pandoc_version}) {
         $doc->pandoc_version($arg->{pandoc_version});
@@ -305,12 +317,42 @@ sub citation($) {
     };
 }
 
-sub metadata($) {
-    my $meta = shift; # TODO: issue #10 and #34
-    for my $v ( values %$meta ) {
-        $v = _bless_pandoc_element( $v );
+use Pandoc::Metadata ();
+
+sub metadata($);  ## no critic
+
+sub metadata($) { ## no critic
+    my $value = shift;
+    if ( !ref $value ) {
+        MetaString($value // '')
     }
-    $meta;
+    elsif ( JSON::is_bool($value) ) {
+        MetaBool($value)
+    }
+    elsif ( blessed($value) ) {
+        if ( $value->can('is_meta') and $value->is_meta ) {
+            $value
+        }
+        elsif ( $value->can('is_inline') and $value->is_inline ) {
+            MetaInlines([ $value ])
+        }
+        elsif ( $value->can('is_block') and $value->is_block ) {
+            MetaBlocks([ $value ])
+        } elsif ( $value->isa('Pandoc::Document::Metadata') ) {
+            MetaMap( { map { $_ => $value->{$_} } keys %$value } )
+        } else {
+            MetaString("$value")
+        }
+    }
+    elsif ( reftype $value eq 'ARRAY' ) {
+        MetaList( [ map { metadata $_ } @$value ] )
+    }
+    elsif ( reftype $value eq 'HASH' ) {
+        MetaMap( { map { $_ => metadata $value->{$_} } keys %$value } )
+    }
+    else {
+        MetaString("$value")
+    }
 }
 
 sub pandoc_json($) {
@@ -334,14 +376,19 @@ sub pandoc_json($) {
     package Pandoc::Document;
     use strict;
     use Carp 'croak';
-    use Scalar::Util qw(blessed);
+    use Scalar::Util qw(blessed reftype);
     use Pandoc;
     our $VERSION = '0.04';
     our @ISA = ('Pandoc::Document::Element');
     sub blocks;
     sub name { 'Document' }
     sub meta {
-        $_[0]->{meta} = Pandoc::Elements::metadata($_[1]) if @_ > 1;
+        if (@_ > 1) {
+            croak "document metadata must be a hash"
+                unless 'HASH' eq reftype $_[1];
+            my $map = Pandoc::Elements::metadata($_[1])->content;
+            $_[0]->{meta} = bless $map, 'Pandoc::Document::Metadata';
+        }
         $_[0]->{meta};
     }
     sub content {
@@ -351,12 +398,7 @@ sub pandoc_json($) {
     *blocks = \&content;
     sub is_document { 1 }
     sub metavalue {
-        my $meta = shift->meta;
-        if (@_) {
-            return $meta->{$_[0]} ? $meta->{$_[0]}->metavalue : undef;
-        } else {
-            return { map { $_ => $meta->{$_}->metavalue } keys %$meta }
-        }
+        return shift->meta->value(@_);
     }
     sub string {
         join '', map { $_->string } @{$_[0]->content}
@@ -655,15 +697,6 @@ sub pandoc_json($) {
 
 {
 
-    package Pandoc::Document::Meta;
-    use Scalar::Util 'reftype';
-    our $VERSION = $PANDOC::Document::VERSION;
-    our @ISA     = ('Pandoc::Document::Element');
-    sub is_meta { 1 }
-}
-
-{
-
     package Pandoc::Document::LinkageRole;
     our $VERSION = $PANDOC::Document::VERSION;
 
@@ -740,44 +773,6 @@ sub Pandoc::Document::Table::TO_JSON {
     # coerce column widths to numbers (floats)
     $_ += 0 for @{ $ast->{c}[2] };    # faster than map
     return $ast;
-}
-
-sub Pandoc::Document::MetaBool::set_content {
-    $_[0]->{c} = $_[1] && $_[1] ne 'false' && $_[1] ne 'FALSE'
-}
-
-sub Pandoc::Document::MetaBool::TO_JSON {
-    return {
-        t => 'MetaBool',
-
-        # coerce Bool value to JSON Boolean object
-        c => $_[0]->{c} ? JSON::true() : JSON::false(),
-    };
-}
-
-sub Pandoc::Document::MetaBool::metavalue {
-    $_[0]->{c} ? 1 : 0
-}
-
-sub Pandoc::Document::MetaMap::metavalue {
-    my $map = $_[0]->{c};
-    return { map { $_ => $map->{$_}->metavalue } keys %$map }
-}
-
-sub Pandoc::Document::MetaInlines::metavalue {
-    join '', map { $_->string } @{$_[0]->{c}}
-}
-
-sub Pandoc::Document::MetaBlocks::metavalue {
-    [ map { $_->string } @{$_[0]->{c}} ]
-}
-
-sub Pandoc::Document::MetaList::metavalue {
-    [ map { $_->metavalue } @{$_[0]->{c}} ]
-}
-
-sub Pandoc::Document::MetaString::metavalue {
-    $_[0]->{c}
 }
 
 sub Pandoc::Document::Cite::TO_JSON {
@@ -932,7 +927,7 @@ as types in other document elements.
 =item
 
 The following helper functions C<pandoc_json>, C<pandoc_version>,
-C<attributes>, C<citation>, and C<element>.
+C<attributes>, C<metadata>, C<citation>, and C<element>.
 
 =back
 
@@ -1165,23 +1160,13 @@ the given pandoc version.
 Get or set the array of L<block elements|/BLOCK ELEMENTS> of the
 document.
 
-=item B<meta>
+=item B<meta( [ $metadata ] )>
 
-Return document L<metadata elements|/METADATA ELEMENTS>.
+Get and/or set document L<metadata elements|/METADATA ELEMENTS>.
 
 =item B<metavalue( [ $field ] )>
 
-Called without an argument this method returns a copy of the metadata hash with
-all L<metadata elements|/METADATA ELEMENTS> flattened to unblessed values:
-
-    $doc->metavalue   # equivalent to
-    { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
-
-Called with a field, this method is a shortcut for
-
-    $doc->meta->{$field}->metavalue
-
-or C<undef> if the given field does not exist.
+Shortcut for C<< meta->value >>.
 
 =item B<to_pandoc( [ [ $pandoc, ] @arguments ])>
 
@@ -1491,59 +1476,7 @@ Superscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
 =head2 METADATA ELEMENTS
 
-Metadata can be provided in YAML syntax or via command line option C<-M>.  All
-metadata elements return true for C<is_meta>.  Metadata elements can be
-converted to unblessed Perl array references, hash references, and scalars with
-method C<metavalue>.  On the document level, metadata (document method C<meta>)
-is a hash reference with values being metadata elements. Document method
-C<metavalue> returns a flattened copy of this hash.
-
-=head3 MetaString
-
-A plain text string metadata value (C<content>).
-
-    MetaString $content
-
-MetaString values can also be set via pandoc command line client:
-
-    pandoc -M key=$content
-
-=head3 MetaBool
-
-A Boolean metadata value (C<content>). The special values C<"false"> and
-C<"FALSE"> are recognized as false in addition to normal false values (C<0>,
-C<undef>, C<"">...).
-
-    MetaBool $content
-
-MetaBool values can also be set via pandoc command line client:
-
-    pandoc -M key=true
-    pandoc -M key=false
-
-=head3 MetaInlines
-
-Container for a list of L<inlines|/INLINE ELEMENTS> (C<content>) in metadata.
-
-    MetaInlines [ @inlines ]
-
-=head3 MetaBlocks
-
-Container for a list of L<blocks|/BLOCK ELEMENTS> (C<content>) in metadata.
-
-    MetaInlines [ @blocks ]
-
-=head3 MetaList
-
-A list of other L<metadata elements|/METADATA ELEMENTS> (C<content>).
-
-    MetaList [ @values ]
-
-=head3 MetaMap
-
-A map of keys to other metadata elements.
-
-    MetaMap { %map }
+See L<Pandoc::Metadata> for documentation.
 
 =head2 TYPE KEYWORDS
 
