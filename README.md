@@ -88,7 +88,7 @@ such as `Para` and [inline elements](#inline-elements) such as `Emph`,
 - [Type keywords](#type-keywords) such as `Decimal` and `LowerAlpha` to be used
 as types in other document elements.
 - The following helper functions `pandoc_json`, `pandoc_version`,
-`attributes`, `citation`, and `element`.
+`attributes`, `metadata`, `citation`, and `element`.
 
 ## pandoc\_json $json
 
@@ -315,23 +315,13 @@ Document elements provide the following special methods in addition to
     Get or set the array of [block elements](#block-elements) of the
     document.
 
-- **meta**
+- **meta( \[ $metadata \] )**
 
-    Return document [metadata elements](#metadata-elements).
+    Get and/or set document [metadata elements](#metadata-elements).
 
 - **metavalue( \[ $field \] )**
 
-    Called without an argument this method returns a copy of the metadata hash with
-    all [metadata elements](#metadata-elements) flattened to unblessed values:
-
-        $doc->metavalue   # equivalent to
-        { map { $_ => $doc->meta->{$_}->metavalue } keys %{$doc->meta} }
-
-    Called with a field, this method is a shortcut for
-
-        $doc->meta->{$field}->metavalue
-
-    or `undef` if the given field does not exist.
+    Shortcut for `meta->value`.
 
 - **to\_pandoc( \[ \[ $pandoc, \] @arguments \])**
 
@@ -633,59 +623,7 @@ Superscripted text, a list of [inlines](#inline-elements) (`content`).
 
 ## METADATA ELEMENTS
 
-Metadata can be provided in YAML syntax or via command line option `-M`.  All
-metadata elements return true for `is_meta`.  Metadata elements can be
-converted to unblessed Perl array references, hash references, and scalars with
-method `metavalue`.  On the document level, metadata (document method `meta`)
-is a hash reference with values being metadata elements. Document method
-`metavalue` returns a flattened copy of this hash.
-
-### MetaString
-
-A plain text string metadata value (`content`).
-
-    MetaString $content
-
-MetaString values can also be set via pandoc command line client:
-
-    pandoc -M key=$content
-
-### MetaBool
-
-A Boolean metadata value (`content`). The special values `"false"` and
-`"FALSE"` are recognized as false in addition to normal false values (`0`,
-`undef`, `""`...).
-
-    MetaBool $content
-
-MetaBool values can also be set via pandoc command line client:
-
-    pandoc -M key=true
-    pandoc -M key=false
-
-### MetaInlines
-
-Container for a list of [inlines](#inline-elements) (`content`) in metadata.
-
-    MetaInlines [ @inlines ]
-
-### MetaBlocks
-
-Container for a list of [blocks](#block-elements) (`content`) in metadata.
-
-    MetaInlines [ @blocks ]
-
-### MetaList
-
-A list of other [metadata elements](#metadata-elements) (`content`).
-
-    MetaList [ @values ]
-
-### MetaMap
-
-A map of keys to other metadata elements.
-
-    MetaMap { %map }
+See [Pandoc::Metadata](https://metacpan.org/pod/Pandoc::Metadata) for documentation.
 
 ## TYPE KEYWORDS
 
