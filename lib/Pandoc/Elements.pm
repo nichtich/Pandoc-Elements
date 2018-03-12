@@ -795,7 +795,9 @@ sub Pandoc::Document::LineBlock::TO_JSON {
 
         # Convert spaces at the beginning of each line
         # to Unicode non-breaking spaces, because pandoc does.
-        next unless $line->[0]->{t} eq 'Str';
+        next unless 
+        @$line and 
+        $line->[0]->{t} eq 'Str';
         $line->[0]->{c} =~ s{^(\x{20}+)}{ "\x{a0}" x length($1) }e;
     }
 
