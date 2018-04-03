@@ -24,7 +24,7 @@ sub _simple_action {
 
     if (@_) {
         my @args = @_;
-        return sub { $_ = $_[0]; $action->( $_[0], @args ) };
+        return sub { local $_ = $_[0]; $action->( $_[0], @args ) };
     }
     else {
         return $action;
@@ -71,7 +71,7 @@ sub action {
         my @return = ();
 
         foreach my $action (@matching) {
-            $_      = $_[0];    # FIXME: $doc->walk( Section => sub { $_->id } )
+            local $_ = $_[0];    # FIXME: $doc->walk( Section => sub { $_->id } )
             @return = ( $action->(@_) );
         }
 
@@ -129,7 +129,7 @@ sub walk(@) {    ## no critic
     my $ast    = shift;
     my $action = action(@_);
     transform( $ast, sub {
-        $_ = $_[0];
+        local $_ = $_[0];
         my $q = $action->(@_);
         return (defined $q and $q eq \undef) ? \undef : undef
     } );
@@ -141,7 +141,7 @@ sub query(@) {    ## no critic
 
     my $list = [];
     transform( $ast, sub {
-        $_ = $_[0];
+        local $_ = $_[0];
         my $q = $action->(@_);
         return $q if !defined $q or $q eq \undef;
         push @$list, $q;
