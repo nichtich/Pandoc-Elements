@@ -2,6 +2,7 @@ use strict;
 use Test::More 0.96;
 use Pandoc::Elements;
 use Scalar::Util qw[ blessed reftype ];
+use JSON::PP;
 
 my $doc = pandoc_json(<<JSON);
 [ { "unMeta": {
@@ -40,6 +41,9 @@ foreach (0, '', 'false', 'FALSE', undef) {
     is '{"c":false,"t":"MetaBool"}', $m->to_json, "false: $_";
 }
 
+is_deeply $doc->value('true', boolean => 'JSON::PP'), JSON::PP::true, 'JSON::PP::true'; 
+is_deeply $doc->value('false', boolean => 'JSON::PP'), JSON::PP::false, 'JSON::PP::false'; 
+
 # MetaString
 
 is $doc->meta->{string}->content, "hello\nworld";
@@ -68,8 +72,10 @@ is_deeply $doc->value, {
 is $doc->value('false'), 0, 'value("false")';
 is $doc->value('true'), 1, 'value("true")';
 is $doc->value('map.string'), "0", 'value("map.string")';
-is $doc->value('map.xxx'), undef, 'value("map.xxx")';
-is $doc->value('xxx'), undef, 'value("xxx")';
+
+foreach (qw(x map.x true.x blocks.x map.list.x)) {
+    is $doc->value($_), undef, "value('$_')";
+}
 
 my $doc = do {
     local (@ARGV, $/) = ('t/documents/meta.json');

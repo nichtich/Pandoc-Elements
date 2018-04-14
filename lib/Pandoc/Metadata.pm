@@ -5,19 +5,9 @@ use 5.010001;
 
 use Pandoc::Elements;
 use Scalar::Util qw(blessed reftype);
+use JSON::PP;
 
 # packages and methods
-
-sub _select_from_map {
-    my $map = shift;
-    if (@_ and $_[0] ne '') {
-        my ($key, @path) = split /\./, shift;
-        return $map->{$key} ? $map->{$key}->metavalue(join '.',@path) : undef;
-    }
-    else {
-        return { map { $_ => $map->{$_}->metavalue } keys %$map };
-    }
-}
 
 {
     # key-value map of metadata fields
@@ -27,7 +17,10 @@ sub _select_from_map {
         return { map { $_ => $_[0]->{$_} } keys %{ $_[0] } };
     }
 
-    *value = *Pandoc::Metadata::_select_from_map;
+    sub value {
+        my $map = { c => shift };
+        Pandoc::Document::MetaMap::value( $map, @_ )
+    }
 }
 
 {
@@ -35,13 +28,23 @@ sub _select_from_map {
     package Pandoc::Document::Meta;
     our @ISA = ('Pandoc::Document::Element');
     sub is_meta { 1 }
-    sub value   { shift->metavalue(@_) }
+    sub value { shift->value(@_) }
 }
 
-# functions
+# methods
 
-sub Pandoc::Document::MetaString::metavalue {
-    $_[0]->{c};
+sub _value_args {
+    my $content = shift->{c};
+    my ($path, %opts) = @_ % 2 ? @_ : (undef, @_);
+
+    $opts{path} = $path // $opts{path} // '';
+
+    return ($content, %opts);
+}
+
+sub Pandoc::Document::MetaString::value {
+    my ($content, %opts) = _value_args(@_);
+    $opts{path} eq '' ? $content : undef;
 }
 
 sub Pandoc::Document::MetaBool::set_content {
@@ -55,25 +58,48 @@ sub Pandoc::Document::MetaBool::TO_JSON {
     };
 }
 
-sub Pandoc::Document::MetaBool::metavalue {
-    $_[0]->{c} ? 1 : 0;
+sub Pandoc::Document::MetaBool::value {
+    my ($content, %opts) = _value_args(@_);
+    return if $opts{path} ne '';
+
+    if (($opts{boolean} // '') eq 'JSON::PP') {
+        $content ? JSON::true() : JSON::false();
+    } else {
+        $content ? 1 : 0;
+    }
 }
 
-sub Pandoc::Document::MetaList::metavalue {
-    [ map { $_->metavalue } @{ $_[0]->{c} } ];
+sub Pandoc::Document::MetaMap::value {
+    my ($map, %opts) = _value_args(@_);
+
+    if ($opts{path} eq '') {
+        return { map { $_ => $map->{$_}->value(%opts) } keys %$map };
+    } else {
+        my ($key, @fields) = split /\./, $opts{path};
+        $opts{path} = join '.', @fields;
+        return $map->{$key} ? $map->{$key}->value(%opts) : undef;
+    }
 }
 
-sub Pandoc::Document::MetaMap::metavalue {
-    my $map = shift->{c};
-    Pandoc::Metadata::_select_from_map( $map, @_ );
+sub Pandoc::Document::MetaList::value {
+    my ($content, %opts) = _value_args(@_);
+    return if $opts{path} ne '';
+
+    [ map { $_->value } @$content ];
 }
 
-sub Pandoc::Document::MetaInlines::metavalue {
-    join '', map { $_->string } @{ $_[0]->{c} };
+sub Pandoc::Document::MetaInlines::value {
+    my ($content, %opts) = _value_args(@_);
+    return if $opts{path} ne '';
+
+    join '', map { $_->string } @$content;
 }
 
-sub Pandoc::Document::MetaBlocks::metavalue {
-    [ map { $_->string } @{ $_[0]->{c} } ];
+sub Pandoc::Document::MetaBlocks::value {
+    my ($content, %opts) = _value_args(@_);
+    return if $opts{path} ne '';
+
+    [ map { $_->string } @$content ];
 }
 
 1;
@@ -122,7 +148,7 @@ blessed data structure and C<value> returns an unblessed copy:
   $doc->meta->{author}->content->[0];   # MetaInlines
   $doc->meta->value('author')->[0];     # plain string
 
-=head2 value( [ $field ] )
+=head2 value( [ $field ] [ %options ] )
 
 Called without an argument this method returns an unblessed deep copy of the
 metadata element. A field can optionally be selected on document level and
@@ -132,7 +158,8 @@ MetaMap elements. Dots can be used to specify subfields:
 
 Returns C<undef> if the selected field does not exist.
 
-This method can also be called as alias C<metavalue>.
+Setting option C<boolean> to C<JSON::PP> will return C<JSON::PP:true>
+or C<JSON::PP::false> for MetaBool instances.
 
 =head2 MetaString
 
