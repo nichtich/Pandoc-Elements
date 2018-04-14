@@ -397,9 +397,10 @@ sub pandoc_json($) {
     }
     *blocks = \&content;
     sub is_document { 1 }
-    sub metavalue {
-        return shift->meta->value(@_);
+    sub value {
+        shift->meta->value(@_);
     }
+    *metavalue = \&value;
     sub string {
         join '', map { $_->string } @{$_[0]->content}
     }

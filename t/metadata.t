@@ -3,8 +3,6 @@ use Test::More 0.96;
 use Pandoc::Elements;
 use Scalar::Util qw[ blessed reftype ];
 
-# MetaBool
-
 my $doc = pandoc_json(<<JSON);
 [ { "unMeta": {
       "true": { "t": "MetaBool", "c": true },
@@ -13,7 +11,15 @@ my $doc = pandoc_json(<<JSON);
       "blocks": { "t": "MetaBlocks", "c": [
           {"t": "Para", "c": [{"t":"Str","c":"x"}]},
           {"t": "Para", "c": [{"t":"Str","c":"y"}]}
-      ] }
+      ] },
+      "map": { "t": "MetaMap", "c": {
+        "string": { "t": "MetaString", "c": "0" },
+        "list": { "t": "MetaList", "c": [
+            { "t": "MetaString", "c": "a" },
+            { "t": "MetaString", "c": "b" },
+            { "t": "MetaBool", "c": false }
+        ] }
+      } }
 } }, [] ]
 JSON
 
@@ -37,7 +43,7 @@ foreach (0, '', 'false', 'FALSE', undef) {
 # MetaString
 
 is $doc->meta->{string}->content, "hello\nworld";
-is $doc->meta->{string}->metavalue, "hello\nworld";
+is $doc->meta->{string}->value, "hello\nworld";
 
 # MetaInlines
 {
@@ -46,20 +52,29 @@ is $doc->meta->{string}->metavalue, "hello\nworld";
         $m->to_json, 'MetaInlines';
 }
 
-# metavalue
+# [meta]value
 
-is_deeply $doc->metavalue,
-    { false => 0, true => 1, string => "hello\nworld", blocks => [ "x", "y" ] },
-    'metavalue';
+is_deeply $doc->value, {
+    false => 0,
+    true => 1,
+    string => "hello\nworld",
+    blocks => [ "x", "y" ],
+    map => {
+        string => "0",
+        list => ["a", "b", 0]
+    }
+  }, 'value';
 
-# Stringify/bless
+is $doc->value('false'), 0, 'value("false")';
+is $doc->value('true'), 1, 'value("true")';
+is $doc->value('map.string'), "0", 'value("map.string")';
+is $doc->value('map.xxx'), undef, 'value("map.xxx")';
+is $doc->value('xxx'), undef, 'value("xxx")';
 
 my $doc = do {
     local (@ARGV, $/) = ('t/documents/meta.json');
     pandoc_json(<>);
 };
-
-# note explain $doc->metavalue;
 
 is_deeply { map { $_ => $doc->metavalue($_) } keys %{$doc->meta} },
     $doc->metavalue, 'Document->metavalue';

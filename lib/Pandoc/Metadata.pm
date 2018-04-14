@@ -8,6 +8,17 @@ use Scalar::Util qw(blessed reftype);
 
 # packages and methods
 
+sub _select_from_map {
+    my $map = shift;
+    if (@_ and $_[0] ne '') {
+        my ($key, @path) = split /\./, shift;
+        return $map->{$key} ? $map->{$key}->metavalue(join '.',@path) : undef;
+    }
+    else {
+        return { map { $_ => $map->{$_}->metavalue } keys %$map };
+    }
+}
+
 {
     # key-value map of metadata fields
     package Pandoc::Document::Metadata;
@@ -16,15 +27,7 @@ use Scalar::Util qw(blessed reftype);
         return { map { $_ => $_[0]->{$_} } keys %{ $_[0] } };
     }
 
-    sub value {
-        my $meta = shift;
-        if (@_) {
-            return $meta->{ $_[0] } ? $meta->{ $_[0] }->metavalue : undef;
-        }
-        else {
-            return { map { $_ => $meta->{$_}->metavalue } keys %$meta };
-        }
-    }
+    *value = *Pandoc::Metadata::_select_from_map;
 }
 
 {
@@ -61,8 +64,8 @@ sub Pandoc::Document::MetaList::metavalue {
 }
 
 sub Pandoc::Document::MetaMap::metavalue {
-    my $map = $_[0]->{c};
-    return { map { $_ => $map->{$_}->metavalue } keys %$map };
+    my $map = shift->{c};
+    Pandoc::Metadata::_select_from_map( $map, @_ );
 }
 
 sub Pandoc::Document::MetaInlines::metavalue {
@@ -122,9 +125,14 @@ blessed data structure and C<value> returns an unblessed copy:
 =head2 value( [ $field ] )
 
 Called without an argument this method returns an unblessed deep copy of the
-metadata elements or C<undef> if the given (sub)field does not exist.
+metadata element. A field can optionally be selected on document level and
+MetaMap elements. Dots can be used to specify subfields:
 
-Can also be called with the alias C<metavalue>.
+  $doc->value('author.name');
+
+Returns C<undef> if the selected field does not exist.
+
+This method can also be called as alias C<metavalue>.
 
 =head2 MetaString
 
