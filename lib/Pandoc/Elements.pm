@@ -244,7 +244,7 @@ sub Document {
     # We copy values here because $arg may not be a pure AST representation
     my $doc = bless { blocks => ( $arg->{blocks} // [] ) }, 'Pandoc::Document';
 
-    # unblessed metadata in internal format can only come from JSON 
+    # unblessed metadata in internal format can only come from JSON
     my $meta = $arg->{meta} // {};
     if ($from_json) {
         croak "Document metadata must be a hash" unless 'HASH' eq reftype $meta;
@@ -1163,11 +1163,18 @@ document.
 
 =item B<meta( [ $metadata ] )>
 
-Get and/or set document L<metadata elements|/METADATA ELEMENTS>.
+Get and/or set combined L<document metadata|Pandoc::Metadata>. Use method
+C<value> to get selected metadata fields and values.
 
-=item B<metavalue( [ $field ] )>
+=item B<value( [ $field ] [ %options ] )>
 
-Shortcut for C<< meta->value >>.
+Get selected document metadata field value(s). See L<Pandoc::Metadata> for
+documentation. Can also be called as C<metavalue>, so the following are
+equivalent:
+
+  $doc->value( ... );
+  $doc->meta->value( ... );
+  $doc->metavalue( ... );
 
 =item B<to_pandoc( [ [ $pandoc, ] @arguments ])>
 
@@ -1477,7 +1484,11 @@ Superscripted text, a list of L<inlines|/INLINE ELEMENTS> (C<content>).
 
 =head2 METADATA ELEMENTS
 
-See L<Pandoc::Metadata> for documentation.
+See L<Pandoc::Metadata> for documentation of metadata elements C<MetaBool>,
+C<MetaString>, C<MetaMap>, C<MetaInlines>, C<MetaList>, and C<MetaBlocks>.
+
+Helper function C<metadata> can be used to convert scalars, hash references,
+array references, and Pandoc Inline/Block elements into metadata elements.
 
 =head2 TYPE KEYWORDS
 

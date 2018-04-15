@@ -139,27 +139,28 @@ Perl module L<Pandoc::Elements> exports functions to construct metadata
 elements in the internal document model and the general helper function
 C<metadata>.
 
-=head1 METADATA ELEMENTS
+=head1 COMMON METHODS
 
-All C<Meta...> elements support common element methods (C<to_json>, C<name>,
-...) and return true for method C<is_meta>. Method C<content> returns the
-blessed data structure and C<value> returns an unblessed copy:
-
-  $doc->meta->{author}->content->[0];   # MetaInlines
-  $doc->meta->value('author')->[0];     # plain string
+All Metadata Elements support L<common element methods|Pandoc::Elements/COMMON
+METHODS> (C<name>, C<to_json>, C<string>, ...) and return true for method
+C<is_meta>.
 
 =head2 value( [ $field ] [ %options ] )
 
 Called without an argument this method returns an unblessed deep copy of the
-metadata element. A field can optionally be selected on document level and
-MetaMap elements. Dots can be used to specify subfields:
+metadata element. A (sub)field can optionally be selected on document level and
+MetaMap elements. Dot separate subfields:
 
-  $doc->value('author.name');
+  $doc->value;                # full metadata
+  $doc->value('author');      # author field
+  $doc->value('author.name'); # name subfield of author field
 
 Returns C<undef> if the selected field does not exist.
 
 Setting option C<boolean> to C<JSON::PP> will return C<JSON::PP:true>
-or C<JSON::PP::false> for MetaBool instances.
+or C<JSON::PP::false> for L<MetaBool|/MetaBool> instances.
+
+=head1 METADATA ELEMENTS
 
 =head2 MetaString
 
