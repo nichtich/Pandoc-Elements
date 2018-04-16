@@ -92,14 +92,26 @@ sub Pandoc::Document::MetaInlines::value {
     my ($content, %opts) = _value_args(@_);
     return if $opts{path} ne '';
 
-    join '', map { $_->string } @$content;
+    if ($opts{elements} // '' eq 'keep') {
+        $content;
+    } else {
+        join '', map { $_->string } @$content;
+    }
+}
+
+sub Pandoc::Document::MetaBlocks::string {
+    join "\n\n", map { $_->string } @{$_[0]->content};
 }
 
 sub Pandoc::Document::MetaBlocks::value {
     my ($content, %opts) = _value_args(@_);
     return if $opts{path} ne '';
 
-    [ map { $_->string } @$content ];
+    if ($opts{elements} // '' eq 'keep') {
+        $content;
+    } else {
+        $_[0]->string;
+    }
 }
 
 1;
@@ -157,6 +169,9 @@ MetaMap elements. Dot separate subfields:
 
 Returns C<undef> if the selected field does not exist.
 
+Instances of MetaInlines and MetaBlocks are stringified by unless option
+C<elements> is set to C<keep>.
+
 Setting option C<boolean> to C<JSON::PP> will return C<JSON::PP:true>
 or C<JSON::PP::false> for L<MetaBool|/MetaBool> instances.
 
@@ -205,5 +220,8 @@ metadata.
 Container for a list of L<blocks|Pandoc::Elements/BLOCK ELEMENTS> in metadata.
 
     MetaBlocks [ @blocks ]
+
+The C<string> method concatenates all stringified content blocks separated by
+empty lines.
 
 =cut

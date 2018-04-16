@@ -54,6 +54,13 @@ is $doc->meta->{string}->value, "hello\nworld";
     my $m = MetaInlines [ Str "foo" ];
     is '{"c":[{"c":"foo","t":"Str"}],"t":"MetaInlines"}',
         $m->to_json, 'MetaInlines';
+    is $m->string, 'foo', 'MetaInlines->string';
+}
+
+# MetaBlocks
+{
+    my $m = MetaBlocks [ Para [ Str "x" ], Para [ Str "y" ] ];
+    is $m->string, "x\n\ny", 'MetaBlocks->string';
 }
 
 # [meta]value
@@ -62,7 +69,7 @@ is_deeply $doc->value, {
     false => 0,
     true => 1,
     string => "hello\nworld",
-    blocks => [ "x", "y" ],
+    blocks => "x\n\ny",
     map => {
         string => "0",
         list => ["a", "b", 0]
@@ -72,6 +79,12 @@ is_deeply $doc->value, {
 is $doc->value('false'), 0, 'value("false")';
 is $doc->value('true'), 1, 'value("true")';
 is $doc->value('map.string'), "0", 'value("map.string")';
+is $doc->value('string'), "hello\nworld", 'value("string")';
+is_deeply $doc->value('string', elements => 'keep'),
+    $doc->meta->{string}->content, 'value("string", elements => keep)';
+is $doc->value('blocks'), "x\n\ny", 'value("blocks")';
+is_deeply $doc->value('blocks', elements => 'keep'),
+    $doc->meta->{blocks}->content, 'value("blocks", elements => keep)';
 
 foreach (qw(x map.x true.x blocks.x map.list.x)) {
     is $doc->value($_), undef, "value('$_')";
