@@ -19,7 +19,8 @@ my $doc = pandoc_json(<<JSON);
             { "t": "MetaString", "c": "a" },
             { "t": "MetaString", "c": "b" },
             { "t": "MetaBool", "c": false }
-        ] }
+        ] },
+        "/~": { "t": "MetaBool", "c": "true" }
       } }
 } }, [] ]
 JSON
@@ -72,21 +73,26 @@ is_deeply $doc->value, {
     blocks => "x\n\ny",
     map => {
         string => "0",
-        list => ["a", "b", 0]
+        list => ["a", "b", 0],
+        '/~' => 1
     }
   }, 'value';
 
 is $doc->value('false'), 0, 'value("false")';
 is $doc->value('true'), 1, 'value("true")';
-is $doc->value('map.string'), "0", 'value("map.string")';
+is $doc->value('map/string'), "0", 'value("map/string")';
+is $doc->value('map/list/0'), "a", 'value("map/list/0")';
+is $doc->value('map/list/2'), "0", 'value("map/list/2")';
 is $doc->value('string'), "hello\nworld", 'value("string")';
-is_deeply $doc->value('string', elements => 'keep'),
+is_deeply $doc->value('map/~1~0', boolean => 'JSON::PP'),
+    JSON::PP::true, 'value("map/~1~0")';
+is_deeply $doc->value('string', element => 'keep'),
     $doc->meta->{string}->content, 'value("string", elements => keep)';
 is $doc->value('blocks'), "x\n\ny", 'value("blocks")';
-is_deeply $doc->value('blocks', elements => 'keep'),
+is_deeply $doc->value('blocks', element => 'keep'),
     $doc->meta->{blocks}->content, 'value("blocks", elements => keep)';
 
-foreach (qw(x map.x true.x blocks.x map.list.x)) {
+foreach (qw(x map/x true/x blocks/x map/list/x map/list/3)) {
     is $doc->value($_), undef, "value('$_')";
 }
 

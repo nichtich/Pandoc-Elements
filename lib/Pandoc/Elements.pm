@@ -1166,7 +1166,7 @@ document.
 Get and/or set combined L<document metadata|Pandoc::Metadata>. Use method
 C<value> to get selected metadata fields and values.
 
-=item B<value( [ $field ] [ %options ] )>
+=item B<value( [ $pointer ] [ %options ] )>
 
 Get selected document metadata field value(s). See L<Pandoc::Metadata> for
 documentation. Can also be called as C<metavalue>, so the following are
