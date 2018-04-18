@@ -4,6 +4,7 @@ Revision history for Pandoc-Elements
     - Extend metadata value method with JSON Pointer and options (#73)
     - Change default stringification of MetaBlocks
     - Fixes provided by Benct Philip Jonsson and TakeAsh (thanks!)
+    - Remove internal module Pandoc::Filter::Usage
 
 0.33  2017-02-13 10:57:59 CET
     - Extend and document document metadata handling (#10)

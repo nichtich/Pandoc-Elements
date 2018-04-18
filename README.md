@@ -317,11 +317,18 @@ Document elements provide the following special methods in addition to
 
 - **meta( \[ $metadata \] )**
 
-    Get and/or set document [metadata elements](#metadata-elements).
+    Get and/or set combined [document metadata](https://metacpan.org/pod/Pandoc::Metadata). Use method
+    `value` to get selected metadata fields and values.
 
-- **metavalue( \[ $field \] )**
+- **value( \[ $pointer \] \[ %options \] )**
 
-    Shortcut for `meta->value`.
+    Get selected document metadata field value(s). See [Pandoc::Metadata](https://metacpan.org/pod/Pandoc::Metadata) for
+    documentation. Can also be called as `metavalue`, so the following are
+    equivalent:
+
+        $doc->value( ... );
+        $doc->meta->value( ... );
+        $doc->metavalue( ... );
 
 - **to\_pandoc( \[ \[ $pandoc, \] @arguments \])**
 
@@ -623,7 +630,11 @@ Superscripted text, a list of [inlines](#inline-elements) (`content`).
 
 ## METADATA ELEMENTS
 
-See [Pandoc::Metadata](https://metacpan.org/pod/Pandoc::Metadata) for documentation.
+See [Pandoc::Metadata](https://metacpan.org/pod/Pandoc::Metadata) for documentation of metadata elements `MetaBool`,
+`MetaString`, `MetaMap`, `MetaInlines`, `MetaList`, and `MetaBlocks`.
+
+Helper function `metadata` can be used to convert scalars, hash references,
+array references, and Pandoc Inline/Block elements into metadata elements.
 
 ## TYPE KEYWORDS
 
