@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.34  2018-04-18 09:46:41 CEST
     - Extend metadata value method with JSON Pointer and options (#73)
     - Change default stringification of MetaBlocks
     - Fixes provided by Benct Philip Jonsson and TakeAsh (thanks!)
