@@ -5,7 +5,7 @@ use utf8;
 use Encode;
 use 5.010;
 
-our $VERSION = '0.34';
+our $VERSION = '0.35';
 
 use Digest::MD5 'md5_hex';
 use IPC::Run3;
