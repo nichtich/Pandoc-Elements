@@ -1,6 +1,8 @@
 package Pandoc::Filter::ImagesFromCode;
 use strict;
 use warnings;
+use utf8;
+use Encode;
 use 5.010;
 
 our $VERSION = '0.34';
@@ -49,9 +51,9 @@ sub action {
 
         my $code = $e->content;
         my $dir  = "."; # TODO: configure this
-     
+    
         my %args;
-        $args{md5}      = md5_hex($code);
+        $args{md5}      = md5_hex( encode( 'utf8', $code ) );
         $args{from}     = $filter->from;
         $args{to}       = $filter->to($f);
         $args{infile}   = "$dir/".$args{md5}.".".$args{from};
@@ -65,18 +67,17 @@ sub action {
 
         # TODO: print args in debug mode?
 
-        open my $fh, ">", $args{infile} 
+        open my $fh, '>:encoding(UTF-8)', $args{infile}
             or die "failed to create file: ".$args{infile}."\n";
-        binmode $fh, ':encoding(UTF-8)';
         print $fh $code;
         close $fh;
 
         my ($stderr, $stdout);
-        my @command = map { 
-                  my $s = $_; 
-                  #if ($args{substr $s, 1, -1}) 
-                  $s =~ s|\$([^\$]+)\$| $args{$1} // $1 |eg; 
-                  $s 
+        my @command = map {
+                  my $s = $_;
+                  #if ($args{substr $s, 1, -1})
+                  $s =~ s|\$([^\$]+)\$| $args{$1} // $1 |eg;
+                  $s
                 } @$run;
         push @command, @options;
 
@@ -109,7 +110,7 @@ sub build_image {
     my $e = shift;
     my $filename = shift // '';
 
-    my $img = Image [$e->id, $e->classes, []], [], [$filename, ''];
+    my $img = Image attributes { id => $e->id, class => $e->class }, [], [$filename, ''];
     my $keyvals = $e->keyvals;
 
     my $caption = $keyvals->get('caption');
@@ -134,6 +135,7 @@ Pandoc::Filter::ImagesFromCode - transform code blocks into images
 =head1 DESCRIPTION
 
 This L<Pandoc::Filter> transforms L<CodeBlock|Pandoc::Elements/CodeBlock>
-elements into images. The specific interface may change in a future version.
+elements into images. The specific interface may change in a future version of
+this module!
 
 =cut
