@@ -1,6 +1,8 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+
+0.35  2018-04-20 13:07:19 CEST
     - Fix test failures (#77, #78)
     - Fix, extend and document ImageFromCode filter (#79)
 
