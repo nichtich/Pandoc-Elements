@@ -18,6 +18,10 @@ sub new {
     $opts{from} //= 'code';
     $opts{dir} //= '.';
     $opts{dir} =~ s!/$!!;
+    $opts{name} //= sub {
+        $_[0]->id =~ /^[a-z0-9_]+$/i ? $_[0]->id
+            : md5_hex( encode( 'utf8', $_[0]->content ) );
+    };
 
     bless \%opts, $class;
 }
@@ -50,10 +54,9 @@ sub action {
 
         my $code = $e->content;
         my $dir  = $filter->{dir};
-    
+
         my %args;
-        my $name = $e->id;
-        $name = md5_hex( encode( 'utf8', $code ) ) if $name !~ /^[a-z0-9_]+$/i;
+        my $name = $filter->{name}->($e);
 
         $args{from}     = $filter->{from};
         $args{to}       = $filter->to($f);
@@ -137,12 +140,11 @@ Pandoc::Filter::ImagesFromCode - transform code blocks into images
 =head1 DESCRIPTION
 
 This L<Pandoc::Filter> transforms L<CodeBlock|Pandoc::Elements/CodeBlock>
-elements into images. 
+elements into images.
 
 Content of transformed code section and resulting image files are written to
-files. Files are named after code block's C<id> if given or based on the code
-content if no id is available or if the id contains characters other than
-C<a-z0-9_->.
+files.
+
 
 =head1 CONFIGURATION
 
@@ -155,12 +157,19 @@ File extension of input files extracted from code blocks. Defaults to C<code>.
 =item to
 
 File extension of created image files. Can be a fixed string or a code reference that
-gets the document output format (for instance L<latex> or C<html>) as argument to 
+gets the document output format (for instance L<latex> or C<html>) as argument to
 produce different image formats depending on output format.
 
 =item dir
 
 Directory where to place input and output files.
+
+=item name
+
+Code reference that maps the L<CodeBlock|Pandoc::Elements/CodeBlock> element to
+a filename (without directory and extension). By default the element's C<id> is
+used if it contains characters no other than C<a-zA-Z0-9_->. Otherwise the name
+is the MD5 hash of the element's content.
 
 =item run
 
