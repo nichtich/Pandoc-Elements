@@ -485,6 +485,7 @@ sub pandoc_json($) {
     use JSON ();
     use Scalar::Util qw(reftype blessed);
     use Pandoc::Walker ();
+    use Pandoc::Selector;
     use subs qw(walk query transform);    # Silence syntax warnings
 
     sub to_json {
@@ -559,36 +560,11 @@ sub pandoc_json($) {
         };
     }
 
-    # TODO: replace by new class Pandoc::Selector with compiled code
     sub match {
         my $self = shift;
-        foreach my $selector ( split /\|/, shift ) {
-            return 1 if $self->match_simple($selector);
-        }
-        return 0;
+        my $selector = blessed $_[0] ? shift : Pandoc::Selector->new(shift);
+        $selector->match($self);
     }
-
-    sub match_simple {
-        my ( $self, $selector ) = @_;
-        $selector =~ s/^\s+|\s+$//g;
-
-        # name
-        return 0
-          if $selector =~ s/^([a-z]+)\s*//i and lc($1) ne lc( $self->name );
-        return 1 if $selector eq '';
-
-        # type
-        if ( $selector =~ s/^:(document|block|inline|meta)\s*// ) {
-            my $method = "is_$1";
-            return 0 unless $self->$method;
-            return 1 if $selector eq '';
-        }
-
-        # id and/or classes
-        return 0 unless $self->can('match_attributes');
-        return $self->match_attributes($selector);
-    }
-
 }
 
 {
@@ -597,8 +573,6 @@ sub pandoc_json($) {
     use Hash::MultiValue;
     use Scalar::Util qw(reftype blessed);
     use Carp qw(croak);
-
-    my $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
     sub id {
         $_[0]->attr->[0] = defined $_[1] ? "$_[1]" : "" if @_ > 1;
@@ -655,25 +629,6 @@ sub pandoc_json($) {
         Hash::MultiValue->new( @h, map { @$_ } @{$e->attr->[2]} );
     }
 
-    # TODO: rename and/or extend to keyvals check
-    sub match_attributes {
-        my ( $self, $selector ) = @_;
-        $selector =~ s/^\s+|\s+$//g;
-
-        while ( $selector ne '' ) {
-            if ( $selector =~ s/^#($IDENTIFIER)\s*// ) {
-                return 0 unless $self->id eq $1;
-            }
-            elsif ( $selector =~ s/^\.($IDENTIFIER)\s*// ) {
-                return 0 unless grep { $1 eq $_ } @{ $self->attr->[1] };
-            }
-            else {
-                return 0;
-            }
-        }
-
-        return 1;
-    }
 }
 
 {
@@ -1041,6 +996,11 @@ True if the element is a L<Metadata element|/METADATA ELEMENTS>
 =head3 is_document
 
 True if the element is a L<Document element|/DOCUMENT ELEMENT>
+
+=head3 match( $selector )
+
+Check whether the element matches a given L<Pandoc::Selector> (given as
+instance or string).
 
 =head3 walk(...)
 
