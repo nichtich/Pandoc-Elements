@@ -317,7 +317,9 @@ sub citation($) {
     };
 }
 
-use Pandoc::Metadata ();
+# XXX: must require rather than use Pandoc::Metadata
+# or its attempt to use Pandoc::Elements will result in a broken state.
+require Pandoc::Metadata;
 
 sub metadata($);  ## no critic
 
