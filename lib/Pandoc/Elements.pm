@@ -397,6 +397,9 @@ sub pandoc_json($) {
     }
     *blocks = \&content;
     sub is_document { 1 }
+    sub as_block {
+        bless { t => 'Div', c => [ {}, $_[0]->{blocks} ] }, 'Pandoc::Document::Div';
+    }
     sub value {
         shift->meta->value(@_);
     }
@@ -537,6 +540,9 @@ sub pandoc_json($) {
     sub is_block    { 0 }
     sub is_inline   { 0 }
     sub is_meta     { 0 }
+    sub as_block    {
+        bless { t => 'Null', c => [] }, 'Pandoc::Document::Null';
+    }
     *walk      = *Pandoc::Walker::walk;
     *query     = *Pandoc::Walker::query;
     *transform = *Pandoc::Walker::transform;
@@ -637,7 +643,8 @@ sub pandoc_json($) {
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
     sub is_block { 1 }
-    sub null {
+    sub as_block { $_[0] }
+    sub null { # TODO: document this (?)
         %{$_[0]} = (t => 'Null', c => []);
         bless $_[0], 'Pandoc::Document::Null';
     }
@@ -649,6 +656,9 @@ sub pandoc_json($) {
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
     sub is_inline { 1 }
+    sub as_block {
+        bless { t => 'Plain', c => [ $_[0] ] }, 'Pandoc::Document::Plain';
+    }
 }
 
 {
@@ -996,6 +1006,11 @@ True if the element is a L<Metadata element|/METADATA ELEMENTS>
 =head3 is_document
 
 True if the element is a L<Document element|/DOCUMENT ELEMENT>
+
+=head3 as_block
+
+Return the element unmodified if it is a block element or wrapped in a
+L<Plain|/Plain> or L<Div|/Div> otherwise.
 
 =head3 match( $selector )
 
