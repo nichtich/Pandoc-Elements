@@ -106,4 +106,8 @@ The language is being developed together with this implementation.
   Subscript|Superscript
   :inline
 
+=head1 SEE ALSO
+
+See example filter C<select> to select parts of a document.
+
 =cut
