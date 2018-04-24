@@ -673,6 +673,8 @@ Jakob Voß <jakob.voss@gbv.de>
 
 Benct Philip Jonsson <bpjonsson@gmail.com>
 
+[TakeAsk](https://github.com/TakeAsh)
+
 # COPYRIGHT AND LICENSE
 
 Copyright 2014- Jakob Voß
