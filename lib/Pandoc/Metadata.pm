@@ -40,7 +40,7 @@ use Carp;
 # helpers
 
 sub _pointer_token {
-    state $valid_pointer_re = qr{ \A (?: [^/] .* | (?: / [^/]* )* ) \z }msx;
+    state $valid_pointer_re = qr{\A (?: [^/] .* | (?: / [^/]* )* ) \z}msx;
     state $token_re = qr{
         \A
         (?<_last_pointer>
@@ -57,28 +57,29 @@ sub _pointer_token {
     }msx;
     # set non-participating keys to undef
     state $defaults = {
-        map {; $_ => undef } qw( _last_pointer _ref_token _old_style _key _empty _pointer )
+        map { $_ => undef }
+          qw(_last_pointer _ref_token _old_style _key _empty _pointer)
     };
     my %opts = @_;
     $opts{_pointer} //= $opts{_full_pointer} //= $opts{pointer} //= "";
     $opts{_pointer} =~ $valid_pointer_re
       // croak( sprintf 'Invalid (sub)pointer: "%s" in pointer "%s"',
-        @opts{qw[ _pointer _full_pointer ]} );
+        @opts{qw( _pointer _full_pointer)} );
     $opts{_pointer} =~ $token_re; # guaranteed to match since validation matched!
     my %match = %+;
-    unless ( grep { defined $_ } @match{qw[_old_style _empty]} ) {
+    unless ( grep { defined $_ } @match{qw(_old_style _empty)} ) {
         $match{_key} =~ s!\~1!/!g;
         $match{_key} =~ s!\~0!~!g;
     }
-    return ( %opts, %$defaults, %match );
+    return (%opts, %$defaults, %match);
 }
 
-sub _handle_bad_pointer {
-    my ( %opts ) = @_;
+sub _bad_pointer {
+    my (%opts) = @_;
     return unless $opts{strict};
-    %opts = _pointer_token( %opts );
-    croak( sprintf 'No list or mapping "%s" in (sub)pointer "%s" in  pointer "%s"',
-        @opts{qw[ _ref_token _last_pointer _full_pointer ]} );
+    %opts = _pointer_token(%opts);
+    croak(sprintf 'No list or mapping "%s" in (sub)pointer "%s" in  pointer "%s"',
+        @opts{qw(_ref_token _last_pointer _full_pointer)});
 }
 
 # methods
@@ -95,7 +96,12 @@ sub _value_args {
 
 sub Pandoc::Document::MetaString::value {
     my ($content, %opts) = _value_args(@_);
-    $opts{_pointer} eq '' ? $content : _handle_bad_pointer(%opts);
+
+    if ($opts{_pointer} ne '') {
+        _bad_pointer(%opts);
+    } else {
+        $content;
+    }
 }
 
 sub Pandoc::Document::MetaBool::set_content {
@@ -111,9 +117,10 @@ sub Pandoc::Document::MetaBool::TO_JSON {
 
 sub Pandoc::Document::MetaBool::value {
     my ($content, %opts) = _value_args(@_);
-    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
-    if (($opts{boolean} // '') eq 'JSON::PP') {
+    if ($opts{_pointer} ne '') {
+        _bad_pointer(%opts);
+    } elsif (($opts{boolean} // '') eq 'JSON::PP') {
         $content ? JSON::true() : JSON::false();
     } else {
         $content ? 1 : 0;
@@ -123,14 +130,16 @@ sub Pandoc::Document::MetaBool::value {
 sub Pandoc::Document::MetaMap::value {
     my ($map, %opts) = _value_args(@_);
     %opts = _pointer_token(%opts);
-    if ( defined $opts{_empty} ) {
+
+    if (defined $opts{_empty}) {
         return { map { $_ => $map->{$_}->value(%opts) } keys %$map };
+    } elsif (exists($map->{$opts{_key}})) {
+        return $map->{$opts{_key}}->value(%opts);
+    } elsif ($opts{strict}) {
+       return croak(sprintf 'Node "%s" doesn\'t correspond to any key in (sub)pointer "%s" in pointer "%s"',
+          @opts{qw(_ref_token _last_pointer _full_pointer)})
     } else {
-        return exists($map->{$opts{_key}}) ? $map->{$opts{_key}}->value(%opts)
-        : $opts{strict} ? croak(
-            sprintf 'Node "%s" doesn\'t correspond to any key in (sub)pointer "%s" in pointer "%s"',
-                @opts{qw[_ref_token _last_pointer _full_pointer]} )
-        : undef;
+        return;
     }
 }
 
@@ -139,29 +148,28 @@ sub Pandoc::Document::MetaList::value {
     %opts = _pointer_token(%opts);
     if ( defined $opts{_empty} ) {
         return [ map { $_->value(%opts) } @$content ]
-    }
-    elsif ($opts{_key} =~ /^[1-9]*[0-9]$/) {
+    } elsif ($opts{_key} =~ /^[1-9]*[0-9]$/) {
         if ( $opts{_key} > $#$content ) {
-            return undef unless $opts{strict};
+            return unless $opts{strict};
             croak sprintf 'List index %s out of range in (sub)pointer "%s" in pointer "%s"',
                 @opts{qw(_key _last_pointer _full_pointer)};
         }
         my $value = $content->[$opts{_key}];
         return defined($value) ? $value->value(%opts) : undef;
-    }
-    elsif ($opts{strict}) {
+    } elsif ($opts{strict}) {
         croak sprintf 'Node "%s" not a valid list index in (sub)pointer "%s" in pointer "%s"',
             $opts{_ref_token}, $opts{_last_pointer}, $opts{_full_pointer};
     } else {
-        return undef;
+        return;
     }
 }
 
 sub Pandoc::Document::MetaInlines::value {
     my ($content, %opts) = _value_args(@_);
-    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
-    if ($opts{element} // '' eq 'keep') {
+    if ($opts{_pointer} ne '') {
+        _bad_pointer(%opts);
+    } elsif ($opts{element} // '' eq 'keep') {
         $content;
     } else {
         join '', map { $_->string } @$content;
@@ -174,9 +182,10 @@ sub Pandoc::Document::MetaBlocks::string {
 
 sub Pandoc::Document::MetaBlocks::value {
     my ($content, %opts) = _value_args(@_);
-    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
-    if ($opts{element} // '' eq 'keep') {
+    if ($opts{_pointer} ne '') {
+        _bad_pointer(%opts);
+    } elsif ($opts{element} // '' eq 'keep') {
         $content;
     } else {
         $_[0]->string;

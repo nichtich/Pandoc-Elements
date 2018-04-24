@@ -1,4 +1,3 @@
-
 use 5.010001;
 use strict;
 use warnings;
@@ -7,7 +6,6 @@ use Test::More 0.96;
 use Test::Exception;
 
 use Pandoc::Elements;
-
 
 # Make sure examples from  RFC 6901 sec 5 work as metadata
 
@@ -62,7 +60,6 @@ my @tests = (
         ],
     ],
 );
-
 
 
 for my $test ( @tests ) {
