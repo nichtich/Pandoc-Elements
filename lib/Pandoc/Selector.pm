@@ -5,6 +5,9 @@ use 5.010001;
 
 use Pandoc::Elements;
 
+my $IDENTIFIER = qr{[\p{L}\p{N}_-]+};
+my $NAME       = qr{[A-Za-z]+};
+
 sub new {
     my ($class, $selector) = @_;
     # TODO: compile selector
@@ -15,19 +18,19 @@ sub match {
     my ($self, $element) = @_;
 
     foreach my $selector ( split /\|/, $self->{selector} ) {
-        return 1 if _match_simple($selector, $element);
+        return 1 if _match_expression($selector, $element);
     }
 
     return 0;
 }
 
-sub _match_simple {
+sub _match_expression {
     my ( $selector, $elem ) = @_;
     $selector =~ s/^\s+|\s+$//g;
 
     # name
     return 0
-      if $selector =~ s/^([a-z]+)\s*//i and lc($1) ne lc( $elem->name );
+      if $selector =~ s/^($NAME)\s*//i and lc($1) ne lc( $elem->name );
     return 1 if $selector eq '';
 
     # type
@@ -49,8 +52,6 @@ sub _match_simple {
     return 0 unless $elem->isa('Pandoc::Document::AttributesRole');
     return _match_attributes($selector, $elem);
 }
-
-our $IDENTIFIER = qr{\p{L}(\p{L}|[0-9_:.-])*};
 
 # check #id and .class
 sub _match_attributes {
@@ -103,8 +104,38 @@ The language is being developed together with this implementation.
   Header#main
   Code.perl
   Code.perl.raw
-  Subscript|Superscript
   :inline
+
+=head1 SELECTOR GRAMMAR
+
+Whitespace between parts of the syntax is optional and not included in the
+following grammar. A B<Selector> is a list of one or more B<expression lists>
+separated by pipes (C<|>). For instance the selector C<Subscript|Superscript>
+selects both Subscript elements and Superscript elements.
+
+  Selector        ::= ExpressionList ( '|' ExpressionList )*
+
+An B<expression list> is a list of one or more B<expressions>:
+
+  ExpressionList  ::= Expression ( Expression )*
+
+An B<expression> is any of B<name expression>, B<id expression>, B<class
+expression>, and B<type expression>.
+
+  Expression      ::= NameExpression
+                      | IdExpression
+                      | ClassExpression
+                      | TypeExpression
+
+  NameExpression  ::= Name
+
+  Name            ::= [A-Za-z]+
+
+  IdExpression    ::= '#' [\p{L}\p{N}_-]+
+
+  ClassExpression ::= '.' [\p{L}\p{N}_-]+
+
+  TypeExpression  ::= ':' Name
 
 =head1 SEE ALSO
 

@@ -17,18 +17,18 @@ ok Str('')->match('Foo|Str'), '| match';
 
 ok !Str('')->match(Pandoc::Selector->new('#id')), 'no id match';
 
-my $e = Code attributes { id => 'abc', class => ['f0.0','bar']} , '';
+my $e = Code attributes { id => 'abc', class => ['f0_0','bar']} , '';
 
 # test matching with selector
 ok(Pandoc::Selector->new('#abc')->match($e), 'id match');
 ok(!Pandoc::Selector->new('#xyz')->match($e), 'id no match');
 ok(!Pandoc::Selector->new('#1')->match($e), 'id no match');
 
-ok(Pandoc::Selector->new('.f0.0')->match($e), 'class match');
-ok(Pandoc::Selector->new('.bar .f0.0')->match($e), 'classes match');
+ok(Pandoc::Selector->new('.f0_0')->match($e), 'class match');
+ok(Pandoc::Selector->new('.bar .f0_0')->match($e), 'classes match');
 ok(!Pandoc::Selector->new('.xyz')->match($e), 'class no match');
 
-ok $e->match("code\t:inline .bar#abc  .f0.0"), 'multiple match';
+ok $e->match("code\t:inline .bar#abc  .f0_0"), 'multiple match';
 
 {
     my $plain = Plain [ Math InlineMath, 'x' ];
