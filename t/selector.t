@@ -30,4 +30,10 @@ ok(!Pandoc::Selector->new('.xyz')->match($e), 'class no match');
 
 ok $e->match("code\t:inline .bar#abc  .f0.0"), 'multiple match';
 
+{
+    my $plain = Plain [ Math InlineMath, 'x' ];
+    is_deeply $plain->query(':inline'), $plain->content,
+        ':inline match without keywords';
+}
+
 done_testing;

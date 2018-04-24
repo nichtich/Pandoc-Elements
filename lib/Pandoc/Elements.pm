@@ -136,18 +136,14 @@ our %ELEMENTS = (
     MetaInlines => [ Meta => 'content' ],
     MetaList    => [ Meta => 'content' ],
     MetaBlocks  => [ Meta => 'content' ],
-);
 
-# type constructors
-foreach (
+    # TYPE KEYWORDS
+    map { $_ => ['Keyword'] }
     qw(DefaultDelim Period OneParen TwoParens SingleQuote DoubleQuote
     DisplayMath InlineMath AuthorInText SuppressAuthor NormalCitation
     AlignLeft AlignRight AlignCenter AlignDefault DefaultStyle Example
     Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha)
-  )
-{
-    $ELEMENTS{$_} = ['Inline'];
-}
+);
 
 use parent 'Exporter';
 our @EXPORT = (
@@ -477,6 +473,11 @@ sub pandoc_json($) {
             shift()->to_pandoc( @_, '-t' => $format );
         }
     }
+}
+
+{
+    package Pandoc::Document::Keyword;
+    our @ISA = ('Pandoc::Document::Element');
 }
 
 {

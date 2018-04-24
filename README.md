@@ -198,6 +198,16 @@ True if the element is a [Metadata element](#metadata-elements)
 
 True if the element is a [Document element](#document-element)
 
+### as\_block
+
+Return the element unmodified if it is a block element or wrapped in a
+[Plain](#plain) or [Div](#div) otherwise.
+
+### match( $selector )
+
+Check whether the element matches a given [Pandoc::Selector](https://metacpan.org/pod/Pandoc::Selector) (given as
+instance or string).
+
 ### walk(...)
 
 Walk the element tree with [Pandoc::Walker](https://metacpan.org/pod/Pandoc::Walker)
