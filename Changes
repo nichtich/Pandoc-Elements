@@ -1,6 +1,10 @@
 Revision history for Pandoc-Elements
 
 {{$NEXT}}
+    - Extend ImageFromCode filter (#83)
+    - Introduce Pandoc::Selector by refactoring
+    - Add select filter
+    - Remove deprecated function stringify
 
 0.35  2018-04-20 13:07:19 CEST
     - Fix test failures (#77, #78)
