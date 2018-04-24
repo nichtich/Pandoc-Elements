@@ -6,6 +6,7 @@ use 5.010001;
 use Pandoc::Elements;
 use Scalar::Util qw(blessed reftype);
 use JSON::PP;
+use Carp;
 
 # packages and methods
 
@@ -36,20 +37,65 @@ use JSON::PP;
     sub value { shift->value(@_) }
 }
 
+# helpers
+
+sub _pointer_token {
+    state $valid_pointer_re = qr{ \A (?: [^/] .* | (?: / [^/]* )* ) \z }msx;
+    state $token_re = qr{
+        \A
+        (?<_last_pointer>
+            (?<_ref_token>
+                (?<_old_style>
+                    (?<_key> [^/] .* \z )    # "key" -- old-style
+                )
+            |   / (?<_key> [^/]* ) # "/key"
+            |     (?<_empty> \z )  # "" -- return current element
+            )
+            (?<_pointer> / .* \z | )
+        )
+        \z
+    }msx;
+    # set non-participating keys to undef
+    state $defaults = {
+        map {; $_ => undef } qw( _last_pointer _ref_token _old_style _key _empty _pointer )
+    };
+    my %opts = @_;
+    $opts{_pointer} //= $opts{_full_pointer} //= $opts{pointer} //= "";
+    $opts{_pointer} =~ $valid_pointer_re
+      // croak( sprintf 'Invalid (sub)pointer: "%s" in pointer "%s"',
+        @opts{qw[ _pointer _full_pointer ]} );
+    $opts{_pointer} =~ $token_re; # guaranteed to match since validation matched!
+    my %match = %+;
+    unless ( grep { defined $_ } @match{qw[_old_style _empty]} ) {
+        $match{_key} =~ s!\~1!/!g;
+        $match{_key} =~ s!\~0!~!g;
+    }
+    return ( %opts, %$defaults, %match );
+}
+
+sub _handle_bad_pointer {
+    my ( %opts ) = @_;
+    return unless $opts{strict};
+    %opts = _pointer_token( %opts );
+    croak( sprintf 'No list or mapping "%s" in (sub)pointer "%s" in  pointer "%s"',
+        @opts{qw[ _ref_token _last_pointer _full_pointer ]} );
+}
+
 # methods
 
 sub _value_args {
     my $content = shift->{c};
     my ($pointer, %opts) = @_ % 2 ? @_ : (undef, @_);
 
-    $opts{pointer} = $pointer // $opts{pointer} // '';
+    $opts{_pointer} = $pointer // $opts{_pointer} // $opts{pointer} // '';
+    $opts{_full_pointer} //= $opts{_pointer};
 
     return ($content, %opts);
 }
 
 sub Pandoc::Document::MetaString::value {
     my ($content, %opts) = _value_args(@_);
-    $opts{pointer} eq '' ? $content : undef;
+    $opts{_pointer} eq '' ? $content : _handle_bad_pointer(%opts);
 }
 
 sub Pandoc::Document::MetaBool::set_content {
@@ -65,7 +111,7 @@ sub Pandoc::Document::MetaBool::TO_JSON {
 
 sub Pandoc::Document::MetaBool::value {
     my ($content, %opts) = _value_args(@_);
-    return if $opts{pointer} ne '';
+    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
     if (($opts{boolean} // '') eq 'JSON::PP') {
         $content ? JSON::true() : JSON::false();
@@ -76,33 +122,44 @@ sub Pandoc::Document::MetaBool::value {
 
 sub Pandoc::Document::MetaMap::value {
     my ($map, %opts) = _value_args(@_);
-
-    if ($opts{pointer} eq '') {
+    %opts = _pointer_token(%opts);
+    if ( defined $opts{_empty} ) {
         return { map { $_ => $map->{$_}->value(%opts) } keys %$map };
     } else {
-        my ($key, @fields) = split '/', $opts{pointer};
-        $key =~ s!~1!/!g;
-        $key =~ s/~0/~/g;
-        $opts{pointer} = join '/', @fields;
-        return $map->{$key} ? $map->{$key}->value(%opts) : undef;
+        return exists($map->{$opts{_key}}) ? $map->{$opts{_key}}->value(%opts)
+        : $opts{strict} ? croak(
+            sprintf 'Node "%s" doesn\'t correspond to any key in (sub)pointer "%s" in pointer "%s"',
+                @opts{qw[_ref_token _last_pointer _full_pointer]} )
+        : undef;
     }
 }
 
 sub Pandoc::Document::MetaList::value {
     my ($content, %opts) = _value_args(@_);
-    if ($opts{pointer} =~ /^[1-9]*[0-9]$/) {
-        my $value = $content->[$opts{pointer}];
-        defined $value ? $value->value(%opts, pointer => '') : undef;
-    } elsif ($opts{pointer} eq '') {
-        [ map { $_->value(%opts) } @$content ]
+    %opts = _pointer_token(%opts);
+    if ( defined $opts{_empty} ) {
+        return [ map { $_->value(%opts) } @$content ]
+    }
+    elsif ($opts{_key} =~ /^[1-9]*[0-9]$/) {
+        if ( $opts{_key} > $#$content ) {
+            return undef unless $opts{strict};
+            croak sprintf 'List index %s out of range in (sub)pointer "%s" in pointer "%s"',
+                @opts{qw(_key _last_pointer _full_pointer)};
+        }
+        my $value = $content->[$opts{_key}];
+        return defined($value) ? $value->value(%opts) : undef;
+    }
+    elsif ($opts{strict}) {
+        croak sprintf 'Node "%s" not a valid list index in (sub)pointer "%s" in pointer "%s"',
+            $opts{_ref_token}, $opts{_last_pointer}, $opts{_full_pointer};
     } else {
-        undef
+        return undef;
     }
 }
 
 sub Pandoc::Document::MetaInlines::value {
     my ($content, %opts) = _value_args(@_);
-    return if $opts{pointer} ne '';
+    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
     if ($opts{element} // '' eq 'keep') {
         $content;
@@ -117,7 +174,7 @@ sub Pandoc::Document::MetaBlocks::string {
 
 sub Pandoc::Document::MetaBlocks::value {
     my ($content, %opts) = _value_args(@_);
-    return if $opts{pointer} ne '';
+    return _handle_bad_pointer(%opts) if $opts{_pointer} ne '';
 
     if ($opts{element} // '' eq 'keep') {
         $content;
@@ -174,17 +231,30 @@ C<is_meta>.
 Called without an argument this method returns an unblessed deep copy of the
 metadata element. JSON Pointer (L<RFC 6901|http://tools.ietf.org/html/rfc6901>)
 expressions can be used to select subfields.  Note that JSON Pointer escapes
-slash as C<~1> and character C<~> as C<~0>. Neither URI Fragment syntax nor
-empty strings as field names are supported.
+slash as C<~1> and character C<~> as C<~0>. URI Fragment syntax is not supported.
 
-  $doc->value;                  # full metadata
-  $doc->value('author');        # author field
-  $doc->value('author/name');   # name subfield of author field
-  $doc->value('author/0');      # first author field
-  $doc->value('author/0/name'); # name subfield of first author field
-  $doc->value('~1~0');          # metadata field '/~'
+For backwards compatibility C<$pointer> may start with a character other than C</>.
+In that case the whole C<$pointer> string is taken to be a key at the root level,
+and no JSON Pointer escapes are recognised. Older programs expecting root level
+keys starting with C</> or the empty string as key will have to be updated to
+use JSON Pointer syntax.
+
+  $doc->value;                   # full metadata
+  $doc->value("");               # full metadata, explicitly
+  $doc->value('/author');        # author field
+  $doc->value('author');         # author field, old-style
+  $doc->value('/author/name');   # name subfield of author field
+  $doc->value('/author/0');      # first author field
+  $doc->value('/author/0/name'); # name subfield of first author field
+  $doc->value('/~1~0');          # metadata field '/~'
+  $doc->value('/');              # field with empty string as key
 
 Returns C<undef> if the selected field does not exist.
+
+As a debugging aid you can set option C<strict> to a true value.
+In this case the method will C<croak> if an invalid pointer,
+invalid array index, non-existing key or non-existing array index
+is encountered.
 
 Instances of MetaInlines and MetaBlocks are stringified by unless option
 C<element> is set to C<keep>.
