@@ -10,6 +10,7 @@ our $VERSION = '0.35';
 use Digest::MD5 'md5_hex';
 use IPC::Run3;
 use File::Spec::Functions;
+use File::stat;
 use Pandoc::Elements;
 use Scalar::Util 'reftype';
 use parent 'Pandoc::Filter', 'Exporter';
@@ -67,15 +68,22 @@ sub action {
         $args{infile}  = catfile($self->{dir}, "$args{name}.$args{from}");
         $args{outfile} = catfile($self->{dir}, "$args{name}.$args{to}");
 
-        # TODO: document this
+        # TODO: document or remove this experimental code. If keep, expand args
         my $kv = $e->keyvals;
         my @options = $kv->get_all('option');
         push @options, map { split /\s+/, $_ } $kv->get_all('options');
-        # TODO: expand args in options
 
         # TODO: print args in debug mode?
 
-        # TODO: check if file exists and only override if it has changed!
+        # skip transformation if nothing has changed
+        my $in  = stat($args{infile});
+        my $out = stat($args{outfile});
+        if (!$self->{force} and $in and $out and $in->mtime <= $out->mtime) {
+            if ($code eq read_file($args{infile}, ':utf8')) {
+                # no need to rebuild the same outfile
+                return build_image($e, $args{outfile});
+            }
+        }
 
         write_file($args{infile}, $code, ':utf8');
 
@@ -103,7 +111,7 @@ sub action {
         # TODO: skip error if requested
         die $stderr if $stderr;
 
-        return Plain [ build_image($e, $args{outfile}) ];
+        return build_image($e, $args{outfile});
     }
 }
 
@@ -121,14 +129,15 @@ sub build_image {
 
     my $keyvals = $e->keyvals;
     my $title = $keyvals->get('title') // '';
-    my $img = Image attributes { id => $e->id, class => $e->class }, [], [$filename, $title];
+    my $img = Image attributes { id => $e->id, class => $e->class },
+        [], [$filename, $title];
 
     my $caption = $keyvals->get('caption') // '';
     if (defined $caption) {
         push @{$img->content}, Str($caption);
     }
 
-    return $img;
+    return Plain [ $img ];
 }
 
 sub write_file {
@@ -207,6 +216,11 @@ C<infile> and C<outfile>. Example:
 =item capture
 
 Capture output of command and write it to C<outfile>. Disabled by default.
+
+=item force
+
+Apply transformation also if input and output file already exists unchanged.
+Disabled by default.
 
 =back
 
