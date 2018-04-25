@@ -125,7 +125,7 @@ our %ELEMENTS = (
     Math        => [ Inline => qw(type content) ],
     RawInline   => [ Inline => qw(format content) ],
     Link        => [ Inline => qw(attr content target) ],
-    Image       => [ Inline => qw(attr content target) ],
+    Image       => [ Inline => qw(attr content/caption target) ],
     Note        => [ Inline => 'content' ],
     Span        => [ Inline => qw(attr content) ],
 
@@ -669,13 +669,14 @@ sub pandoc_json($) {
     package Pandoc::Document::LinkageRole;
     our $VERSION = $PANDOC::Document::VERSION;
 
-    for my $Element (qw[ Link Image ]) {
-        no strict 'refs';    #no critic
-        unshift @{"Pandoc::Document::${Element}::ISA"}, __PACKAGE__; # no critic
+    foreach (qw(Link Image)) {
+        no strict 'refs';    # no critic
+        unshift @{"Pandoc::Document::${_}::ISA"}, __PACKAGE__; # no critic
     }
 
     sub url   { my $e = shift; $e->{c}->[-1][0] = shift if @_; return $e->{c}->[-1][0] //= ""; }
     sub title { my $e = shift; $e->{c}->[-1][1] = shift if @_; return $e->{c}->[-1][1] //= ""; }
+    *src = *url;
 
     sub upgrade {
         # prepend attributes to old-style ast

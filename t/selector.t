@@ -4,31 +4,51 @@ use Pandoc::Elements;
 use Pandoc::Selector;
 
 # test matching on elements
-ok Str('')->match('Str'), 'match name';
-ok !Str('')->match('Para'), 'no match';
+my $str = Str('');
 
-ok Str('')->match('str'), 'case-insensitive';
+ok $str->match('Str'), 'match name';
+ok !$str->match('Para'), 'no match';
 
-ok Str('')->match(':inline'), 'type match';
-ok !Str('')->match(':block'), 'type not match';
+ok $str->match('str'), 'case-insensitive';
 
-ok Str('')->match('str:inline'), 'multiple match';
-ok Str('')->match('Foo|Str'), '| match';
+ok $str->match(':inline'), 'type match';
+ok !$str->match(':block'), 'type not match';
+ok !$str->match(':block'), 'type not match';
 
-ok !Str('')->match(Pandoc::Selector->new('#id')), 'no id match';
+ok $str->match('str:inline'), 'multiple match';
+ok $str->match('Foo|Str'), '| match';
 
-my $e = Code attributes { id => 'abc', class => ['f0_0','bar']} , '';
+ok !$str->match(Pandoc::Selector->new('#id')), 'no id match';
+
+{
+    my $img = Image attributes {}, [], [ 'http://example.png', '' ];
+    ok !$img->match(':title|:attr|:caption'), '!Image[:attr|:title|:caption]';
+
+    $img->title('0');
+    $img->id('0');
+    $img->caption([Str '0']);
+    ok $img->match(':title'), 'Image:title';
+    ok $img->match(':attr'), 'Image:attr';
+    ok $img->match(':caption'), 'Image:caption';
+
+    my $table = Table [], [AlignLeft], [0.0], [], [ [Plain [Str 'x']] ];
+    ok !$table->match(':title|:attr|:caption'), '!Table[:attr|:title|:caption]';
+    $table->caption([Str '0']);
+    ok $img->match(':caption'), 'Table:caption';
+}
+
+my $code = Code attributes { id => 'abc', class => ['f0_0','bar']} , '';
 
 # test matching with selector
-ok(Pandoc::Selector->new('#abc')->match($e), 'id match');
-ok(!Pandoc::Selector->new('#xyz')->match($e), 'id no match');
-ok(!Pandoc::Selector->new('#1')->match($e), 'id no match');
+ok(Pandoc::Selector->new('#abc')->match($code), 'id match');
+ok(!Pandoc::Selector->new('#xyz')->match($code), 'id no match');
+ok(!Pandoc::Selector->new('#1')->match($code), 'id no match');
 
-ok(Pandoc::Selector->new('.f0_0')->match($e), 'class match');
-ok(Pandoc::Selector->new('.bar .f0_0')->match($e), 'classes match');
-ok(!Pandoc::Selector->new('.xyz')->match($e), 'class no match');
+ok(Pandoc::Selector->new('.f0_0')->match($code), 'class match');
+ok(Pandoc::Selector->new('.bar .f0_0')->match($code), 'classes match');
+ok(!Pandoc::Selector->new('.xyz')->match($code), 'class no match');
 
-ok $e->match("code\t:inline .bar#abc  .f0_0"), 'multiple match';
+ok $code->match("code\t:inline .bar#abc  .f0_0"), 'multiple match';
 
 {
     my $plain = Plain [ Math InlineMath, 'x' ];

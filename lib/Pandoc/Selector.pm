@@ -30,14 +30,31 @@ sub _match_expression {
 
     # name
     return 0
-      if $selector =~ s/^($NAME)\s*//i and lc($1) ne lc( $elem->name );
+      if $selector =~ s/^($NAME)\s*// and lc($1) ne lc( $elem->name );
     return 1 if $selector eq '';
 
     # type
-    if ( $selector =~ s/^:(document|block|inline|meta)\s*// ) {
-        my $method = "is_$1";
-        return 0 unless $elem->$method;
-        return 1 if $selector eq '';
+    if ( $selector =~ s/^:($NAME)\s*// ) {
+        my $type = lc($1);
+        if ($type =~ /^(document|block|inline|meta)$/) {
+            my $method = "is_$type";
+            return 0 unless $elem->$method;
+            return 1 if $selector eq '';
+        } elsif ($type =~ /^(attr|title|caption)$/) {
+            # TODO: text (RawBlock, CodeBlock, Code, Math, RawInline, Str)
+            return 0 unless $elem->can($1);
+            if ($type eq 'attr') {
+                my $attr = $elem->attr;
+                return 0 unless ($attr->[0] // '') ne '' or @{$attr->[1]} or @{$attr->[2]};
+            } elsif ($type eq 'caption') {
+                return 0 unless @{$elem->caption};
+            } else {
+                return 0 if ($elem->$type // '') eq '';
+            }
+        } else {
+            return 1 if $selector eq '';
+            return 0;
+        }
     }
 
     # TODO: :method (e.g. :url)
@@ -136,6 +153,35 @@ expression>, and B<type expression>.
   ClassExpression ::= '.' [\p{L}\p{N}_-]+
 
   TypeExpression  ::= ':' Name
+
+=head2 Type Expressions
+
+=over C<:block>
+
+Selects all L<block elements|Pandoc::Elements/BLOCK ELEMENTS>.
+
+=over C<:inline>
+
+Selects all L<inline elements|Pandoc::Elements/INLINE ELEMENTS>.
+
+=over C<:meta>
+
+Selects all L<metadata elements|Pandoc::Elements/METADATA ELEMENTS>.
+
+=over C<:attr>
+
+Selects all elements with non-empty attributes (including id and classes).
+
+=over C<:caption>
+
+Selects all L<Table|Pandoc::Elements/Table> and L<Table|Pandoc::Elements/Image>
+elements with caption.
+
+=over C<:title>
+
+Selects all elements with non-empty title.
+
+=back
 
 =head1 SEE ALSO
 
