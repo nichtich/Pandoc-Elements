@@ -106,10 +106,23 @@ subtest strict => sub {
     }
 };
 
+subtest indices => sub {
+    my @list = map {; MetaString $_ } 0 .. 122;
+    my %meta = ( long_list => MetaList \@list );
+    my $doc = Document [ { unMeta => \%meta }, [] ];
+    my @range = 90 .. 112;
+    my @returns = map {; $doc->value("/long_list/$_") } @range;
+    is scalar(@returns), 23, 'return list length' or note scalar @returns;
+    is_deeply [ @returns ], [ @range ], 'correct return values';
+};
+
 done_testing;
 
 
 __END__
+
+---
+
    {
       "foo": ["bar", "baz"],
       "": 0,

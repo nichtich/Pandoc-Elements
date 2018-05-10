@@ -121,7 +121,7 @@ sub _bad_pointer {
     #     ( pointer => '_full_pointer', next_pointer => '_pointer' ),
     # };
     my ( %opts ) = @_;
-    return unless $opts{strict};
+    return undef unless $opts{strict};
     $opts{_error} //= 'default';
     my $params = $params_for->{ $opts{_error} };
     if ( $opts{_error} eq 'container' ) {
@@ -193,12 +193,14 @@ sub Pandoc::Document::MetaMap::value {
     }
 }
 
+# use DDP class => +{ internals => 0, show_methods => 'none', expand => 0, };
+
 sub Pandoc::Document::MetaList::value {
     my ($content, %opts) = _value_args(@_);
     %opts = _pointer_token(%opts);
     if ( defined $opts{_empty} ) {
         return [ map { $_->value(%opts) } @$content ]
-    } elsif ($opts{_key} =~ /^[1-9]*[0-9]$/) {
+    } elsif ($opts{_key} =~ /^[1-9][0-9]*$|^0$/) {
         if ( $opts{_key} > $#$content ) {
             return _bad_pointer( %opts, _error => 'range' );
         }
