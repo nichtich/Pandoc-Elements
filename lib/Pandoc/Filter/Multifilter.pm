@@ -89,6 +89,17 @@ sub apply_filter {
     return $doc;
 }
 
+use
+# TODO: move to Pandoc.pm
+sub data_dir {
+    catdir(
+    my $home = $ENV{HOME} || $ENV{USERPROFILE};
+    if ($home) {
+    } elsif ($ENV{HOMEDRIVE} and $ENV{HOMEPATH}) {
+        File::Spec->catpath($ENV{HOMEDRIVE}, $ENV{HOMEPATH}, '');
+    }
+}
+
 __END__
 
 =head1 NAME
