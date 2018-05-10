@@ -193,8 +193,6 @@ sub Pandoc::Document::MetaMap::value {
     }
 }
 
-# use DDP class => +{ internals => 0, show_methods => 'none', expand => 0, };
-
 sub Pandoc::Document::MetaList::value {
     my ($content, %opts) = _value_args(@_);
     %opts = _pointer_token(%opts);
