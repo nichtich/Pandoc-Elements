@@ -190,7 +190,7 @@ See L<Pod::Pandoc> for extended ways to process filter documentation.
 
 =item L<Pandoc::Filter::Multifilter>
 
-=item L<Pandoc::Filter::ImagesFromCode>
+=item L<Pandoc::Filter::CodeImage>
 
 =back
 

@@ -1,6 +1,7 @@
 use Test::More;
 use Pandoc::Elements;
-use Pandoc::Filter::ImagesFromCode qw(read_file write_file);
+use Pandoc::Filter::ImagesFromCode;
+use Pandoc::Filter::CodeImage qw(read_file write_file);
 use File::Temp 'tempdir';
 use File::Spec::Functions 'catfile';
 use File::stat;
@@ -48,5 +49,15 @@ if ($ENV{RELEASE_TESTING}) { # skip because of sleep
     $filter->apply($doc);
     is stat($outfile)->mtime, $outdate, 'output file not modified';
 }
+
+{
+    package Pandoc::Filter::CodeImage::fooo;
+    use parent 'Pandoc::Filter::ImagesFromCode';
+    sub config { { to => 'fooo', run => ['perl'] } }
+}
+
+my $filter = Pandoc::Filter::CodeImage::fooo->new;
+ok $filter->match(CodeBlock attributes { class => 'fooo'}, ''), 'match with subclass';
+ok !$filter->match(CodeBlock attributes {}, ''), 'match with subclass';
 
 done_testing;

@@ -1,20 +1,9 @@
 #!/usr/bin/env perl
 use strict;
-use 5.010001;
 use Pandoc::Filter;
-use Pandoc::Filter::ImagesFromCode;
+use Pandoc::Filter::CodeImage::plantuml;
 
-pandoc_filter 'CodeBlock.plantuml' => Pandoc::Filter::ImagesFromCode->new(
-    from => 'puml',
-    to   => sub { $_[0] eq 'latex' ? 'eps' : 'svg' },
-    name => sub {
-		state $counter = 0;
-		$counter++;
-		return $_[0]->content =~ qr/^\@startuml[ \t]+(.+)$/m
-            ? $1 : "plantuml-$counter";
-    },
-    run  => [ qw(plantuml -T$to$ -o . $infile$) ],
-);
+pandoc_filter CodeBlock => Pandoc::Filter::CodeImage::plantuml->new;
 
 =head1 NAME
 

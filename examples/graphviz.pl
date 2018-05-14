@@ -2,13 +2,9 @@
 use strict;
 
 use Pandoc::Filter;
-use Pandoc::Filter::ImagesFromCode;
+use Pandoc::Filter::CodeImage::graphviz;
 
-pandoc_filter 'CodeBlock.graphviz' => Pandoc::Filter::ImagesFromCode->new(
-    from => 'dot',
-    to   => sub { $_[0] eq 'latex' ? 'pdf' : 'png' },
-    run  => ['dot', '-T$to$', '-o$outfile$', '$infile$'],
-);
+pandoc_filter CodeBlock => Pandoc::Filter::CodeImage::graphviz->new;
 
 =head1 NAME
 
@@ -23,11 +19,5 @@ layout engine (C<dot> by default).
 =head1 SYNOPSIS
 
   pandoc --filter graphviz.pl -o output.html < input.md
-
-=head1 SEE ALSO
-
-This is an extended port of
-L<graphviz.py|https://github.com/jgm/pandocfilters/blob/master/examples/graphviz.py>
-from Python to Perl with L<Pandoc::Elements> and L<Pandoc::Filter>.
 
 =cut

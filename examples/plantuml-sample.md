@@ -15,7 +15,7 @@ Alice <-- Bob: another authentication Response
 ## Activity Diagram
 
 ```plantuml
-@startuml activity diagram 1
+@startuml activity diagram
 start
 while (データあり？) is (Yes)
   :データ読み込み<
