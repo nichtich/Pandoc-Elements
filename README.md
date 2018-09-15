@@ -107,13 +107,13 @@ See [attribute methods](#attribute-methods) for details.
 ## citation { ... }
 
 A citation as part of document element [Cite](#cite) must be a hash reference
-with fields `citationID` (string), `citationPrefix` (list of [inline
+with fields `citationId` (string), `citationPrefix` (list of [inline
 elements](#inline-elements)) `citationSuffix` (list of [inline
 elements](#inline-elements)), `citationMode` (one of `NormalCitation`,
 `AuthorInText`, `SuppressAuthor`), `citationNoteNum` (integer), and
 `citationHash` (integer). The helper method `citation` can be used to
-construct such hash by filling in default values and using shorter field names
-(`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`):
+construct such a hash by filling in default values and optionally using 
+shorter field names (`id`, `prefix`, `suffix`, `mode`, `note`, and `hash`):
 
     citation {
         id => 'foo',
@@ -124,6 +124,12 @@ construct such hash by filling in default values and using shorter field names
     # in Pandoc Markdown
 
     [see @foo p. 42]
+
+The values returned by this function, as well as any citations contained in
+document objects returned by `pandoc_json`, are blessed hashrefs with
+getter/setter accessors corresponding to both the full and short field
+names, so that e.g. `$citation->citationId(...)` and
+`$citation->id(...)` get or set the same value.
 
 ## pandoc\_version( \[ $document \] )
 
