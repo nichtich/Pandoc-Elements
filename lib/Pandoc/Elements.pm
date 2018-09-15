@@ -117,7 +117,7 @@ our %ELEMENTS = (
     Subscript   => [ Inline => 'content' ],
     SmallCaps   => [ Inline => 'content' ],
     Quoted      => [ Inline => qw(type content) ],
-    Cite        => [ Inline => qw(citations:[Citation] content) ],
+    Cite        => [ Inline => qw(citations content) ],
     Code        => [ Inline => qw(attr content) ],
     Space       => ['Inline'],
     SoftBreak   => ['Inline'],
@@ -298,7 +298,20 @@ sub attributes($) {
     return $e->attr;
 }
 
-sub citation($) { Pandoc::Document::Citation->new( @_ ) }
+sub citation($) {
+    my $a = shift;
+    {
+        citationId     => $a->{id}     // "missing",
+        citationPrefix => $a->{prefix} // [],
+        citationSuffix => $a->{suffix} // [],
+        citationMode   => $a->{mode}   // bless(
+            { t => 'NormalCitation', c => [] },
+            'Pandoc::Document::NormalCitation'
+        ),
+        citationNoteNum => $a->{num}  // 0,
+        citationHash    => $a->{hash} // 1,
+    };
+}
 
 # XXX: must require rather than use Pandoc::Metadata
 # or its attempt to use Pandoc::Elements will result in a broken state.
@@ -671,78 +684,6 @@ sub pandoc_json($) {
     }
 }
 
-{
-    package Pandoc::Document::Citation;
-    our $VERSION = $PANDOC::Document::VERSION;
-
-    use Carp qw[ carp croak ];
-
-    my %props = (
-        id     => { key => 'citationId',      default => '"missing"' },
-        prefix => { key => 'citationPrefix',  default => '[]' },
-        suffix => { key => 'citationSuffix',  default => '[]' },
-        num    => { key => 'citationNoteNum', default => '0' },
-        hash   => { key => 'citationHash',    default => '1' },
-        mode   => {
-            key     => 'citationMode',
-            default => q{
-            bless(
-                { t => 'NormalCitation', c => [] },
-                'Pandoc::Document::NormalCitation'
-              )
-        },
-        },
-    );
-
-    {
-        my $template = <<'END_OF_TEMPLATE';
-#line 1 "method [[[method]]]()"
-package Pandoc::Document::Citation;
-sub [[[method]]] {
-    my $self = shift;
-    if ( @_ ) {
-        $self->{[[[key]]]} = [[[coerce]]] ( shift // [[[default]]] );
-    }
-    return [[[coerce]]] ( $self->{[[[key]]]} //= [[[default]]] );
-}
-no warnings 'once';
-*[[[alias]]] = \&[[[method]]];
-1;
-END_OF_TEMPLATE
-
-        while ( my ( $name, $prop ) = each %props ) {
-            $prop->{name}   = $name;
-            $prop->{method} = "Pandoc::Document::Citation::$name";
-            $prop->{alias}  = "Pandoc::Document::Citation::$prop->{key}";
-            $prop->{coerce}
-              = $prop->{default} =~ /^\d$/ ? '0 +'
-              : $prop->{default} =~ /^"/   ? '"" .'
-              :                              "";
-            {
-                ( my $source = $template ) =~ s/\Q[[[\E(\w+)\Q]]]\E/$prop->{$1}/g;
-                local $@;
-                ## no critic
-                eval $source || croak $@ . $source;
-            }
-        }
-    }
-
-    my %accessors = map { ; $_->{name} => $_->{key} } values %props;
-
-    sub new {
-        my ( $class, $arg ) = @_;
-        my $self = bless {}, $class;
-        while ( my ( $name, $key ) = each %accessors ) {
-            # coerce on access
-            $self->$name( $arg->{$key} // $arg->{$name} );
-        }
-        return $self;
-    }
-
-    no warnings 'once';
-    *TO_JSON = \&Pandoc::Document::Element::TO_JSON;
-}
-
 # Special TO_JSON methods to coerce data to int/number/Boolean as appropriate
 # and to downgrade document model depending on pandoc_version
 
@@ -976,13 +917,13 @@ See L<attribute methods|/ATTRIBUTE METHODS> for details.
 =head2 citation { ... }
 
 A citation as part of document element L<Cite|/Cite> must be a hash reference
-with fields C<citationId> (string), C<citationPrefix> (list of L<inline
+with fields C<citationID> (string), C<citationPrefix> (list of L<inline
 elements|/INLINE ELEMENTS>) C<citationSuffix> (list of L<inline
 elements|/INLINE ELEMENTS>), C<citationMode> (one of C<NormalCitation>,
 C<AuthorInText>, C<SuppressAuthor>), C<citationNoteNum> (integer), and
 C<citationHash> (integer). The helper method C<citation> can be used to
-construct such a hash by filling in default values and optionally using 
-shorter field names (C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>):
+construct such hash by filling in default values and using shorter field names
+(C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>):
 
     citation {
         id => 'foo',
@@ -993,12 +934,6 @@ shorter field names (C<id>, C<prefix>, C<suffix>, C<mode>, C<note>, and C<hash>)
     # in Pandoc Markdown
 
     [see @foo p. 42]
-
-The values returned by this function, as well as any citations contained in
-document objects returned by C<pandoc_json>, are blessed hashrefs with
-getter/setter accessors corresponding to both the full and short field
-names, so that e.g. C<< $citation->citationId(...) >> and
-C<< $citation->id(...) >> get or set the same value.
 
 =head2 pandoc_version( [ $document ] )
 
