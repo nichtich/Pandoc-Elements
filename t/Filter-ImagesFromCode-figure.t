@@ -7,7 +7,7 @@ use Pandoc;
 use Pandoc::Filter::ImagesFromCode;
 use File::Temp 'tempdir';
 
-if ( pandoc->version < 1.18 ) {
+if ( pandoc->version < 1.16 ) {
     plan skip_all => 'pandoc executable is too old for these tests (< 1.18)';
 }
 
