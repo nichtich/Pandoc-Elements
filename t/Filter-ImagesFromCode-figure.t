@@ -8,7 +8,7 @@ use Pandoc::Filter::ImagesFromCode;
 use File::Temp 'tempdir';
 
 if ( pandoc->version < 1.16 ) {
-    plan skip_all => 'pandoc executable is too old for these tests (< 1.18)';
+    plan skip_all => 'pandoc executable is too old for these tests (< 1.16)';
 }
 
 my $dir = tempdir( CLEANUP => 1 );
