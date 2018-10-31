@@ -8,7 +8,7 @@ use Pandoc::Filter::ImagesFromCode;
 use File::Temp 'tempdir';
 
 unless ( pandoc and pandoc->version >= 1.18 ) {
-    plan skip_all => 'pandoc executable is too old for these tests (< 1.16)';
+    plan skip_all => 'pandoc >= 1.18 not available';
 }
 
 my $dir = tempdir( CLEANUP => 1 );
@@ -44,10 +44,10 @@ my @fig_tests = (
             [ qr{<figcaption>a caption</figcaption>}, 'figcaption' ],
         ]
     },
-    {   name => 'fig-caption',
+    {   name => 'formatted caption',
         attr => {
             %for_attr,
-            'fig-caption' => "This is a &quot;real&quot;, *styled* caption",
+            'caption' => "This is a &quot;real&quot;, *styled* caption",
         },
         filter => {%for_filter},
         json   => [],
@@ -57,10 +57,10 @@ my @fig_tests = (
             ],
         ],
     },
-    {   name => 'pandoc',
+    {   name => 'pandoc and inlines',
         attr =>
-          { %for_attr, 'fig-caption' => "This is a &quot;real&quot; caption", },
-        filter => { %for_filter, pandoc => [ 'pandoc', '--standalone' ] },
+          { %for_attr, 'caption' => "This is a &quot;real&quot; caption", },
+        filter => { %for_filter, pandoc => Pandoc->new( 'pandoc', '--standalone' ) },
         json   => [],
         html   => [
             [   qr{<figcaption>This is a “real” caption</figcaption>},
@@ -70,8 +70,8 @@ my @fig_tests = (
     },
     {   name => 'no smart',
         attr =>
-          { %for_attr, 'fig-caption' => "This is a &quot;real&quot; caption", },
-        filter => { %for_filter, reader_exts => '-smart' },
+          { %for_attr, 'caption' => "This is a &quot;real&quot; caption", },
+        filter => { %for_filter, pandoc_format => '-smart' },
         json   => [ [ qr{"c":"\\"real\\"","t":"Str"}, 'dumb quotes in JSON' ] ],
         html =>
           [ [ qr{This is a &quot;real&quot; caption}, 'dumb quotes in HTML' ], ],
@@ -79,10 +79,10 @@ my @fig_tests = (
     {   name => 'smart anyway',
         attr => {
             %for_attr,
-            'reader-ext'  => '+smart',
-            'fig-caption' => "This is a &quot;real&quot; caption",
+            'pandoc-format'  => '+smart',
+            'caption' => "This is a &quot;real&quot; caption",
         },
-        filter => { %for_filter, reader_exts => '-smart' },
+        filter => { %for_filter, pandoc_format => '-smart' },
         json   => [ [ qr/"t":"DoubleQuote"/, 'DoubleQuote' ] ],
         html   => [ [ qr{This is a “real” caption}, 'smart quotes' ], ],
     },

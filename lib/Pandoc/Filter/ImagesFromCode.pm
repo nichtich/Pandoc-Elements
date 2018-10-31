@@ -19,6 +19,11 @@ use parent 'Pandoc::Filter', 'Exporter';
 
 our @EXPORT_OK = qw(read_file write_file);
 
+my $check_pandoc_obj = sub {
+    blessed $_[0] and $_[0]->isa( 'Pandoc' )
+      or croak "option 'pandoc' must be undefined or an instance of class Pandoc";
+};
+
 sub new {
     my ($class, %opts) = @_;
 
@@ -36,7 +41,7 @@ sub new {
         die "missing or empty option: run\n";
     }
 
-    _verify_pandoc(\%opts);
+    $check_pandoc_obj->($opts{pandoc} //= pandoc);
 
     bless \%opts, $class;
 }
@@ -128,6 +133,15 @@ sub action {
 # L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
 
 sub build_image {
+    # XXX: NB This regex is negatively defined, i.e. note the `[^`!
+    # It matches the complement of the listed props and chars!
+    state $md_metachars_re = qr/[^\P{PosixPunct}\p{Term}()+%#]/;
+    # check for trivially well-formed pandoc format string
+    state $pandoc_format_re = qr/^(?![\d_])\w+(?:[-+]\w+)*$/;
+    # defined and false pandoc-format == don't invoke pandoc!
+    state $defined_and_false = sub {
+        defined( $_[0] ) and (!$_[0] or $_[0] =~ /^false$/i);
+    };
     my $e = shift;
     my %opts = (@_%2) ? (filename => @_) : @_;
     my $filename = $opts{filename} // '';
@@ -142,31 +156,40 @@ sub build_image {
         $fig_attr && ($fig_attr !~ /^false$/i);
     };
     # Support passing fig-caption with markdown/markup
-    if ( defined( my $text = $keyvals->get('fig-caption') ) ) {
-        _verify_pandoc( \%opts, $keyvals );
-        my $contents
-          = $opts{pandoc}->parse( "$opts{reader}$opts{reader_ext}" => $text )
-          ->query( 'Para|Plain' => sub { $_->content } );
-        if ( my @inlines = map {; @$_ } @$contents ) {
-            push @{$img->content}, @inlines;
-            $fig //= 1;
+    if ( defined( my $text = $keyvals->get( 'caption' ) ) ) {
+        my $format = $keyvals->get( 'pandoc-format' )    #
+          // $opts{pandoc_format}                               #
+          // 'markdown';                                        #
+        # defined and false pandoc-format == don't invoke pandoc!
+        my $no_conv = $defined_and_false->($format)
+            or $defined_and_false->($opts{pandoc_format});           #
+        if ( $no_conv or !$opts{pandoc} or $text !~ $md_metachars_re ) {
+            push @{ $img->content }, Str( $text );
+        } elsif ( $fig or $format and $opts{pandoc} ) {
+            $check_pandoc_obj->( $opts{pandoc} );
+            if ( $format =~ /^[-+]/ ) {       # if only extensions
+                    # maybe p-f attr is only exts but p_f option is format
+                my $_format
+                  = ( $opts{pandoc_format} and $opts{pandoc_format} !~ /^[-+]/ )
+                  ? $opts{pandoc_format}
+                  : 'markdown';
+                $format = $_format . $format;
+                $format =~ $pandoc_format_re
+                    or croak "doesn't look like a pandoc --reader format: $format";
+            }
+            my $contents = $opts{pandoc}->parse( $format => $text )
+              ->query( 'Para|Plain' => sub { $_->content } );
+            my @inlines = map {; @$_ } @$contents;
+            if ( @inlines ) {
+                push @{ $img->content }, @inlines;
+                $fig //= 1;
+            }
         }
-    }
-    # XXX: distinguish between alt-text and caption ?
-    # elsif ( defined( my $alt = $keyvals->get('alt') ) ) {
-    #     push @{$img->content}, Str($alt);
-    #     $fig //= 0;
-    # }
-    elsif ( defined( my $caption = $keyvals->get('caption') ) ) {
-        push @{$img->content}, Str($caption);
-        # XXX: distinguish between alt-text and caption ?
-        # $fig //= 1;
     }
     if ( $fig ) {
         $img->title('fig:' . $title) unless $title =~ /^fig:/;
         return Para [ $img ]; # Must be Para for fig: to work!
     }
-
     return Plain [ $img ];
 }
 
@@ -176,7 +199,7 @@ sub _build_image {
     my $self = shift;
     my $e = shift;
     my %opts = (@_%2) ? (filename => @_) : @_;
-    my %defaults = map {; $_ => $self->{$_} } qw( pandoc reader_ext reader );
+    my %defaults = map {; $_ => $self->{$_} } qw( pandoc pandoc_format );
     return build_image($e, %defaults, %opts);
 }
 
@@ -199,41 +222,6 @@ sub read_file {
     close $fh or die "failed to close file: $file: $!\n";
 
     return $content;
-}
-
-sub _verify_pandoc {
-    my($opts, $keyvals) = @_;
-    for my $pandoc ( $opts->{pandoc} ) {
-        if ( !defined($pandoc) ) {
-            $pandoc = pandoc;
-        } elsif ( !blessed($pandoc) ) {
-            'ARRAY' eq ref $pandoc or $pandoc = [$pandoc];
-            my $error = do {
-                local $@;
-                eval { $pandoc = Pandoc->new(@$pandoc); };
-                $@;
-            };
-            if ( $error ) {
-                croak "couldn't instantiate Pandoc.pm: $error";
-            }
-        } else {
-            $pandoc->isa('Pandoc')
-                or croak "expected option 'pandoc' to be Pandoc.pm parameters or instance";
-        }
-    }
-    if ( defined $keyvals ) {
-        for my $key ( qw[ reader_ext reader_exts reader ] ) {
-            $opts->{$key} //= "";
-            (my $attr = $key) =~ tr/_/-/;
-            $opts->{$key} = $keyvals->get($attr) // $opts->{$key};
-        }
-    }
-    ($opts->{reader_ext} //= "") .= ($opts->{reader_exts} // "");
-    $opts->{reader_ext} =~ /\A(?:[-+]\w+)*\z/
-        or croak "expected option 'reader_ext' to be string with zero or more +EXTENSION and/or -EXTENSION";
-    ($opts->{reader} //= 'markdown' ) =~ /\A(?!\d|_)\w+(?:[-+]\w+)*\z/
-        or croak "expected option 'reader' to be pandoc input format";
-    return $opts;
 }
 
 1;
@@ -264,65 +252,68 @@ Mapped to the image title attribute.
 
 Mapped to the image caption/alt-text as a single unformatted string.
 
-Ignored if C<fig-caption> is also present.
-
-=for UNIMPLEMENTED:
-Ignored if C<alt> is also present.
-
-=begin UNIMPLEMENTED:
-
-=item alt
-
-Mapped to the image caption/alt-text as a single unformatted string.
-
-Ignored if C<fig-caption> is also present.
-
-=end UNIMPLEMENTED:
-
 =item fig
 
 If set to a true value the image will be output as a figure
 as per the Pandoc manual's description of the 
 L<< C<implicit_figures> extension|http://pandoc.org/MANUAL.html#extension-implicit_figures >>.
 
-This means that the Image element will be wrapped in a Para element rather than
-a Plain element and the image title will have a C<fig:> prefix (which the Pandoc
-writer will remove), so that the image is formatted as a figure by Pandoc writers
-which support this.
+This means that the Image element will be wrapped in a Para element rather
+than a Plain element and the image title will have a C<fig:> prefix (which
+the Pandoc writer will remove), so that the image is formatted as a figure
+by Pandoc writers which support this.
 
-In addition to customary Perl false values a value C<false> (case insensitive) is
-considered to be false.  All other non-empty non-zero values are considered true.
+In addition to customary Perl false values the string C<false> (case
+insensitive) is considered to be a false value. All other non-empty
+non-zero values are considered true.
 
-=item fig-caption
+If the C<fig> attribute is non-false the value of the C<caption> attribute
+contains any characters which are used in in Pandoc Markdown markup the
+value of the C<caption> attribute will be converted with L<Pandoc> and
+inserted as the caption of the image. You can use the C<pandoc-format>
+attribute to force conversion with L<Pandoc> to be either performed or
+skipped, or performed from a format other than C<markdown> and/or with
+non-default extensions.
 
-If present and non-empty the value of this attribute will be converted with
-L<Pandoc> and inserted as the caption of the image.
+=item pandoc-format
 
-Implies a true value for C<fig>.
+If this attribute is defined and is not a Perl false value or the string
+C<false> (case insensitive) the value of the C<caption> attribute will be
+converted with L<Pandoc> and inserted as the caption of the image
+regardless of whether it contains any characters which are used in in
+Pandoc Markdown markup or not.
 
-Use the C<caption> attribute unless you actually need the caption to contain 
-formatted text; C<fig-caption> is expensive as it needs to shell out to the C<pandoc>
-executable.  Cf. C<pandoc> under L<CONFIGURATION|/"CONFIGURATION"> below.
+Such a non-false value must be either a string suitable to be passed to the
+Pandoc C<--reader>/C<--from>/C<-r>/C<-f> option, i.e. a valid Pandoc
+input format with or without trailing extensions in
+C<+EXTENSION>/C<-EXTENSION> format. If the value of this attribute starts
+with a C<+> or C<-> character it is assumed to consist of extensions
+only and will be appended to the value of the C<pandoc_format> option
+passed to the constructor, or if that is not set to C<markdown> as the
+default format.
 
-Since you probably will enclose this attribute value in double quotes use
-the HTML C<&quot;> entity for embedded double quotes.
-Pandoc will do the right thing!
+If the value of this attribute is defined and B<is> a Perl false value or
+the string C<false> (case insensitive) the value of the C<caption>
+attribute will B<not> be converted with L<Pandoc> regardless of its
+content. 
 
-=item reader
+If this attribute is I<undefined> the conversion of the caption text
+will be decided based on the value of the C<fig> attribute and
+the presence of Pandoc Markdown markup characters as described
+above under the C<fig> attribute.
 
-=item reader-ext
+The precence of this attribute implies a true value for the C<fig>
+attribute.
 
-These attributes are only relevant if the C<fig-caption> attribute is also
-present and non-empty!
+Don't use the C<pandoc-format> attribute with a true value unless you
+actually need the caption to contain formatted text. Each formatted caption
+is expensive as the filter needs to call out to the C<pandoc> executable
+once for each such caption. Cf. C<pandoc> under
+L<CONFIGURATION|/"CONFIGURATION"> below.
 
-See C<pandoc>, C<reader> and C<reader_ext> under L<CONFIGURATION|/"CONFIGURATION"> below.
-
-If C<reader> and/or C<reader-ext> are given as attributes they override the 
-corresponding constructor parameters.  Note the difference between
-e.g. C<reader="markdown+smart"> and C<reader-ext="+smart">:
-the value of C<reader-ext> will be appended to the value of C<reader>, or to 
-the value for C<reader> passed to the constructor if the C<reader> I<attribute>
-is missing.
+Since you probably will enclose the C<caption> attribute value in double
+quotes use the HTML C<&quot;> entity for embedded double quotes in
+formatted captions. Pandoc will do the right thing!
 
 =back
 
@@ -372,37 +363,31 @@ Disabled by default.
 
 =item pandoc
 
-A string containing the path to or name of the C<pandoc> executable to use
-to convert any C<fig-caption> attributes as described under
-L<Attributes|/"Attributes"> above.
-
-If this is an array reference instead of a string the contents of the array
-will be passed as arguments to the constructor of the
-L<Pandoc|Pandoc/"METHODS"> module.
-
-You can also pass an instance of the L<Pandoc> class.
+An instance of the L<Pandoc> class to use to convert any figure C<caption>
+attributes as described under L<Attributes|/"Attributes"> above.
 
 You shouldn't provide any C<--from> or C<--to> options (or their aliases)
-as these will be overridden on each invocation. Use C<reader> or
-C<reader_ext> or their corresponding L<attributes|/"Attributes">
-to set the input format.
+as these will be overridden on each invocation. Use C<pandoc_format> or the
+corresponding L<attribute|/"Attributes"> to set the input format.
 
 If this parameter is omitted or undefined the defaults as described in
 the L<Pandoc> module will be used.
 
-=item reader
+=item pandoc_format
 
-The pandoc reader to use when converting C<fig-caption> L<attributes|/"Attributes">.
-Defaults to C<markdown>. Can be overridden on a per-image basis through the 
-C<reader> L<attribute/"Attributes">.
+The pandoc reader to use when converting figure C<caption>
+L<attributes|/"Attributes">. along with any extensions which you want to
+apply, as described under the C<pandoc-format> L<attribute/"Attributes">
+above, which can be used override this option on a per-image basis.
 
-=item reader_ext
+Defaults to C<markdown>.
 
-A string containing zero or more C<+PANDOC_EXTENSION> and/or
-C<-PANDOC_EXTENSION> substrings. Will be appended to the C<reader>
-parameter or to any C<reader> L<attribute|/"Attributes"> which overrides
-it, unless itself overridden by a C<reader-ext> attribute which will be
-used instead of it if present.
+If the value of this option is B<defined> but is a Perl false value or
+the string C<false> (case insensitive) conversion of C<caption> attributes
+with L<Pandoc> will be globally disabled. This is useful if you want to
+skip calling out to C<pandoc> when producing draft document versions, since
+unlike the images themselves caption texts converted with L<Pandoc> can not
+be cached.
 
 =back
 
