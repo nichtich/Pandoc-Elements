@@ -13,6 +13,10 @@ my $doc = pandoc_json(<<JSON);
           {"t": "Para", "c": [{"t":"Str","c":"x"}]},
           {"t": "Para", "c": [{"t":"Str","c":"y"}]}
       ] },
+      "inlines": { "t": "MetaInlines", "c": [
+          {"t":"Str","c":"x"},
+          {"t":"Str","c":"y"}
+      ] },
       "map": { "t": "MetaMap", "c": {
         "string": { "t": "MetaString", "c": "0" },
         "list": { "t": "MetaList", "c": [
@@ -71,6 +75,7 @@ is_deeply $doc->value, {
     true => 1,
     string => "hello\nworld",
     blocks => "x\n\ny",
+    inlines => "xy",
     map => {
         string => "0",
         list => ["a", "b", 0],
@@ -99,6 +104,33 @@ is_deeply $doc->value('blocks', element => 'keep'),
     $doc->meta->{blocks}->content, 'value("blocks", elements => keep)';
 is_deeply $doc->value('/blocks', element => 'keep'),
     $doc->meta->{blocks}->content, 'value("/blocks", elements => keep)';
+
+subtest 'element => full' => sub {
+    my $blocks = $doc->value('/blocks', element => 'full');
+    can_ok $blocks, 'name';
+    is $blocks->name, 'MetaBlocks','value("/blocks", elements => full)->name';
+    my $inlines = $doc->value('/inlines', element => 'full');
+    can_ok $inlines, 'name';
+    is $inlines->name, 'MetaInlines','value("/inlines", elements => full)->name';
+};
+
+subtest 'element => container' => sub {
+    my $blocks = $doc->value('/blocks', element => 'container');
+    can_ok $blocks, 'name', 'class';
+    is $blocks->name, 'Div','value("/blocks", elements => container)->name';
+    is $blocks->class, 'MetaBlocks','value("/blocks", elements => container)->class';
+    is $doc->value( '/blocks', element => 'container', div_class => 'blocks' )
+      ->class, 'blocks',
+      'value("/blocks", elements => container, div_class => "blocks")->class';
+    my $inlines = $doc->value('/inlines', element => 'container');
+    can_ok $inlines, 'name', 'class';
+    is $inlines->name, 'Span','value("/inlines", elements => container)->name';
+    is $inlines->class, 'MetaInlines','value("/inlines", elements => container)->class';
+    is $doc->value( '/inlines', element => 'container', span_class => 'inlines' )
+      ->class, 'inlines',
+      'value("/inlines", elements => container, span_class => "inlines")->class';
+};
+
 
 foreach (qw(x map/x true/x blocks/x map/list/x map/list/3)) {
     is $doc->value($_), undef, "value('$_')";
