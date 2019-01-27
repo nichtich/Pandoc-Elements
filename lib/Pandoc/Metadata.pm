@@ -214,7 +214,12 @@ sub Pandoc::Document::MetaInlines::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts, _error => 'container');
-    } elsif ($opts{element} // '' eq 'keep') {
+    } elsif (($opts{element} // '') eq 'container') {
+        my $attr = attributes( { class => $opts{span_class} // 'MetaInlines' } );
+        Span( $attr, $content );
+    } elsif (($opts{element} // '') eq 'full') {
+        MetaInlines($content);
+    } elsif (($opts{element} // '') eq 'keep') {
         $content;
     } else {
         join '', map { $_->string } @$content;
@@ -230,7 +235,12 @@ sub Pandoc::Document::MetaBlocks::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts);
-    } elsif ($opts{element} // '' eq 'keep') {
+    } elsif (($opts{element} // '') eq 'container') {
+        my $attr = attributes( { class => $opts{div_class} // 'MetaBlocks' } );
+        Div( $attr, $content );
+    } elsif (($opts{element} // '') eq 'full') {
+        MetaBlocks($content);
+    } elsif (($opts{element} // '') eq 'keep') {
         $content;
     } else {
         $_[0]->string;
@@ -305,8 +315,34 @@ In this case the method will C<croak> if an invalid pointer,
 invalid array index, non-existing key or non-existing array index
 is encountered.
 
-Instances of MetaInlines and MetaBlocks are stringified by unless option
-C<element> is set to C<keep>.
+Instances of MetaInlines and MetaBlocks are stringified by default.
+You can change this by setting option C<element>:
+
+=over
+
+=item C<< element => 'container' >>
+
+An instance of Span with class attribute C<MetaInlines> 
+or an instance of Div with class attribute C<MetaBlocks> is returned.
+
+This is convenient when you want to include content from metadata in the
+document since you can simply use the C<is_block> and/or C<is_inline>
+methods to check what kind of content you have got.
+
+If you set options C<div_class> and/or C<span_class> to a defined value
+that value will be used as the class attribute of the returned instance
+instead of the name of the original instance.
+
+=item C<< element => 'full' >>
+
+An instance of MetaInlines or MetaBlocks respectively is returned.
+
+=item C<< element => 'keep' >>
+
+The content array reference of the original instance of MetaInlines or
+MetaBlocks is returned.
+
+=back
 
 Setting option C<boolean> to C<JSON::PP> will return C<JSON::PP:true>
 or C<JSON::PP::false> for L<MetaBool|/MetaBool> instances.
