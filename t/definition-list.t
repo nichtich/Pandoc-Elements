@@ -2,7 +2,6 @@ use strict;
 use warnings;
 
 use Test::More 0.98; # subtests
-use Test::Fatal;
 
 use Pandoc::Elements;
 use Pandoc;
