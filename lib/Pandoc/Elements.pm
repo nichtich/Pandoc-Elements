@@ -1582,7 +1582,7 @@ Jakob Voß E<lt>jakob.voss@gbv.deE<gt>
 
 Benct Philip Jonsson E<lt>bpjonsson@gmail.comE<gt>
 
-L<TakeAsk|https://github.com/TakeAsh>
+L<TakeAsh|https://github.com/TakeAsh>
 
 =head1 COPYRIGHT AND LICENSE
 
