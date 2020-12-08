@@ -1,7 +1,11 @@
 language: perl
 
+arch:
+ - amd64
+ - ppc64le
+
 sudo: required
-dist: trusty    # includes pandoc 1.12.2.1
+dist: Xenial    # includes pandoc 1.12.2.1
 
 perl:
   - "5.26"
