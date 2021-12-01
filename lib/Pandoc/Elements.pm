@@ -762,6 +762,11 @@ sub Pandoc::Document::TO_JSON {
         : [ { unMeta => $self->{meta} }, $self->{blocks} ]
 }
 
+{
+    no warnings 'once';
+    *Pandoc::Document::DefinitionPair::TO_JSON = \&Pandoc::Document::Element::TO_JSON;
+}
+
 sub Pandoc::Document::SoftBreak::TO_JSON {
     if ( pandoc_version() < '1.16' ) {
         return { t => 'Space', c => [] };
