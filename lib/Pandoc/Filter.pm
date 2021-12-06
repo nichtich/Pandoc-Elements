@@ -21,7 +21,7 @@ sub pandoc_walk(@) {    ## no critic
     my $filter = Pandoc::Filter->new(@_);
     my $ast    = Pandoc::Elements::pandoc_json(<STDIN>);
     binmode STDOUT, ':encoding(UTF-8)';
-    $filter->apply( $ast->content, @ARGV ? $ARGV[0] : '', $ast->meta );
+    $filter->apply($ast->content, @ARGV ? $ARGV[0] : '', $ast->meta);
     return $ast;
 }
 
@@ -34,7 +34,7 @@ sub _pod2usage_if_help {
     ## no critic
     my $module = -t STDOUT ? 'Pod::Text::Termcap' : 'Pod::Text';
     eval "require $module" or die "Can't locate $module in \@INC\n";
-    $module->new( indent => 2, nourls => 1 )->parse_file($0);
+    $module->new(indent => 2, nourls => 1)->parse_file($0);
 
     exit;
 }
@@ -53,8 +53,8 @@ sub pandoc_filter_document($) {    ## no critic
     _pod2usage_if_help();
 
     my $filter = shift;
-    my $doc = Pandoc::Elements::pandoc_json(<STDIN>);
-    $filter->apply( $doc, $ARGV[0] );
+    my $doc    = Pandoc::Elements::pandoc_json(<STDIN>);
+    $filter->apply($doc, $ARGV[0]);
 
     say $doc->to_json;
 }
@@ -62,14 +62,11 @@ sub pandoc_filter_document($) {    ## no critic
 # METHODS
 
 sub new {
-    my $class = shift;
+    my $class  = shift;
     my $action = (@_ < 2 or @_ % 2 or ref $_[0])
-        ? Pandoc::Walker::action(@_)        # @actions
-        : Pandoc::Walker::action({ @_ });   # %actions
-    bless {
-        action => $action,
-        error  => '',
-    }, $class;
+        ? Pandoc::Walker::action(@_)       # @actions
+        : Pandoc::Walker::action({@_});    # %actions
+    bless {action => $action, error => '',}, $class;
 }
 
 sub action {
@@ -77,11 +74,11 @@ sub action {
 }
 
 sub apply {
-    my ( $self, $ast, $format, $meta ) = @_;
+    my ($self, $ast, $format, $meta) = @_;
     $format ||= '';
-    $meta ||= eval { $ast->meta } || {};
+    $meta   ||= eval {$ast->meta} || {};
 
-    Pandoc::Walker::transform( $ast, $self->action, $format, $meta );
+    Pandoc::Walker::transform($ast, $self->action, $format, $meta);
 
     $ast;
 }

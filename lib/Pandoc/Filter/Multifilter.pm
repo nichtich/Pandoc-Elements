@@ -14,50 +14,51 @@ use IPC::Cmd 'can_run';
 use IPC::Run3;
 
 sub new {
-    bless { }, shift;
+    bless {}, shift;
 }
 
 sub apply {
-    my ( $self, $doc, $format, $meta ) = @_;
-	return $doc if $doc->name ne 'Document';
+    my ($self, $doc, $format, $meta) = @_;
+    return $doc if $doc->name ne 'Document';
 
     my $multi = $doc->meta->{multifilter};
     return $doc if !$multi or $multi->name ne 'MetaList';
 
     my @filters = map {
         if ($_->name eq 'MetaMap' and $_->{filter}) {
-            $_->value
-        } elsif ($_->name eq 'MetaString' or $_->name eq 'MetaInlines') {
-            { filter => $_->value }
+            $_->value;
+        }
+        elsif ($_->name eq 'MetaString' or $_->name eq 'MetaInlines') {
+            {filter => $_->value}
         }
     } @{$multi->content};
 
     foreach (@filters) {
         my @filter = find_filter($_->{filter});
-    	apply_filter($doc, $format, @filter);
+        apply_filter($doc, $format, @filter);
     }
 
     $doc;
 }
 
 our %SCRIPTS = (
-    hs => 'runhaskell',
-    js => 'node',
+    hs  => 'runhaskell',
+    js  => 'node',
     php => 'php',
-    pl => 'perl',
-    py => 'python',
-    rb => 'ruby',
+    pl  => 'perl',
+    py  => 'python',
+    rb  => 'ruby',
 );
 
 sub find_filter {
-    my $name = shift;
+    my $name     = shift;
     my $data_dir = shift // pandoc_data_dir;
     $data_dir =~ s|/$||;
 
     foreach my $filter ("$data_dir/filters/$name", $name) {
         return $filter if -x $filter;
         if (-e $filter and $filter =~ /\.([a-z]+)$/i) {
-            if ( my $cmd = $SCRIPTS{lc($1)} ) {
+            if (my $cmd = $SCRIPTS{lc($1)}) {
                 die "cannot execute filter with $cmd\n" unless can_run($cmd);
                 return ($cmd, $filter);
             }
@@ -77,15 +78,15 @@ sub apply_filter {
     run3 [@filter, $format // ''], \$stdin, \$stdout, \$stderr;
     if ($?) {
         $stderr .= "\n" if $stderr ne '' and $stderr !~ /\n\z/s;
-        die join(' ','filter failed:',@filter)."\n$stderr";
+        die join(' ', 'filter failed:', @filter) . "\n$stderr";
     }
 
-    my $transformed =  eval { pandoc_json($stdout) };
-    die join(' ','filter emitted no valid JSON:',@filter)."\n" if $@;
+    my $transformed = eval {pandoc_json($stdout)};
+    die join(' ', 'filter emitted no valid JSON:', @filter) . "\n" if $@;
 
-	# modify original document
-	$doc->meta($transformed->meta);
-	$doc->content($transformed->content);
+    # modify original document
+    $doc->meta($transformed->meta);
+    $doc->content($transformed->content);
 
     return $doc;
 }

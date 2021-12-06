@@ -9,22 +9,22 @@ use Scalar::Util qw(reftype blessed);
 use Carp;
 
 use parent 'Exporter';
-our @EXPORT = qw(walk query transform);
-our @EXPORT_OK = ( @EXPORT, 'action' );
+our @EXPORT    = qw(walk query transform);
+our @EXPORT_OK = (@EXPORT, 'action');
 
 sub _simple_action {
     my $action = shift // return sub { };
 
-    if ( blessed $action and $action->isa('Pandoc::Filter') ) {
+    if (blessed $action and $action->isa('Pandoc::Filter')) {
         $action = $action->action;
     }
-    elsif ( !ref $action or ref $action ne 'CODE' ) {
-        croak "expected code reference, got: " . ( $action // 'undef' );
+    elsif (!ref $action or ref $action ne 'CODE') {
+        croak "expected code reference, got: " . ($action // 'undef');
     }
 
     if (@_) {
         my @args = @_;
-        return sub { local $_ = $_[0]; $action->( $_[0], @args ) };
+        return sub {local $_ = $_[0]; $action->($_[0], @args)};
     }
     else {
         return $action;
@@ -36,14 +36,14 @@ sub action {
     my @args;
 
     # $selector => $action [, @arguments ]
-    if ( !ref $_[0] ) {
-        @actions = ( shift, shift // sub { $_ } );
-        @args = @_;
+    if (!ref $_[0]) {
+        @actions = (shift, shift // sub {$_});
+        @args    = @_;
     }
 
     # { $selector => $code, ... } [, @arguments ]
-    elsif ( ref $_[0] eq 'HASH' ) {
-        @actions = %{ shift @_ };
+    elsif (ref $_[0] eq 'HASH') {
+        @actions = %{shift @_};
         @args    = @_;
 
         # code [, @arguments ]
@@ -52,11 +52,11 @@ sub action {
         return _simple_action(@_);
     }
 
-    my $n = ( scalar @actions ) / 2 - 1;
+    my $n = (scalar @actions) / 2 - 1;
 
     # check action functions and add arguments
-    $actions[ $_ * 2 + 1 ] = _simple_action( $actions[ $_ * 2 + 1 ], @args )
-      for 0 .. $n;
+    $actions[$_ * 2 + 1] = _simple_action($actions[$_ * 2 + 1], @args)
+        for 0 .. $n;
 
     # TODO: compile selectors for performance
 
@@ -64,15 +64,14 @@ sub action {
         my $element = $_[0];
 
         # get all matching actions
-        my @matching =
-          map  { $actions[ $_ * 2 + 1 ] }
-          grep { $element->match( $actions[ $_ * 2 ] ) } 0 .. $n;
+        my @matching = map {$actions[$_ * 2 + 1]}
+            grep {$element->match($actions[$_ * 2])} 0 .. $n;
 
         my @return = ();
 
         foreach my $action (@matching) {
-            local $_ = $_[0];    # FIXME: $doc->walk( Section => sub { $_->id } )
-            @return = ( $action->(@_) );
+            local $_ = $_[0];   # FIXME: $doc->walk( Section => sub { $_->id } )
+            @return = ($action->(@_));
         }
 
         wantarray ? @return : $return[0];
@@ -85,38 +84,41 @@ sub transform {
 
     my $reftype = reftype($ast) || '';
 
-    if ( $reftype eq 'ARRAY' ) {
-        for ( my $i = 0 ; $i < @$ast ; ) {
+    if ($reftype eq 'ARRAY') {
+        for (my $i = 0; $i < @$ast;) {
             my $item = $ast->[$i];
 
-            if ( ( reftype $item || '' ) eq 'HASH' and $item->{t} ) {
+            if ((reftype $item || '') eq 'HASH' and $item->{t}) {
                 my $res = $action->($item);
 
-                if ( defined $res ) {
+                if (defined $res) {
+
                     # stop traversal
-                    if ( $res eq \undef ) {
+                    if ($res eq \undef) {
                         $i++;
-                    # replace current item with result element(s)
-                    } else {
+
+                        # replace current item with result element(s)
+                    }
+                    else {
                         my @elements =    #map { transform($_, $action, @_) }
-                          ( reftype $res || '' ) eq 'ARRAY' ? @$res : $res;
+                            (reftype $res || '') eq 'ARRAY' ? @$res : $res;
                         splice @$ast, $i, 1, @elements;
                         $i += scalar @elements;
                     }
                     next;
                 }
             }
-            transform( $item, $action );
+            transform($item, $action);
             $i++;
         }
     }
-    elsif ( $reftype eq 'HASH' ) {
+    elsif ($reftype eq 'HASH') {
 
         # TODO: directly transform an element.
         # if (blessed $ast and $ast->isa('Pandoc::Elements::Element')) {
         # } else {
-        foreach ( keys %$ast ) {
-            transform( $ast->{$_}, $action, @_ );
+        foreach (keys %$ast) {
+            transform($ast->{$_}, $action, @_);
         }
 
         # }
@@ -128,11 +130,14 @@ sub transform {
 sub walk(@) {    ## no critic
     my $ast    = shift;
     my $action = action(@_);
-    transform( $ast, sub {
-        local $_ = $_[0];
-        my $q = $action->(@_);
-        return (defined $q and $q eq \undef) ? \undef : undef
-    } );
+    transform(
+        $ast,
+        sub {
+            local $_ = $_[0];
+            my $q = $action->(@_);
+            return (defined $q and $q eq \undef) ? \undef : undef;
+        }
+    );
 }
 
 sub query(@) {    ## no critic
@@ -140,13 +145,16 @@ sub query(@) {    ## no critic
     my $action = action(@_);
 
     my $list = [];
-    transform( $ast, sub {
-        local $_ = $_[0];
-        my $q = $action->(@_);
-        return $q if !defined $q or $q eq \undef;
-        push @$list, $q;
-        return
-    } );
+    transform(
+        $ast,
+        sub {
+            local $_ = $_[0];
+            my $q = $action->(@_);
+            return $q if !defined $q or $q eq \undef;
+            push @$list, $q;
+            return;
+        }
+    );
     return $list;
 }
 

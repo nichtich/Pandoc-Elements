@@ -7,6 +7,7 @@ use Pandoc::Elements;
 use Scalar::Util qw(blessed reftype);
 use JSON::PP;
 use Carp;
+
 # # For Pandoc::Metadata::Error
 # use Carp qw(shortmess longmess);
 
@@ -22,12 +23,12 @@ use Carp;
     }
 
     sub TO_JSON {
-        return { %{ $_[0] } }
+        return {%{$_[0]}};
     }
 
     sub value {
-        my $map = { c => shift };
-        Pandoc::Document::MetaMap::value( $map, @_ )
+        my $map = {c => shift};
+        Pandoc::Document::MetaMap::value($map, @_);
     }
 }
 
@@ -35,8 +36,8 @@ use Carp;
     # metadata element parent class
     package Pandoc::Document::Meta;
     our @ISA = ('Pandoc::Document::Element');
-    sub is_meta { 1 }
-    sub value { shift->value(@_) }
+    sub is_meta {1}
+    sub value   {shift->value(@_)}
 }
 
 # # For Pandoc::Metadata::Error
@@ -61,7 +62,7 @@ my @token_keys = qw(last_pointer ref_token plain_key key empty pointer);
 
 sub _pointer_token {
     state $valid_pointer_re = qr{\A (?: [^/] .* | (?: / [^/]* )* ) \z}msx;
-    state $token_re = qr{
+    state $token_re         = qr{
         \A
         (?<_last_pointer>
             (?<_ref_token>
@@ -75,14 +76,17 @@ sub _pointer_token {
         )
         \z
     }msx;
+
     # set non-participating keys to undef
-    state $defaults = { map {; "_$_" => undef } @token_keys };
+    state $defaults = {map {; "_$_" => undef} @token_keys};
     my %opts = @_;
     $opts{_pointer} //= $opts{_full_pointer} //= $opts{pointer} //= "";
-    $opts{_pointer} =~ $valid_pointer_re // _bad_pointer( %opts, _error => 'pointer' );
-    $opts{_pointer} =~ $token_re; # guaranteed to match since validation matched!
+    $opts{_pointer} =~ $valid_pointer_re
+        // _bad_pointer(%opts, _error => 'pointer');
+    $opts{_pointer}
+        =~ $token_re;    # guaranteed to match since validation matched!
     my %match = %+;
-    unless ( grep { defined $_ } @match{qw(_plain_key _empty)} ) {
+    unless (grep {defined $_} @match{qw(_plain_key _empty)}) {
         $match{_key} =~ s!\~1!/!g;
         $match{_key} =~ s!\~0!~!g;
     }
@@ -95,39 +99,47 @@ sub _bad_pointer {
             default => {
                 msg     => 'Invalid or unknown pointer reference "%s"',
                 in      => 1,
-                _keys    => ['_ref_token'],
+                _keys   => ['_ref_token'],
                 pointer => '_last_pointer'
             },
-            pointer => { msg => 'Invalid', in => 0, _keys => [], pointer => '_last_pointer', },
-            container => { msg => 'No list or mapping "%s"', },
-            key       => { msg => 'Node "%s" doesn\'t correspond to any key', },
-            range => { msg => 'List index %s out of range', _keys => ['_key'], },
-            index => { msg => 'Node "%s" not a valid list index', },
+            pointer => {
+                msg     => 'Invalid',
+                in      => 0,
+                _keys   => [],
+                pointer => '_last_pointer',
+            },
+            container => {msg => 'No list or mapping "%s"',},
+            key       => {msg => 'Node "%s" doesn\'t correspond to any key',},
+            range => {msg => 'List index %s out of range', _keys => ['_key'],},
+            index => {msg => 'Node "%s" not a valid list index',},
         );
-        for my $key ( keys %params_map ) {
-            for my $params ( $params_map{$key} ) {
-                $params = { %{ $params_map{default} }, %$params };
-                $params->{msg} .= ( $params->{in} ? q[ in] : "" );
-                $params->{keys}
-                  = [ @{ $params->{_keys} }, $params->{pointer}, '_full_pointer' ];
+        for my $key (keys %params_map) {
+            for my $params ($params_map{$key}) {
+                $params = {%{$params_map{default}}, %$params};
+                $params->{msg} .= ($params->{in} ? q[ in] : "");
+                $params->{keys} = [@{$params->{_keys}}, $params->{pointer},
+                    '_full_pointer'];
             }
         }
         \%params_map;
     };
+
     # # For Pandoc::Metadata::Error
     # state $data_keys = {
     #     ( map { ; $_ => $_ } qw[element strict boolean] ),
     #     ( map { ; $_ => "_$_" } @token_keys, qw[error] ),
     #     ( pointer => '_full_pointer', next_pointer => '_pointer' ),
     # };
-    my ( %opts ) = @_;
+    my (%opts) = @_;
     return undef unless $opts{strict};
     $opts{_error} //= 'default';
-    my $params = $params_for->{ $opts{_error} };
-    if ( $opts{_error} eq 'container' ) {
-        %opts = _pointer_token( %opts );
+    my $params = $params_for->{$opts{_error}};
+    if ($opts{_error} eq 'container') {
+        %opts = _pointer_token(%opts);
     }
-    my $msg = sprintf $params->{msg} . q[ (sub)pointer "%s" in pointer "%s"], @opts{ @{ $params->{keys} } };
+    my $msg = sprintf $params->{msg} . q[ (sub)pointer "%s" in pointer "%s"],
+        @opts{@{$params->{keys}}};
+
     # # For Pandoc::Metadata::Error
     # my %data;
     # @data{ keys %$data_keys } = @opts{ values %$data_keys };
@@ -152,7 +164,8 @@ sub Pandoc::Document::MetaString::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts, _error => 'container');
-    } else {
+    }
+    else {
         $content;
     }
 }
@@ -162,10 +175,7 @@ sub Pandoc::Document::MetaBool::set_content {
 }
 
 sub Pandoc::Document::MetaBool::TO_JSON {
-    return {
-        t => 'MetaBool',
-        c => $_[0]->{c} ? JSON::true() : JSON::false(),
-    };
+    return {t => 'MetaBool', c => $_[0]->{c} ? JSON::true() : JSON::false(),};
 }
 
 sub Pandoc::Document::MetaBool::value {
@@ -173,9 +183,11 @@ sub Pandoc::Document::MetaBool::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts, _error => 'container');
-    } elsif (($opts{boolean} // '') eq 'JSON::PP') {
+    }
+    elsif (($opts{boolean} // '') eq 'JSON::PP') {
         $content ? JSON::true() : JSON::false();
-    } else {
+    }
+    else {
         $content ? 1 : 0;
     }
 }
@@ -185,27 +197,31 @@ sub Pandoc::Document::MetaMap::value {
     %opts = _pointer_token(%opts);
 
     if (defined $opts{_empty}) {
-        return { map { $_ => $map->{$_}->value(%opts) } keys %$map };
-    } elsif (exists($map->{$opts{_key}})) {
+        return {map {$_ => $map->{$_}->value(%opts)} keys %$map};
+    }
+    elsif (exists($map->{$opts{_key}})) {
         return $map->{$opts{_key}}->value(%opts);
-    } else {
-        _bad_pointer( %opts, _error => 'key');
+    }
+    else {
+        _bad_pointer(%opts, _error => 'key');
     }
 }
 
 sub Pandoc::Document::MetaList::value {
     my ($content, %opts) = _value_args(@_);
     %opts = _pointer_token(%opts);
-    if ( defined $opts{_empty} ) {
-        return [ map { $_->value(%opts) } @$content ]
-    } elsif ($opts{_key} =~ /^[1-9][0-9]*$|^0$/) {
-        if ( $opts{_key} > $#$content ) {
-            return _bad_pointer( %opts, _error => 'range' );
+    if (defined $opts{_empty}) {
+        return [map {$_->value(%opts)} @$content];
+    }
+    elsif ($opts{_key} =~ /^[1-9][0-9]*$|^0$/) {
+        if ($opts{_key} > $#$content) {
+            return _bad_pointer(%opts, _error => 'range');
         }
         my $value = $content->[$opts{_key}];
         return defined($value) ? $value->value(%opts) : undef;
-    } else {
-        return _bad_pointer( %opts, _error => 'index' );
+    }
+    else {
+        return _bad_pointer(%opts, _error => 'index');
     }
 }
 
@@ -214,15 +230,17 @@ sub Pandoc::Document::MetaInlines::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts, _error => 'container');
-    } elsif ($opts{element} // '' eq 'keep') {
+    }
+    elsif ($opts{element} // '' eq 'keep') {
         $content;
-    } else {
-        join '', map { $_->string } @$content;
+    }
+    else {
+        join '', map {$_->string} @$content;
     }
 }
 
 sub Pandoc::Document::MetaBlocks::string {
-    join "\n\n", map { $_->string } @{$_[0]->content};
+    join "\n\n", map {$_->string} @{$_[0]->content};
 }
 
 sub Pandoc::Document::MetaBlocks::value {
@@ -230,9 +248,11 @@ sub Pandoc::Document::MetaBlocks::value {
 
     if ($opts{_pointer} ne '') {
         _bad_pointer(%opts);
-    } elsif ($opts{element} // '' eq 'keep') {
+    }
+    elsif ($opts{element} // '' eq 'keep') {
         $content;
-    } else {
+    }
+    else {
         $_[0]->string;
     }
 }

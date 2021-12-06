@@ -10,14 +10,15 @@ my $NAME       = qr{[A-Za-z]+};
 
 sub new {
     my ($class, $selector) = @_;
+
     # TODO: compile selector
-    bless { selector => $selector }, $class;
+    bless {selector => $selector}, $class;
 }
 
 sub match {
     my ($self, $element) = @_;
 
-    foreach my $selector ( split /\|/, $self->{selector} ) {
+    foreach my $selector (split /\|/, $self->{selector}) {
         return 1 if _match_expression($selector, $element);
     }
 
@@ -25,16 +26,15 @@ sub match {
 }
 
 sub _match_expression {
-    my ( $selector, $elem ) = @_;
+    my ($selector, $elem) = @_;
     $selector =~ s/^\s+|\s+$//g;
 
     # name
-    return 0
-      if $selector =~ s/^($NAME)\s*//i and lc($1) ne lc( $elem->name );
+    return 0 if $selector =~ s/^($NAME)\s*//i and lc($1) ne lc($elem->name);
     return 1 if $selector eq '';
 
     # type
-    if ( $selector =~ s/^:(document|block|inline|meta)\s*// ) {
+    if ($selector =~ s/^:(document|block|inline|meta)\s*//) {
         my $method = "is_$1";
         return 0 unless $elem->$method;
         return 1 if $selector eq '';
@@ -55,16 +55,16 @@ sub _match_expression {
 
 # check #id and .class
 sub _match_attributes {
-    my ( $selector, $elem ) = @_;
+    my ($selector, $elem) = @_;
 
-    $selector =~ s/^\s+|\s+$//g; # trim
+    $selector =~ s/^\s+|\s+$//g;    # trim
 
-    while ( $selector ne '' ) {
-        if ( $selector =~ s/^#($IDENTIFIER)\s*// ) {
+    while ($selector ne '') {
+        if ($selector =~ s/^#($IDENTIFIER)\s*//) {
             return 0 unless $elem->id eq $1;
         }
-        elsif ( $selector =~ s/^\.($IDENTIFIER)\s*// ) {
-            return 0 unless grep { $1 eq $_ } @{ $elem->attr->[1] };
+        elsif ($selector =~ s/^\.($IDENTIFIER)\s*//) {
+            return 0 unless grep {$1 eq $_} @{$elem->attr->[1]};
         }
         else {
             return 0;

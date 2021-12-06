@@ -21,11 +21,12 @@ sub new {
     my ($class, %opts) = @_;
 
     $opts{from} //= 'code';
-    $opts{dir} //= '.';
+    $opts{dir}  //= '.';
     $opts{dir} =~ s!/$!!;
     $opts{name} //= sub {
-        $_[0]->id =~ /^[a-z0-9_]+$/i ? $_[0]->id
-            : md5_hex( encode( 'utf8', $_[0]->content ) );
+        $_[0]->id =~ /^[a-z0-9_]+$/i
+            ? $_[0]->id
+            : md5_hex(encode('utf8', $_[0]->content));
     };
 
     die "missing option: to\n" unless $opts{to};
@@ -42,9 +43,11 @@ sub to {
     my $format = $_[1];
     if (ref $to) {
         return $to->($format);
-    } elsif ($to) {
+    }
+    elsif ($to) {
         return $to;
-    } else {
+    }
+    else {
         return 'png';
     }
 }
@@ -69,9 +72,9 @@ sub action {
         $args{outfile} = catfile($self->{dir}, "$args{name}.$args{to}");
 
         # TODO: document or remove this experimental code. If keep, expand args
-        my $kv = $e->keyvals;
+        my $kv      = $e->keyvals;
         my @options = $kv->get_all('option');
-        push @options, map { split /\s+/, $_ } $kv->get_all('options');
+        push @options, map {split /\s+/, $_} $kv->get_all('options');
 
         # TODO: print args in debug mode?
 
@@ -80,6 +83,7 @@ sub action {
         my $out = stat($args{outfile});
         if (!$self->{force} and $in and $out and $in->mtime <= $out->mtime) {
             if ($code eq read_file($args{infile}, ':utf8')) {
+
                 # no need to rebuild the same outfile
                 return build_image($e, $args{outfile});
             }
@@ -89,18 +93,19 @@ sub action {
 
         my ($stderr, $stdout);
         my @command = map {
-                  my $s = $_;
-                  #if ($args{substr $s, 1, -1})
-                  $s =~ s|\$([^\$]+)\$| $args{$1} // $1 |eg;
-                  $s
-                } @{$self->{run}};
+            my $s = $_;
+
+            #if ($args{substr $s, 1, -1})
+            $s =~ s|\$([^\$]+)\$| $args{$1} // $1 |eg;
+            $s
+        } @{$self->{run}};
         push @command, @options;
 
         run3 \@command, \undef, \$stdout, \$stderr,
             {
-                binmode_stdin  => ':utf8',
-                binmode_stdout => ':raw',
-                binmode_stderr => ':raw',
+            binmode_stdin  => ':utf8',
+            binmode_stdout => ':raw',
+            binmode_stderr => ':raw',
             };
 
         if ($self->{capture}) {
@@ -124,27 +129,26 @@ sub action {
 # L<examples|https://metacpan.org/pod/distribution/Pandoc-Elements/examples/>.
 
 sub build_image {
-    my $e = shift;
+    my $e        = shift;
     my $filename = shift // '';
 
     my $keyvals = $e->keyvals;
-    my $title = $keyvals->get('title') // '';
-    my $img = Image attributes { id => $e->id, class => $e->class },
-        [], [$filename, $title];
+    my $title   = $keyvals->get('title') // '';
+    my $img     = Image attributes {id => $e->id, class => $e->class}, [],
+        [$filename, $title];
 
     my $caption = $keyvals->get('caption') // '';
     if (defined $caption) {
         push @{$img->content}, Str($caption);
     }
 
-    return Plain [ $img ];
+    return Plain [$img];
 }
 
 sub write_file {
     my ($file, $content, $encoding) = @_;
 
-    open my $fh, ">$encoding", $file
-        or die "failed to create file $file: $!\n";
+    open my $fh, ">$encoding", $file or die "failed to create file $file: $!\n";
     print $fh $content;
     close $fh;
 }
@@ -152,10 +156,9 @@ sub write_file {
 sub read_file {
     my ($file, $encoding) = @_;
 
-    open my $fh, "<$encoding", $file
-        or die "failed to open file: $file: $!\n";
+    open my $fh, "<$encoding", $file or die "failed to open file: $file: $!\n";
 
-    my $content = do { local $/; <$fh> };
+    my $content = do {local $/; <$fh>};
     close $fh or die "failed to close file: $file: $!\n";
 
     return $content;

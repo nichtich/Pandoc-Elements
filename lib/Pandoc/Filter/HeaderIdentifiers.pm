@@ -13,47 +13,51 @@ our @EXPORT = qw(header_identifier InPandocHeaderIdentifier);
 ## FUNCTIONS
 
 sub header_identifier {
-	my $id    = shift;
-	my $ids   = shift;
+    my $id  = shift;
+    my $ids = shift;
 
-	# stringify inline elements except footnotes
+    # stringify inline elements except footnotes
     $id = join '', @{
-        pandoc_query( $id, sub {
-            $_->is_inline and $_->name ne 'Note' ? $_->string : \undef
-        })
-    } if ref $id;
+        pandoc_query(
+            $id,
+            sub {
+                $_->is_inline and $_->name ne 'Note' ? $_->string : \undef;
+            }
+        )
+        }
+        if ref $id;
 
     # Convert all alphabetic characters to lowercase.
     $id = lc $id;
 
     # these steps not strictly documented but it is how Pandoc works
-	$id =~ s/\p{^InPandocHeaderIdOrWs}+//g;
+    $id =~ s/\p{^InPandocHeaderIdOrWs}+//g;
     $id =~ s/\p{WhiteSpace}+$//;
 
     # Replace all spaces and newlines with hyphens.
     $id =~ s/\p{WhiteSpace}+/-/g;
 
-    # Remove all punctuation, except underscores, hyphens, periods, and whitespace.
-	$id =~ s/\p{^InPandocHeaderIdentifier}//g;
+ # Remove all punctuation, except underscores, hyphens, periods, and whitespace.
+    $id =~ s/\p{^InPandocHeaderIdentifier}//g;
 
     # remove everything up to the first letter
     $id =~ s/^[_.0-9-]+//;
 
     # if nothing is left, use the identifier 'section'
-	$id ||= 'section';
+    $id ||= 'section';
 
-	# add counter on repeated identifiers
-	if ($ids and $ids->{$id}++) {
-		$id .= '-' . ($ids->{$id}-1);
-	}
+    # add counter on repeated identifiers
+    if ($ids and $ids->{$id}++) {
+        $id .= '-' . ($ids->{$id} - 1);
+    }
 
-	return $id;
+    return $id;
 }
 
 ## METHODS
 
 sub new {
-    bless { }, shift;
+    bless {}, shift;
 }
 
 sub apply {
@@ -62,32 +66,42 @@ sub apply {
     my $ids = @_ > 2 ? $_[2] : {};
 
     # collect existing identifiers
-    $doc->walk( Header => sub {
-        my $id = $_->id;
-        return if $id !~ /^\p{InPandocHeaderIdentifier}+$/ or $id !~ /^\p{Letter}/;
-        if ($id =~ /^(.+)-(\d+)$/) {
-            $id = $1;
-            $ids->{$id} = $2 unless defined $ids->{$id} and $ids->{$id} > $2;
+    $doc->walk(
+        Header => sub {
+            my $id = $_->id;
+            return
+                if $id !~ /^\p{InPandocHeaderIdentifier}+$/
+                or $id !~ /^\p{Letter}/;
+            if ($id =~ /^(.+)-(\d+)$/) {
+                $id = $1;
+                $ids->{$id} = $2
+                    unless defined $ids->{$id} and $ids->{$id} > $2;
+            }
+            $ids->{$id}++;
         }
-        $ids->{$id}++;
-    } );
+    );
 
     # add missing identifiers
-    $doc->walk( Header => sub {
-        $_[0]->id( header_identifier( $_[0]->content, $ids ) ) if $_[0]->id eq '';
-    });
+    $doc->walk(
+        Header => sub {
+            $_[0]->id(header_identifier($_[0]->content, $ids))
+                if $_[0]->id eq '';
+        }
+    );
 
     $doc;
 }
-	
+
 ## CHARACTER PROPERTIES
 
 sub InPandocHeaderIdentifier {
-	return "+utf8::Letter\n-utf8::Uppercase_Letter\n-utf8::Titlecase_Letter\n0030 0039\n005F\n002d 002e\n";
+    return
+        "+utf8::Letter\n-utf8::Uppercase_Letter\n-utf8::Titlecase_Letter\n0030 0039\n005F\n002d 002e\n";
 }
 
 sub InPandocHeaderIdOrWs {
-    return "+utf8::Whitespace\n+utf8::Letter\n-utf8::Uppercase_Letter\n-utf8::Titlecase_Letter\n0030 0039\n005F\n002d 002e\n";
+    return
+        "+utf8::Whitespace\n+utf8::Letter\n-utf8::Uppercase_Letter\n-utf8::Titlecase_Letter\n0030 0039\n005F\n002d 002e\n";
 }
 
 __END__

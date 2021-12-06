@@ -12,42 +12,42 @@ use Scalar::Util qw(blessed reftype);
 use Pandoc::Walker qw(walk);
 use Pandoc::Version;
 
-
-our $PANDOC_VERSION; # a string like '1.16'
-$PANDOC_VERSION ||= eval { Pandoc::Version->new($ENV{PANDOC_VERSION}) };
+our $PANDOC_VERSION;    # a string like '1.16'
+$PANDOC_VERSION ||= eval {Pandoc::Version->new($ENV{PANDOC_VERSION})};
 
 # internal variables
 
 my $PANDOC_API_MIN = Pandoc::Version->new('1.12.3');    # since pandoc 1.12.1
 my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
 
-# release version => minimal required api version
-my @REQUIRED_API = map { Pandoc::Version->new($_) }
-    '1.19'   => '1.17',  # pandoc 1.19 has api 1.17.0.4, compatible with api 1.17
-    '1.18'   => '1.17',  # pandoc 1.18 has api 1.17.0.4, compatible with api 1.17
-    '1.16'   => '1.16',  # pandoc 1.16 has api 1.16
-    '1.17'   => '1.16',  # pandoc 1.17 has api 1.16
-;
+# release version => minimal required api version (= pandoc-types version)
+my @REQUIRED_API = map {Pandoc::Version->new($_)}
+    '1.19' => '1.17',    # pandoc 1.19 requires pandoc-types 1.17
+    '1.18' => '1.17',    # pandoc 1.18 requires pandoc-types 1.17
+    '1.16' => '1.16',    # pandoc 1.16 requires pandoc-types 1.16
+    '1.17' => '1.16',    # pandoc 1.17 requires pandoc-types 1.16
+    ;
 
 sub _as_pandoc_version {
     (blessed $_[0] and $_[0]->isa('Pandoc::Version'))
-        ? $_[0] : Pandoc::Version->new($_[0])
+        ? $_[0]
+        : Pandoc::Version->new($_[0]);
 }
 
 sub pandoc_version {
     if (@_) {
         my $doc = shift;
         if (@_) {
-            $doc->api_version(
-                _minimum_pandoc_api_for(@_)
-                    // croak "pandoc version not supported"
-            );
+            $doc->api_version(_minimum_pandoc_api_for(@_)
+                    // croak "pandoc version not supported");
         }
         _minimum_pandoc_version_for_api($doc->api_version);
-    } elsif (defined $PANDOC_VERSION) {
-        _as_pandoc_version($PANDOC_VERSION)
-    } else {
-        $REQUIRED_API[0]
+    }
+    elsif (defined $PANDOC_VERSION) {
+        _as_pandoc_version($PANDOC_VERSION);
+    }
+    else {
+        $REQUIRED_API[0];
     }
 }
 
@@ -56,27 +56,28 @@ sub _minimum_pandoc_version_for_api {
 
     my $version;
 
-    foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
-        if ($api->match($REQUIRED_API[$_]) ) {
-            if (!$version or $version > $REQUIRED_API[$_-1]) {
-                $version = $REQUIRED_API[$_-1]
+    foreach (grep {$_ % 2} 0 .. @REQUIRED_API) {    # 1,3,...
+        if ($api->match($REQUIRED_API[$_])) {
+            if (!$version or $version > $REQUIRED_API[$_ - 1]) {
+                $version = $REQUIRED_API[$_ - 1];
             }
         }
     }
 
     if (!$version and $api >= $PANDOC_API_MIN) {
         $PANDOC_BIN_MIN;
-    } else {
+    }
+    else {
         return $version;
     }
 }
 
 sub _minimum_pandoc_api_for {
     my $version = _as_pandoc_version(shift);
-    return if @$version <= 1; # require major.minor
+    return if @$version <= 1;    # require major.minor
 
-    foreach (grep { $_ % 2} 0 .. @REQUIRED_API) { # 1,3,...
-        if ($version->match($REQUIRED_API[$_-1]) ) {
+    foreach (grep {$_ % 2} 0 .. @REQUIRED_API) {    # 1,3,...
+        if ($version->match($REQUIRED_API[$_ - 1])) {
             return $REQUIRED_API[$_];
         }
     }
@@ -93,56 +94,56 @@ sub _minimum_pandoc_api_for {
 our %ELEMENTS = (
 
     # BLOCK ELEMENTS
-    Plain          => [ Block => 'content' ],
-    Para           => [ Block => 'content' ],
-    CodeBlock      => [ Block => qw(attr content) ],
-    RawBlock       => [ Block => qw(format content) ],
-    BlockQuote     => [ Block => 'content' ],
-    OrderedList    => [ Block => qw(attr content/items) ],
-    BulletList     => [ Block => 'content/items' ],
-    DefinitionList => [ Block => 'content/items:[DefinitionPair]' ],
-    Header         => [ Block => qw(level attr content) ],
+    Plain          => [Block => 'content'],
+    Para           => [Block => 'content'],
+    CodeBlock      => [Block => qw(attr content)],
+    RawBlock       => [Block => qw(format content)],
+    BlockQuote     => [Block => 'content'],
+    OrderedList    => [Block => qw(attr content/items)],
+    BulletList     => [Block => 'content/items'],
+    DefinitionList => [Block => 'content/items:[DefinitionPair]'],
+    Header         => [Block => qw(level attr content)],
     HorizontalRule => ['Block'],
-    Table          => [ Block => qw(caption alignment widths headers rows) ],
-    Div            => [ Block => qw(attr content) ],
+    Table          => [Block => qw(caption alignment widths headers rows)],
+    Div            => [Block => qw(attr content)],
     Null           => ['Block'],
-    LineBlock      => [ Block => qw(content) ],
+    LineBlock      => [Block => qw(content)],
 
     # INLINE ELEMENTS
-    Str         => [ Inline => 'content' ],
-    Emph        => [ Inline => 'content' ],
-    Strong      => [ Inline => 'content' ],
-    Strikeout   => [ Inline => 'content' ],
-    Superscript => [ Inline => 'content' ],
-    Subscript   => [ Inline => 'content' ],
-    SmallCaps   => [ Inline => 'content' ],
-    Quoted      => [ Inline => qw(type content) ],
-    Cite        => [ Inline => qw(citations:[Citation] content) ],
-    Code        => [ Inline => qw(attr content) ],
+    Str         => [Inline => 'content'],
+    Emph        => [Inline => 'content'],
+    Strong      => [Inline => 'content'],
+    Strikeout   => [Inline => 'content'],
+    Superscript => [Inline => 'content'],
+    Subscript   => [Inline => 'content'],
+    SmallCaps   => [Inline => 'content'],
+    Quoted      => [Inline => qw(type content)],
+    Cite        => [Inline => qw(citations:[Citation] content)],
+    Code        => [Inline => qw(attr content)],
     Space       => ['Inline'],
     SoftBreak   => ['Inline'],
     LineBreak   => ['Inline'],
-    Math        => [ Inline => qw(type content) ],
-    RawInline   => [ Inline => qw(format content) ],
-    Link        => [ Inline => qw(attr content target) ],
-    Image       => [ Inline => qw(attr content target) ],
-    Note        => [ Inline => 'content' ],
-    Span        => [ Inline => qw(attr content) ],
+    Math        => [Inline => qw(type content)],
+    RawInline   => [Inline => qw(format content)],
+    Link        => [Inline => qw(attr content target)],
+    Image       => [Inline => qw(attr content target)],
+    Note        => [Inline => 'content'],
+    Span        => [Inline => qw(attr content)],
 
     # METADATA ELEMENTS
-    MetaBool    => [ Meta => 'content' ],
-    MetaString  => [ Meta => 'content' ],
-    MetaMap     => [ Meta => 'content' ],
-    MetaInlines => [ Meta => 'content' ],
-    MetaList    => [ Meta => 'content' ],
-    MetaBlocks  => [ Meta => 'content' ],
+    MetaBool    => [Meta => 'content'],
+    MetaString  => [Meta => 'content'],
+    MetaMap     => [Meta => 'content'],
+    MetaInlines => [Meta => 'content'],
+    MetaList    => [Meta => 'content'],
+    MetaBlocks  => [Meta => 'content'],
 
     # TYPE KEYWORDS
-    map { $_ => ['Keyword'] }
-    qw(DefaultDelim Period OneParen TwoParens SingleQuote DoubleQuote
-    DisplayMath InlineMath AuthorInText SuppressAuthor NormalCitation
-    AlignLeft AlignRight AlignCenter AlignDefault DefaultStyle Example
-    Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha)
+    map {$_ => ['Keyword']}
+        qw(DefaultDelim Period OneParen TwoParens SingleQuote DoubleQuote
+        DisplayMath InlineMath AuthorInText SuppressAuthor NormalCitation
+        AlignLeft AlignRight AlignCenter AlignDefault DefaultStyle Example
+        Decimal LowerRoman UpperRoman LowerAlpha UpperAlpha)
 );
 
 use parent 'Exporter';
@@ -150,43 +151,44 @@ our @EXPORT = (
     keys %ELEMENTS,
     qw(Document attributes metadata citation pandoc_version pandoc_json pandoc_query)
 );
-our @EXPORT_OK = ( @EXPORT, 'element' );
+our @EXPORT_OK = (@EXPORT, 'element');
 
 # create constructor functions
-foreach my $name ( keys %ELEMENTS ) {
+foreach my $name (keys %ELEMENTS) {
     no strict 'refs';    ## no critic
 
-    my ( $parent, @accessors ) = @{ $ELEMENTS{$name} };
+    my ($parent, @accessors) = @{$ELEMENTS{$name}};
     my $numargs = scalar @accessors;
-    my @parents = map { "Pandoc::Document::$_" } ($parent);
-    $parent = join ' ', map { "Pandoc::Document::$_" } $parent,
-      map { 'AttributesRole' } grep { $_ eq 'attr' } @accessors;
+    my @parents = map {"Pandoc::Document::$_"} ($parent);
+    $parent = join ' ', map {"Pandoc::Document::$_"} $parent,
+        map {'AttributesRole'} grep {$_ eq 'attr'} @accessors;
 
     ## no critic (ProhibitStringyEval)
     eval "package Pandoc::Document::$name; our \@ISA = qw($parent);";
 
-    *{ __PACKAGE__ . "::$name" } = Scalar::Util::set_prototype(
+    *{__PACKAGE__ . "::$name"} = Scalar::Util::set_prototype(
         sub {
             croak "$name expects $numargs arguments, but given " . scalar @_
-              if @_ != $numargs;
-            my $self = bless {
-                t => $name,
-                c => ( @_ == 1 ? $_[0] : [@_] )
-            }, "Pandoc::Document::$name";
+                if @_ != $numargs;
+            my $self = bless {t => $name, c => (@_ == 1 ? $_[0] : [@_])},
+                "Pandoc::Document::$name";
             $self->set_content(@_);
             $self;
         },
         '$' x $numargs
     );
 
-    for ( my $i = 0 ; $i < @accessors ; $i++ ) {
+    for (my $i = 0; $i < @accessors; $i++) {
         my $member = @accessors == 1 ? "\$e->{c}" : "\$e->{c}->[$i]";
-        my $code = "my \$e = shift; $member = ( 1 == \@_ ? \$_[0] : [\@_] ) if \@_; return";
+        my $code
+            = "my \$e = shift; $member = ( 1 == \@_ ? \$_[0] : [\@_] ) if \@_; return";
+
         # auto-bless on access via accessor (TODO: move to constructor?)
-        $code .= $accessors[$i] =~ s/:\[(.+)\]$//
-        ? " [ map { bless \$_, 'Pandoc::Document::$1' } \@{$member} ];"
-        : " $member;";
-        for ( split '/', $accessors[$i] ) {
+        $code
+            .= $accessors[$i] =~ s/:\[(.+)\]$//
+            ? " [ map { bless \$_, 'Pandoc::Document::$1' } \@{$member} ];"
+            : " $member;";
+        for (split '/', $accessors[$i]) {
             ## no critic
             *{"Pandoc::Document::${name}::$_"} = eval "sub { $code }";
         }
@@ -195,7 +197,7 @@ foreach my $name ( keys %ELEMENTS ) {
 
 sub element {
     my $name = shift;
-    no strict 'refs'; #
+    no strict 'refs';    #
     croak "undefined element" unless defined $name;
     croak "unknown element $name" unless $ELEMENTS{$name};
     &$name(@_);
@@ -205,56 +207,64 @@ sub Document {
 
     my $from_json;
     my $arg = do {
-        if ( @_ == 1 ) {
+        if (@_ == 1) {
             $from_json = 1;
             my $reftype = reftype $_[0] // '';
-            if ( $reftype eq 'ARRAY') {
+            if ($reftype eq 'ARRAY') {
+
                 # old JSON format
                 {
-                    meta => $_[0]->[0]->{unMeta},
-                    blocks => $_[0]->[1],
+                    meta        => $_[0]->[0]->{unMeta},
+                    blocks      => $_[0]->[1],
                     api_version => 1.16,
-                }
-            } elsif ( $reftype eq 'HASH' ) {
-                $_[0]
-            } else {
-                croak 'Document: expect array or hash reference'
+                };
             }
-        } elsif ( @_ == 2 ) {
+            elsif ($reftype eq 'HASH') {
+                $_[0];
+            }
+            else {
+                croak 'Document: expect array or hash reference';
+            }
+        }
+        elsif (@_ == 2) {
+
             # \%meta, \@blocks
-            { meta => $_[0], blocks => $_[1] }
-        } elsif ( @_ % 2 ) {
+            {meta => $_[0], blocks => $_[1]};
+        }
+        elsif (@_ % 2) {
+
             # odd number of args
             croak "Document: too many or ambiguous arguments";
-        } else {
+        }
+        else {
             # even number of args: api_version as named parameter
-            { meta => shift, blocks => shift, @_ }
+            {meta => shift, blocks => shift, @_};
         }
     };
 
     # prefer haskell-style key but accept perl-style and abbreviated key
     my $api_version = $arg->{'pandoc-api-version'}
-        // $arg->{pandoc_api_version}
-        // $arg->{api_version};
+        // $arg->{pandoc_api_version} // $arg->{api_version};
 
     # We copy values here because $arg may not be a pure AST representation
-    my $doc = bless { blocks => ( $arg->{blocks} // [] ) }, 'Pandoc::Document';
+    my $doc = bless {blocks => ($arg->{blocks} // [])}, 'Pandoc::Document';
 
     # unblessed metadata in internal format can only come from JSON
     my $meta = $arg->{meta} // {};
     if ($from_json) {
         croak "Document metadata must be a hash" unless 'HASH' eq reftype $meta;
-        $doc->{meta} = bless {
-            map { $_ => _bless_pandoc_element( $meta->{$_} ) } keys %$meta
-        }, 'Pandoc::Document::Metadata';
-    } else {
+        $doc->{meta} = bless {map {$_ => _bless_pandoc_element($meta->{$_})}
+                keys %$meta}, 'Pandoc::Document::Metadata';
+    }
+    else {
         # otherwise allow user-friendly upgrade via 'metadata' function
-        $doc->meta($meta)
+        $doc->meta($meta);
     }
 
     if (!defined $api_version and defined $arg->{pandoc_version}) {
         $doc->pandoc_version($arg->{pandoc_version});
-    } else {
+    }
+    else {
         $doc->api_version($api_version // $REQUIRED_API[1]);
     }
 
@@ -271,9 +281,9 @@ sub _bless_pandoc_element {
     return $e if blessed $e and $e->isa('Pandoc::Document::Element');
 
     # TODO: run recursively via set_content (don't require 'walk')
-    if ( 'MetaMap' eq $e->{t} ) {
-        for my $v ( values %{ $e->{c} } ) {
-            _bless_pandoc_element( $v );
+    if ('MetaMap' eq $e->{t}) {
+        for my $v (values %{$e->{c}}) {
+            _bless_pandoc_element($v);
         }
     }
 
@@ -282,68 +292,69 @@ sub _bless_pandoc_element {
     return $e;
 }
 
-
 # specific accessors
 
-sub Pandoc::Document::DefinitionPair::term        { $_[0]->[0] }
-sub Pandoc::Document::DefinitionPair::definitions { $_[0]->[1] }
+sub Pandoc::Document::DefinitionPair::term        {$_[0]->[0]}
+sub Pandoc::Document::DefinitionPair::definitions {$_[0]->[1]}
 
 # additional functions
 
 sub attributes($) {
 
-    my $e = Span(['',[],[]],[]); # to make use of AttributesRole
+    my $e = Span(['', [], []], []);    # to make use of AttributesRole
     $e->keyvals(@_);
 
     return $e->attr;
 }
 
-sub citation($) { Pandoc::Document::Citation->new( @_ ) }
+sub citation($) {Pandoc::Document::Citation->new(@_)}
 
 # XXX: must require rather than use Pandoc::Metadata
 # or its attempt to use Pandoc::Elements will result in a broken state.
 require Pandoc::Metadata;
 
-sub metadata($);  ## no critic
+sub metadata($);                       ## no critic
 
-sub metadata($) { ## no critic
+sub metadata($) {                      ## no critic
     my $value = shift;
-    if ( !ref $value ) {
-        MetaString($value // '')
+    if (!ref $value) {
+        MetaString($value // '');
     }
-    elsif ( JSON::is_bool($value) ) {
-        MetaBool($value)
+    elsif (JSON::is_bool($value)) {
+        MetaBool($value);
     }
-    elsif ( blessed($value) ) {
-        if ( $value->can('is_meta') and $value->is_meta ) {
-            $value
+    elsif (blessed($value)) {
+        if ($value->can('is_meta') and $value->is_meta) {
+            $value;
         }
-        elsif ( $value->can('is_inline') and $value->is_inline ) {
-            MetaInlines([ $value ])
+        elsif ($value->can('is_inline') and $value->is_inline) {
+            MetaInlines([$value]);
         }
-        elsif ( $value->can('is_block') and $value->is_block ) {
-            MetaBlocks([ $value ])
-        } elsif ( $value->isa('Pandoc::Document::Metadata') ) {
-            MetaMap( { map { $_ => $value->{$_} } keys %$value } )
-        } else {
-            MetaString("$value")
+        elsif ($value->can('is_block') and $value->is_block) {
+            MetaBlocks([$value]);
+        }
+        elsif ($value->isa('Pandoc::Document::Metadata')) {
+            MetaMap({map {$_ => $value->{$_}} keys %$value});
+        }
+        else {
+            MetaString("$value");
         }
     }
-    elsif ( reftype $value eq 'ARRAY' ) {
-        MetaList( [ map { metadata $_ } @$value ] )
+    elsif (reftype $value eq 'ARRAY') {
+        MetaList([map {metadata $_ } @$value]);
     }
-    elsif ( reftype $value eq 'HASH' ) {
-        MetaMap( { map { $_ => metadata $value->{$_} } keys %$value } )
+    elsif (reftype $value eq 'HASH') {
+        MetaMap({map {$_ => metadata $value->{$_}} keys %$value});
     }
     else {
-        MetaString("$value")
+        MetaString("$value");
     }
 }
 
 sub pandoc_json($) {
     shift if $_[0] =~ /^Pandoc::/;
 
-    my $ast = eval { decode_json( $_[0] ) };
+    my $ast = eval {decode_json($_[0])};
     if ($@) {
         $@ =~ s/ at [^ ]+Elements\.pm line \d+//;
         chomp $@;
@@ -364,9 +375,10 @@ sub pandoc_json($) {
     use Scalar::Util qw(blessed reftype);
     use Pandoc;
     our $VERSION = '0.04';
-    our @ISA = ('Pandoc::Document::Element');
+    our @ISA     = ('Pandoc::Document::Element');
     sub blocks;
-    sub name { 'Document' }
+    sub name {'Document'}
+
     sub meta {
         if (@_ > 1) {
             croak "document metadata must be a hash"
@@ -376,39 +388,45 @@ sub pandoc_json($) {
         }
         $_[0]->{meta};
     }
+
     sub content {
         $_[0]->{blocks} = $_[1] if @_ > 1;
         $_[0]->{blocks};
     }
     *blocks = \&content;
-    sub is_document { 1 }
+    sub is_document {1}
+
     sub as_block {
-        bless { t => 'Div', c => [ {}, $_[0]->{blocks} ] }, 'Pandoc::Document::Div';
+        bless {t => 'Div', c => [{}, $_[0]->{blocks}]}, 'Pandoc::Document::Div';
     }
+
     sub value {
         shift->meta->value(@_);
     }
     *metavalue = \&value;
+
     sub string {
-        join '', map { $_->string } @{$_[0]->content}
+        join '', map {$_->string} @{$_[0]->content};
     }
+
     sub api_version {
         my $self = shift;
-        if ( @_ ) {
+        if (@_) {
             my $version = Pandoc::Version->new(shift);
             croak "api_version must be >= $PANDOC_API_MIN"
                 if $version < $PANDOC_API_MIN;
-            croak "api_version must have major and minor part"
-                if @$version < 2;
+            croak "api_version must have major and minor part" if @$version < 2;
             $self->{'pandoc-api-version'} = $version;
         }
         return $self->{'pandoc-api-version'};
     }
     *pandoc_version = \&Pandoc::Elements::pandoc_version;
+
     sub outline {
         my ($self, $depth) = @_;
-        _sections( [@{$self->blocks}], $depth );
+        _sections([@{$self->blocks}], $depth);
     }
+
     sub _sections {
         my ($list, $depth) = @_;
         my (@blocks, @sections);
@@ -434,37 +452,42 @@ sub pandoc_json($) {
                 push @content, shift @$list;
             }
 
-            my $s = ($depth and $depth < $level)
-                ? { blocks => \@content }
-                : _sections(\@content,$depth);
-            push @sections, { header => $header, %$s };
+            my $s
+                = ($depth and $depth < $level)
+                ? {blocks => \@content}
+                : _sections(\@content, $depth);
+            push @sections, {header => $header, %$s};
         }
 
-        return { blocks => \@blocks, sections => \@sections };
+        return {blocks => \@blocks, sections => \@sections};
     }
+
     sub to_pandoc {
         my ($self, @args) = @_;
-        my $pandoc = (@args and blessed($args[0]) and $args[0]->isa('Pandoc'))
-                   ? shift(@args) : pandoc;
+        my $pandoc
+            = (@args and blessed($args[0]) and $args[0]->isa('Pandoc'))
+            ? shift(@args)
+            : pandoc;
 
-        my $api_version = $self->api_version;   # save
-        $self->pandoc_version( $pandoc->version );
+        my $api_version = $self->api_version;    # save
+        $self->pandoc_version($pandoc->version);
 
         my $in = $self->to_json;
-        $self->api_version($api_version);       # restore
+        $self->api_version($api_version);        # restore
 
-        $pandoc->run( [ -f => 'json', @args ], { in => \$in, out => \my $out } );
+        $pandoc->run([-f => 'json', @args], {in => \$in, out => \my $out});
         return $out;
     }
     foreach my $format (qw(markdown latex html rst plain)) {
         no strict 'refs';
-        *{ __PACKAGE__ . "::to_$format" } = sub {
-            shift()->to_pandoc( @_, '-t' => $format );
+        *{__PACKAGE__ . "::to_$format"} = sub {
+            shift()->to_pandoc(@_, '-t' => $format);
         }
     }
 }
 
 {
+
     package Pandoc::Document::Keyword;
     our @ISA = ('Pandoc::Document::Element');
 }
@@ -482,7 +505,7 @@ sub pandoc_json($) {
     use subs qw(walk query transform);    # Silence syntax warnings
 
     sub to_json {
-        JSON->new->utf8->canonical->convert_blessed->encode( $_[0] );
+        JSON->new->utf8->canonical->convert_blessed->encode($_[0]);
     }
 
     sub TO_JSON {
@@ -491,47 +514,51 @@ sub pandoc_json($) {
         # and objects without TO_JSON methods are stringified.
         # Required to ensure correct scalar types for Pandoc.
 
-# There is no easy way in Perl to tell if a scalar value is already a string or number,
-# so we stringify all scalar values and numify/boolify as needed afterwards.
+        # There is no easy way in Perl to tell if a scalar value is already a
+        # string or number, so we stringify all scalar values and
+        # numify/boolify as needed afterwards.
 
-        my ( $ast, $maybe_blessed ) = @_;
-        if ( $maybe_blessed && blessed $ast ) {
+        my ($ast, $maybe_blessed) = @_;
+        if ($maybe_blessed && blessed $ast ) {
             return $ast if $ast->can('TO_JSON');    # JSON.pm will convert
-                 # may have overloaded stringification! Should we check?
-                 # require overload;
-              # return "$ast" if overload::Method($ast, q/""/) or overload::Method($ast, q/0+/);
-              # carp "Non-stringifiable object $ast";
+                # may have overloaded stringification! Should we check?
+                # require overload;
+             # return "$ast" if overload::Method($ast, q/""/) or overload::Method($ast, q/0+/);
+             # carp "Non-stringifiable object $ast";
             return "$ast";
         }
-        elsif ( 'ARRAY' eq reftype $ast ) {
-            return [ map { ref($_) ? TO_JSON( $_, 1 ) : "$_"; } @$ast ];
+        elsif ('ARRAY' eq reftype $ast ) {
+            return [map {ref($_) ? TO_JSON($_, 1) : "$_";} @$ast];
         }
-        elsif ( 'HASH' eq reftype $ast ) {
+        elsif ('HASH' eq reftype $ast ) {
             my %ret = %$ast;
-            while ( my ( $k, $v ) = each %ret ) {
-                $ret{$k} = ref($v) ? TO_JSON( $v, 1 ) : "$v";
+            while (my ($k, $v) = each %ret) {
+                $ret{$k} = ref($v) ? TO_JSON($v, 1) : "$v";
             }
             return \%ret;
         }
-        else { return "$ast" }
+        else {return "$ast"}
     }
 
-    sub name        { $_[0]->{t} }
-    sub content     {
-       my $e = shift;
-       $e->set_content(@_) if @_;
-       $e->{c}
+    sub name {$_[0]->{t}}
+
+    sub content {
+        my $e = shift;
+        $e->set_content(@_) if @_;
+        $e->{c};
     }
-    sub set_content { # TODO: document this
-       my $e = shift;
-       $e->{c} = @_ == 1 ? $_[0] : [@_]
+
+    sub set_content {    # TODO: document this
+        my $e = shift;
+        $e->{c} = @_ == 1 ? $_[0] : [@_];
     }
-    sub is_document { 0 }
-    sub is_block    { 0 }
-    sub is_inline   { 0 }
-    sub is_meta     { 0 }
-    sub as_block    {
-        bless { t => 'Null', c => [] }, 'Pandoc::Document::Null';
+    sub is_document {0}
+    sub is_block    {0}
+    sub is_inline   {0}
+    sub is_meta     {0}
+
+    sub as_block {
+        bless {t => 'Null', c => []}, 'Pandoc::Document::Null';
     }
     *walk      = *Pandoc::Walker::walk;
     *query     = *Pandoc::Walker::query;
@@ -540,24 +567,24 @@ sub pandoc_json($) {
     sub string {
 
         # TODO: fix issue #4 to avoid this duplication
-        if ( $_[0]->name =~ /^(Str|Code|CodeBlock|Math|MetaString)$/ ) {
+        if ($_[0]->name =~ /^(Str|Code|CodeBlock|Math|MetaString)$/) {
             return $_[0]->content;
         }
-        elsif ( $_[0]->name =~ /^(LineBreak|SoftBreak|Space)$/ ) {
+        elsif ($_[0]->name =~ /^(LineBreak|SoftBreak|Space)$/) {
             return ' ';
         }
         join '', @{
             $_[0]->query(
                 {
-                    'Str|Code|CodeBlock|Math|MetaString'  => sub { $_->content },
-                    'LineBreak|Space|SoftBreak' => sub { ' ' },
+                    'Str|Code|CodeBlock|Math|MetaString' => sub {$_->content},
+                    'LineBreak|Space|SoftBreak'          => sub {' '},
                 }
             );
         };
     }
 
     sub match {
-        my $self = shift;
+        my $self     = shift;
         my $selector = blessed $_[0] ? shift : Pandoc::Selector->new(shift);
         $selector->match($self);
     }
@@ -572,39 +599,40 @@ sub pandoc_json($) {
 
     sub id {
         $_[0]->attr->[0] = defined $_[1] ? "$_[1]" : "" if @_ > 1;
-        $_[0]->attr->[0]
+        $_[0]->attr->[0];
     }
 
     sub classes {
         my $e = shift;
         croak 'Method classes() is not a setter' if @_;
         warn "->classes is deprecated. Use [ split ' ', \$e->class ] instead\n";
-        $e->attr->[1]
+        $e->attr->[1];
     }
 
     sub class {
         my $e = shift;
         if (@_) {
-            $e->attr->[1] = [
-                grep { $_ ne '' }
-                map { split qr/\s+/, $_ }
-                map { (ref $_ and reftype $_ eq 'ARRAY') ? @$_ : $_ }
-                @_
-            ];
+            $e->attr->[1]
+                = [grep {$_ ne ''}
+                map {split qr/\s+/, $_}
+                map {(ref $_ and reftype $_ eq 'ARRAY') ? @$_ : $_} @_];
         }
-        join ' ', @{$e->attr->[1]}
+        join ' ', @{$e->attr->[1]};
     }
 
     sub add_attribute {
         my ($e, $key, $value) = @_;
         if ($key eq 'id') {
             $e->id($value);
-        } elsif ($key eq 'class') {
+        }
+        elsif ($key eq 'class') {
             $value //= '';
             $value = ["$value"] unless (reftype $value // '') eq 'ARRAY';
-            push @{$e->attr->[1]}, grep { $_ ne '' } map { split qr/\s+/, $_ } @$value;
-        } else {
-            push @{$e->attr->[2]}, [ $key, "$value" ];
+            push @{$e->attr->[1]},
+                grep {$_ ne ''} map {split qr/\s+/, $_} @$value;
+        }
+        else {
+            push @{$e->attr->[2]}, [$key, "$value"];
         }
     }
 
@@ -617,12 +645,12 @@ sub pandoc_json($) {
             }
             $e->attr->[1] = [] if exists $attrs->{class};
             $e->attr->[2] = [];
-            $attrs->each(sub { $e->add_attribute(@_) });
+            $attrs->each(sub {$e->add_attribute(@_)});
         }
         my @h;
-        push @h, id => $e->id if $e->id ne '';
+        push @h, id    => $e->id    if $e->id ne '';
         push @h, class => $e->class if @{$e->attr->[1]};
-        Hash::MultiValue->new( @h, map { @$_ } @{$e->attr->[2]} );
+        Hash::MultiValue->new(@h, map {@$_} @{$e->attr->[2]});
     }
 
 }
@@ -632,9 +660,10 @@ sub pandoc_json($) {
     package Pandoc::Document::Block;
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
-    sub is_block { 1 }
-    sub as_block { $_[0] }
-    sub null { # TODO: document this (?)
+    sub is_block {1}
+    sub as_block {$_[0]}
+
+    sub null {    # TODO: document this (?)
         %{$_[0]} = (t => 'Null', c => []);
         bless $_[0], 'Pandoc::Document::Null';
     }
@@ -645,9 +674,10 @@ sub pandoc_json($) {
     package Pandoc::Document::Inline;
     our $VERSION = $PANDOC::Document::VERSION;
     our @ISA     = ('Pandoc::Document::Element');
-    sub is_inline { 1 }
+    sub is_inline {1}
+
     sub as_block {
-        bless { t => 'Plain', c => [ $_[0] ] }, 'Pandoc::Document::Plain';
+        bless {t => 'Plain', c => [$_[0]]}, 'Pandoc::Document::Plain';
     }
 }
 
@@ -661,28 +691,38 @@ sub pandoc_json($) {
         unshift @{"Pandoc::Document::${Element}::ISA"}, __PACKAGE__; # no critic
     }
 
-    sub url   { my $e = shift; $e->{c}->[-1][0] = shift if @_; return $e->{c}->[-1][0] //= ""; }
-    sub title { my $e = shift; $e->{c}->[-1][1] = shift if @_; return $e->{c}->[-1][1] //= ""; }
+    sub url {
+        my $e = shift;
+        $e->{c}->[-1][0] = shift if @_;
+        return $e->{c}->[-1][0] //= "";
+    }
+
+    sub title {
+        my $e = shift;
+        $e->{c}->[-1][1] = shift if @_;
+        return $e->{c}->[-1][1] //= "";
+    }
 
     sub upgrade {
+
         # prepend attributes to old-style ast
-        unshift @{ $_[0]->{c} }, [ "", [], [] ]
-            if 2 == @{ $_[0]->{c} };
+        unshift @{$_[0]->{c}}, ["", [], []] if 2 == @{$_[0]->{c}};
     }
 }
 
 {
+
     package Pandoc::Document::Citation;
     our $VERSION = $PANDOC::Document::VERSION;
 
     use Carp qw[ carp croak ];
 
     my %props = (
-        id     => { key => 'citationId',      default => '"missing"' },
-        prefix => { key => 'citationPrefix',  default => '[]' },
-        suffix => { key => 'citationSuffix',  default => '[]' },
-        num    => { key => 'citationNoteNum', default => '0' },
-        hash   => { key => 'citationHash',    default => '1' },
+        id     => {key => 'citationId',      default => '"missing"'},
+        prefix => {key => 'citationPrefix',  default => '[]'},
+        suffix => {key => 'citationSuffix',  default => '[]'},
+        num    => {key => 'citationNoteNum', default => '0'},
+        hash   => {key => 'citationHash',    default => '1'},
         mode   => {
             key     => 'citationMode',
             default => q{
@@ -710,16 +750,16 @@ no warnings 'once';
 1;
 END_OF_TEMPLATE
 
-        while ( my ( $name, $prop ) = each %props ) {
+        while (my ($name, $prop) = each %props) {
             $prop->{name}   = $name;
             $prop->{method} = "Pandoc::Document::Citation::$name";
             $prop->{alias}  = "Pandoc::Document::Citation::$prop->{key}";
             $prop->{coerce}
-              = $prop->{default} =~ /^\d$/ ? '0 +'
-              : $prop->{default} =~ /^"/   ? '"" .'
-              :                              "";
+                = $prop->{default} =~ /^\d$/ ? '0 +'
+                : $prop->{default} =~ /^"/   ? '"" .'
+                :                              "";
             {
-                ( my $source = $template ) =~ s/\Q[[[\E(\w+)\Q]]]\E/$prop->{$1}/g;
+                (my $source = $template) =~ s/\Q[[[\E(\w+)\Q]]]\E/$prop->{$1}/g;
                 local $@;
                 ## no critic
                 eval $source || croak $@ . $source;
@@ -727,14 +767,15 @@ END_OF_TEMPLATE
         }
     }
 
-    my %accessors = map { ; $_->{name} => $_->{key} } values %props;
+    my %accessors = map {; $_->{name} => $_->{key}} values %props;
 
     sub new {
-        my ( $class, $arg ) = @_;
+        my ($class, $arg) = @_;
         my $self = bless {}, $class;
-        while ( my ( $name, $key ) = each %accessors ) {
+        while (my ($name, $key) = each %accessors) {
+
             # coerce on access
-            $self->$name( $arg->{$key} // $arg->{$name} );
+            $self->$name($arg->{$key} // $arg->{$name});
         }
         return $self;
     }
@@ -749,82 +790,85 @@ END_OF_TEMPLATE
 sub Pandoc::Document::to_json {
     my ($self) = @_;
 
-    local $Pandoc::Elements::PANDOC_VERSION =
-        $Pandoc::Elements::PANDOC_VERSION // $self->pandoc_version;
+    local $Pandoc::Elements::PANDOC_VERSION = $Pandoc::Elements::PANDOC_VERSION
+        // $self->pandoc_version;
 
-    return Pandoc::Document::Element::to_json( $self->TO_JSON );
+    return Pandoc::Document::Element::to_json($self->TO_JSON);
 }
 
 sub Pandoc::Document::TO_JSON {
-    my ( $self ) = @_;
+    my ($self) = @_;
     return $self->api_version >= 1.17
-        ? { %$self }
-        : [ { unMeta => $self->{meta} }, $self->{blocks} ]
+        ? {%$self}
+        : [{unMeta => $self->{meta}}, $self->{blocks}];
 }
 
 {
     no warnings 'once';
-    *Pandoc::Document::DefinitionPair::TO_JSON = \&Pandoc::Document::Element::TO_JSON;
+    *Pandoc::Document::DefinitionPair::TO_JSON
+        = \&Pandoc::Document::Element::TO_JSON;
 }
 
 sub Pandoc::Document::SoftBreak::TO_JSON {
-    if ( pandoc_version() < '1.16' ) {
-        return { t => 'Space', c => [] };
-    } else {
-        return { t => 'SoftBreak', c => [] };
+    if (pandoc_version() < '1.16') {
+        return {t => 'Space', c => []};
+    }
+    else {
+        return {t => 'SoftBreak', c => []};
     }
 }
 
 sub Pandoc::Document::LinkageRole::TO_JSON {
-    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
-    if ( pandoc_version() < 1.16 ) {
+    my $ast = Pandoc::Document::Element::TO_JSON($_[0]);
+    if (pandoc_version() < 1.16) {
+
         # remove attributes
-        $ast->{c} = [ @{ $ast->{c} }[ 1, 2 ] ];
+        $ast->{c} = [@{$ast->{c}}[1, 2]];
     }
     return $ast;
 }
 
 sub Pandoc::Document::Header::TO_JSON {
-    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $ast = Pandoc::Document::Element::TO_JSON($_[0]);
 
     # coerce heading level to int
-    $ast->{c}[0] = int( $ast->{c}[0] );
+    $ast->{c}[0] = int($ast->{c}[0]);
     return $ast;
 }
 
 sub Pandoc::Document::OrderedList::TO_JSON {
-    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $ast = Pandoc::Document::Element::TO_JSON($_[0]);
 
     # coerce first item number to int
-    $ast->{c}[0][0] = int( $ast->{c}[0][0] );
+    $ast->{c}[0][0] = int($ast->{c}[0][0]);
     return $ast;
 }
 
 sub Pandoc::Document::Table::TO_JSON {
-    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $ast = Pandoc::Document::Element::TO_JSON($_[0]);
 
     # coerce column widths to numbers (floats)
-    $_ += 0 for @{ $ast->{c}[2] };    # faster than map
+    $_ += 0 for @{$ast->{c}[2]};    # faster than map
     return $ast;
 }
 
 sub Pandoc::Document::Cite::TO_JSON {
-    my $ast = Pandoc::Document::Element::TO_JSON( $_[0] );
-    for my $citation ( @{ $ast->{c}[0] } ) {
+    my $ast = Pandoc::Document::Element::TO_JSON($_[0]);
+    for my $citation (@{$ast->{c}[0]}) {
         for my $key (qw[ citationHash citationNoteNum ]) {
 
             # coerce to int
-            $citation->{$key} = int( $citation->{$key} );
+            $citation->{$key} = int($citation->{$key});
         }
     }
     return $ast;
 }
 
 sub Pandoc::Document::LineBlock::TO_JSON {
-    my $ast     = Pandoc::Document::Element::TO_JSON( $_[0] );
+    my $ast     = Pandoc::Document::Element::TO_JSON($_[0]);
     my $content = $ast->{c};
 
-    for my $line ( @$content ) {
+    for my $line (@$content) {
 
         # Convert spaces at the beginning of each line
         # to Unicode non-breaking spaces, because pandoc does.
@@ -834,9 +878,9 @@ sub Pandoc::Document::LineBlock::TO_JSON {
 
     return $ast if pandoc_version() >= 1.18;
 
-    my $c = [ map { ; @$_, LineBreak() } @{$content} ];
+    my $c = [map {; @$_, LineBreak()} @{$content}];
     pop @$c;    # remove trailing line break
-    return Para( $c )->TO_JSON;
+    return Para($c)->TO_JSON;
 }
 
 1;
