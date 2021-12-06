@@ -13,7 +13,7 @@ is pandoc_version(), '1.3', 'set pandoc_version via variable';
 
 {
     local $Pandoc::Elements::PANDOC_VERSION = undef;
-    is pandoc_version(), '1.19', 'maximum supported version';
+    is pandoc_version(), '2.16', 'maximum supported version (default)';
 }
 is pandoc_version(), '1.3', 'localize PANDOC_VERSION';
 

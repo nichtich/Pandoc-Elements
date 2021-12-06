@@ -37,14 +37,14 @@ my %data = (
             }
         ],
     ],
-    1.17 => [
+    1.22 => [
         'meta, blocks' => [ 
             doc_meta, doc_blocks,
         ],
         'meta, blocks, api_version =>' => [
             doc_meta,
             doc_blocks,
-            api_version => '1.17',
+            api_version => '1.22',
         ],
         '{ meta =>, blocks => }' => [
             { meta => doc_meta, blocks => doc_blocks }
@@ -52,14 +52,14 @@ my %data = (
         '{ meta =>, blocks =>, pandoc-api-version => }' => [
             {   meta => doc_meta,
                 blocks => doc_blocks,
-                'pandoc-api-version' => [ 1, 17 ],
+                'pandoc-api-version' => [ 1, 22 ],
             }
         ],
     ],
 );
 
 my %json = (
-  '1.17' => '{"blocks":[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}],"meta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"SoftBreak"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}},"pandoc-api-version":[1,17]}',
+  '1.22' => '{"blocks":[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}],"meta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"SoftBreak"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}},"pandoc-api-version":[1,22]}',
   '1.16' => '[{"unMeta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"SoftBreak"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}}},[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}]]',
   '1.12.3' => '[{"unMeta":{"title":{"c":[{"c":[{"c":"A","t":"Str"},{"c":[],"t":"Space"},{"c":"message","t":"Str"}],"t":"Plain"}],"t":"MetaInlines"}}},[{"c":[1,["",[],[]],[{"c":"Hej","t":"Str"},{"c":[],"t":"Space"},{"c":"V\u00e4rlden!","t":"Str"}]],"t":"Header"},{"c":[{"c":"Hur","t":"Str"},{"c":[],"t":"Space"},{"c":"m\u00e5r","t":"Str"},{"c":[],"t":"Space"},{"c":"du","t":"Str"},{"c":[],"t":"Space"},{"c":"idag?","t":"Str"}],"t":"Para"}]]',
 );
@@ -80,7 +80,7 @@ sub test_document(@) {
     };
 }
 
-foreach my $api_version ( qw[ 1.16 1.17 ] ) {
+foreach my $api_version ( qw[ 1.16 1.22 ] ) {
     subtest $api_version => sub {
         my $expect = pandoc_json $json{$api_version};
         is $expect->api_version, $api_version, 'api_version';

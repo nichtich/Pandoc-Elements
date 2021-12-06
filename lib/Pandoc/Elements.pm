@@ -22,6 +22,23 @@ my $PANDOC_BIN_MIN = Pandoc::Version->new('1.12.1');
 
 # release version => minimal required api version (= pandoc-types version)
 my @REQUIRED_API = map {Pandoc::Version->new($_)}
+    '2.16' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22
+    '2.15' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22
+    '2.14' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22
+    '2.13' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22
+    '2.12' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22
+    '2.11' => '1.22',    # pandoc 2.9 requires pandoc-types 1.22 (Tables)
+    '2.10' => '1.21',    # pandoc 2.9 requires pandoc-types 1.21 (Underline)
+    '2.9'  => '1.20',    # pandoc 2.9 requires pandoc-types 1.20
+    '2.8'  => '1.20',    # pandoc 2.8 requires pandoc-types 1.20
+    '2.7'  => '1.17',    # pandoc 2.7 requires pandoc-types 1.17
+    '2.6'  => '1.17',    # pandoc 2.6 requires pandoc-types 1.17
+    '2.5'  => '1.17',    # pandoc 2.5 requires pandoc-types 1.17
+    '2.4'  => '1.17',    # pandoc 2.4 requires pandoc-types 1.17
+    '2.3'  => '1.17',    # pandoc 2.3 requires pandoc-types 1.17
+    '2.2'  => '1.17',    # pandoc 2.2 requires pandoc-types 1.17
+    '2.1'  => '1.17',    # pandoc 2.1 requires pandoc-types 1.17
+    '2.0'  => '1.17',    # pandoc 2.0 requires pandoc-types 1.17
     '1.19' => '1.17',    # pandoc 1.19 requires pandoc-types 1.17
     '1.18' => '1.17',    # pandoc 1.18 requires pandoc-types 1.17
     '1.16' => '1.16',    # pandoc 1.16 requires pandoc-types 1.16
